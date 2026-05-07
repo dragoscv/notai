@@ -16,7 +16,7 @@ This document explains:
 ## 1. Endpoints
 
 All endpoints are mounted under the web app's origin (e.g.
-`https://notai.app` or `http://localhost:3000` in dev).
+`https://notai.app` or `http://localhost:15600` in dev).
 
 ### Discovery (well-known)
 
@@ -158,7 +158,7 @@ notai.
    - Name: `metu`
    - Redirect URIs (one per line):
      - `https://metu.example.com/api/integrations/notai/callback`
-     - `http://localhost:3000/api/integrations/notai/callback` (for dev)
+     - `http://localhost:15600/api/integrations/notai/callback` (for dev)
    - Type: **Confidential**
    - Allowed scopes: `openid profile email offline_access notes:read notes:write notes:delete folders:read folders:write mcp`
 
@@ -241,11 +241,11 @@ pnpm --filter @notai/db migrate
 pnpm dev
 
 # 2. Discovery
-curl http://localhost:3000/.well-known/oauth-authorization-server
-curl http://localhost:3000/.well-known/oauth-protected-resource
+curl http://localhost:15600/.well-known/oauth-authorization-server
+curl http://localhost:15600/.well-known/oauth-protected-resource
 
 # 3. Dynamic registration
-curl -X POST http://localhost:3000/api/oauth/register `
+curl -X POST http://localhost:15600/api/oauth/register `
   -H "content-type: application/json" `
   -d '{
     "client_name": "test client",
@@ -254,7 +254,7 @@ curl -X POST http://localhost:3000/api/oauth/register `
   }'
 
 # 4. Open browser to start the flow:
-#    http://localhost:3000/api/oauth/authorize
+#    http://localhost:15600/api/oauth/authorize
 #      ?response_type=code
 #      &client_id=<from step 3>
 #      &redirect_uri=http://localhost:8765/callback

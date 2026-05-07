@@ -11,30 +11,30 @@ import { cn } from '@notai/lib/utils';
  * spawn N copies.
  */
 export function NoteCardGrid({
-    notes,
-    className,
+  notes,
+  className,
 }: {
-    notes: NoteWithPreview[];
-    className?: string;
+  notes: NoteWithPreview[];
+  className?: string;
 }) {
-    const actions = useNoteActions();
-    return (
-        <>
-            <div
-                className={cn(
-                    'grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6',
-                    className,
-                )}
-            >
-                {notes.map((n) => (
-                    <actions.ContextMenu key={n.id} note={n}>
-                        <div>
-                            <NoteCard note={n} />
-                        </div>
-                    </actions.ContextMenu>
-                ))}
+  const actions = useNoteActions();
+  return (
+    <>
+      <div
+        className={cn(
+          'grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6',
+          className,
+        )}
+      >
+        {notes.map((n) => (
+          <actions.ContextMenu key={n.id} note={n}>
+            <div>
+              <NoteCard note={n} />
             </div>
-            {actions.dialogs}
-        </>
-    );
+          </actions.ContextMenu>
+        ))}
+      </div>
+      {actions.dialogs}
+    </>
+  );
 }

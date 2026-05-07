@@ -1,7 +1,9 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
+/* All dark-flavoured palettes activate the `dark:` variant. The selector
+ * targets descendants of any <html data-theme="..."> matching a dark theme. */
+@custom-variant dark (&:is([data-theme="midnight"] *, [data-theme="oled"] *, [data-theme="slate"] *, [data-theme="rose"] *, [data-theme="forest"] *));
 
 /*
  * Notai design tokens — warm, focused, low-visual-noise palette.
@@ -11,7 +13,10 @@
 @theme inline {
     --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
     --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-    --font-serif: 'Lora', ui-serif, Georgia, serif;
+    /* Display face — same Geist Sans the sidebar/nav uses, just typically rendered
+     * at a heavier weight where applied. Keeps a single typographic voice across
+     * brand, headings, and note titles. */
+    --font-serif: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
@@ -88,8 +93,11 @@
 
 :root {
     --radius: 0.75rem;
+}
 
-    /* Warm paper light */
+/* ─── Paper · warm cream light (default light) ────────────────────── */
+:root,
+[data-theme='paper'] {
     --background: oklch(0.99 0.005 85);
     --foreground: oklch(0.25 0.015 60);
     --card: oklch(1 0 0);
@@ -121,8 +129,42 @@
     --sticky-black-fg: oklch(0.96 0.01 85);
 }
 
-.dark {
-    --background: oklch(0 0 0);
+/* ─── Mocha · sepia warm light, tobacco accent ────────────────────── */
+[data-theme='mocha'] {
+    --background: oklch(0.96 0.018 75);
+    --foreground: oklch(0.25 0.03 50);
+    --card: oklch(0.98 0.012 75);
+    --card-foreground: oklch(0.25 0.03 50);
+    --popover: oklch(0.98 0.012 75);
+    --popover-foreground: oklch(0.25 0.03 50);
+    --primary: oklch(0.45 0.11 50);
+    --primary-foreground: oklch(0.98 0.005 75);
+    --secondary: oklch(0.92 0.025 70);
+    --secondary-foreground: oklch(0.3 0.04 50);
+    --muted: oklch(0.92 0.018 75);
+    --muted-foreground: oklch(0.5 0.03 55);
+    --accent: oklch(0.88 0.05 60);
+    --accent-foreground: oklch(0.3 0.08 50);
+    --destructive: oklch(0.55 0.22 25);
+    --destructive-foreground: oklch(0.98 0 0);
+    --border: oklch(0.86 0.025 70);
+    --input: oklch(0.86 0.025 70);
+    --ring: oklch(0.45 0.11 50);
+
+    --sticky-yellow: oklch(0.93 0.09 90);
+    --sticky-pink: oklch(0.91 0.07 5);
+    --sticky-blue: oklch(0.91 0.05 230);
+    --sticky-green: oklch(0.91 0.06 150);
+    --sticky-purple: oklch(0.91 0.05 300);
+    --sticky-orange: oklch(0.93 0.08 55);
+    --sticky-black: oklch(0.2 0.01 50);
+    --sticky-fg: oklch(0.28 0.04 50);
+    --sticky-black-fg: oklch(0.96 0.018 75);
+}
+
+/* ─── Midnight · violet dark (default dark) ───────────────────────── */
+[data-theme='midnight'] {
+    --background: oklch(0.07 0.005 270);
     --foreground: oklch(0.96 0.01 85);
     --card: oklch(0.14 0.008 270);
     --card-foreground: oklch(0.96 0.01 85);
@@ -151,6 +193,138 @@
     --sticky-black: oklch(0 0 0);
     --sticky-fg: oklch(0.96 0.01 85);
     --sticky-black-fg: oklch(0.96 0.01 85);
+}
+
+/* ─── OLED · pure black, electric blue accent (modern) ────────────── */
+[data-theme='oled'] {
+    --background: oklch(0 0 0);
+    --foreground: oklch(0.97 0 0);
+    --card: oklch(0.09 0 0);
+    --card-foreground: oklch(0.97 0 0);
+    --popover: oklch(0.07 0 0);
+    --popover-foreground: oklch(0.97 0 0);
+    --primary: oklch(0.78 0.16 240);
+    --primary-foreground: oklch(0.04 0 0);
+    --secondary: oklch(0.13 0 0);
+    --secondary-foreground: oklch(0.97 0 0);
+    --muted: oklch(0.11 0 0);
+    --muted-foreground: oklch(0.62 0 0);
+    --accent: oklch(0.18 0.02 240);
+    --accent-foreground: oklch(0.97 0 0);
+    --destructive: oklch(0.65 0.22 25);
+    --destructive-foreground: oklch(0.97 0 0);
+    --border: oklch(0.18 0 0);
+    --input: oklch(0.18 0 0);
+    --ring: oklch(0.78 0.16 240);
+
+    --sticky-yellow: oklch(0.36 0.08 95);
+    --sticky-pink: oklch(0.34 0.07 0);
+    --sticky-blue: oklch(0.34 0.07 235);
+    --sticky-green: oklch(0.34 0.07 150);
+    --sticky-purple: oklch(0.34 0.06 300);
+    --sticky-orange: oklch(0.36 0.08 60);
+    --sticky-black: oklch(0 0 0);
+    --sticky-fg: oklch(0.96 0 0);
+    --sticky-black-fg: oklch(0.96 0 0);
+}
+
+/* ─── Slate · cool blue-grey dark, cyan accent ────────────────────── */
+[data-theme='slate'] {
+    --background: oklch(0.13 0.012 250);
+    --foreground: oklch(0.95 0.008 250);
+    --card: oklch(0.17 0.014 250);
+    --card-foreground: oklch(0.95 0.008 250);
+    --popover: oklch(0.16 0.014 250);
+    --popover-foreground: oklch(0.95 0.008 250);
+    --primary: oklch(0.78 0.13 210);
+    --primary-foreground: oklch(0.13 0.012 250);
+    --secondary: oklch(0.21 0.015 250);
+    --secondary-foreground: oklch(0.95 0.008 250);
+    --muted: oklch(0.19 0.014 250);
+    --muted-foreground: oklch(0.66 0.018 240);
+    --accent: oklch(0.27 0.04 220);
+    --accent-foreground: oklch(0.95 0.008 250);
+    --destructive: oklch(0.62 0.21 25);
+    --destructive-foreground: oklch(0.97 0 0);
+    --border: oklch(0.25 0.018 250);
+    --input: oklch(0.25 0.018 250);
+    --ring: oklch(0.78 0.13 210);
+
+    --sticky-yellow: oklch(0.4 0.09 95);
+    --sticky-pink: oklch(0.38 0.08 0);
+    --sticky-blue: oklch(0.4 0.08 235);
+    --sticky-green: oklch(0.38 0.08 150);
+    --sticky-purple: oklch(0.38 0.07 300);
+    --sticky-orange: oklch(0.4 0.09 60);
+    --sticky-black: oklch(0.05 0.01 250);
+    --sticky-fg: oklch(0.95 0.008 250);
+    --sticky-black-fg: oklch(0.95 0.008 250);
+}
+
+/* ─── Rose · warm dark, dusty rose accent ─────────────────────────── */
+[data-theme='rose'] {
+    --background: oklch(0.13 0.015 20);
+    --foreground: oklch(0.96 0.01 30);
+    --card: oklch(0.17 0.018 20);
+    --card-foreground: oklch(0.96 0.01 30);
+    --popover: oklch(0.16 0.018 20);
+    --popover-foreground: oklch(0.96 0.01 30);
+    --primary: oklch(0.75 0.15 15);
+    --primary-foreground: oklch(0.13 0.015 20);
+    --secondary: oklch(0.21 0.022 20);
+    --secondary-foreground: oklch(0.96 0.01 30);
+    --muted: oklch(0.19 0.018 20);
+    --muted-foreground: oklch(0.66 0.022 25);
+    --accent: oklch(0.27 0.05 15);
+    --accent-foreground: oklch(0.96 0.01 30);
+    --destructive: oklch(0.62 0.22 25);
+    --destructive-foreground: oklch(0.97 0 0);
+    --border: oklch(0.25 0.025 20);
+    --input: oklch(0.25 0.025 20);
+    --ring: oklch(0.75 0.15 15);
+
+    --sticky-yellow: oklch(0.4 0.09 95);
+    --sticky-pink: oklch(0.4 0.09 5);
+    --sticky-blue: oklch(0.38 0.07 235);
+    --sticky-green: oklch(0.38 0.08 150);
+    --sticky-purple: oklch(0.38 0.07 300);
+    --sticky-orange: oklch(0.4 0.09 60);
+    --sticky-black: oklch(0.05 0.01 20);
+    --sticky-fg: oklch(0.96 0.01 30);
+    --sticky-black-fg: oklch(0.96 0.01 30);
+}
+
+/* ─── Forest · deep green-tinted dark, emerald accent ─────────────── */
+[data-theme='forest'] {
+    --background: oklch(0.13 0.018 160);
+    --foreground: oklch(0.96 0.01 150);
+    --card: oklch(0.17 0.02 160);
+    --card-foreground: oklch(0.96 0.01 150);
+    --popover: oklch(0.16 0.02 160);
+    --popover-foreground: oklch(0.96 0.01 150);
+    --primary: oklch(0.75 0.16 155);
+    --primary-foreground: oklch(0.12 0.018 160);
+    --secondary: oklch(0.21 0.022 160);
+    --secondary-foreground: oklch(0.96 0.01 150);
+    --muted: oklch(0.19 0.02 160);
+    --muted-foreground: oklch(0.66 0.022 150);
+    --accent: oklch(0.27 0.05 155);
+    --accent-foreground: oklch(0.96 0.01 150);
+    --destructive: oklch(0.62 0.22 25);
+    --destructive-foreground: oklch(0.97 0 0);
+    --border: oklch(0.25 0.025 160);
+    --input: oklch(0.25 0.025 160);
+    --ring: oklch(0.75 0.16 155);
+
+    --sticky-yellow: oklch(0.4 0.09 95);
+    --sticky-pink: oklch(0.38 0.08 0);
+    --sticky-blue: oklch(0.38 0.07 235);
+    --sticky-green: oklch(0.42 0.1 150);
+    --sticky-purple: oklch(0.38 0.07 300);
+    --sticky-orange: oklch(0.4 0.09 60);
+    --sticky-black: oklch(0.05 0.012 160);
+    --sticky-fg: oklch(0.96 0.01 150);
+    --sticky-black-fg: oklch(0.96 0.01 150);
 }
 
 @layer base {

@@ -11,30 +11,30 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-static';
 
 export function GET(req: Request) {
-    const url = new URL(req.url);
-    const issuer = `${url.protocol}//${url.host}`;
-    return NextResponse.json(
-        {
-            // The protected resource itself (the MCP endpoint).
-            resource: `${issuer}/api/mcp`,
-            // The authorization server(s) that mint tokens for it.
-            authorization_servers: [issuer],
-            scopes_supported: [
-                'openid',
-                'profile',
-                'email',
-                'offline_access',
-                'notes:read',
-                'notes:write',
-                'notes:delete',
-                'folders:read',
-                'folders:write',
-                'mcp',
-            ],
-            bearer_methods_supported: ['header'],
-            resource_documentation: `${issuer}/docs/oauth`,
-            resource_name: 'notai notes',
-        },
-        { headers: { 'cache-control': 'public, max-age=300' } },
-    );
+  const url = new URL(req.url);
+  const issuer = `${url.protocol}//${url.host}`;
+  return NextResponse.json(
+    {
+      // The protected resource itself (the MCP endpoint).
+      resource: `${issuer}/api/mcp`,
+      // The authorization server(s) that mint tokens for it.
+      authorization_servers: [issuer],
+      scopes_supported: [
+        'openid',
+        'profile',
+        'email',
+        'offline_access',
+        'notes:read',
+        'notes:write',
+        'notes:delete',
+        'folders:read',
+        'folders:write',
+        'mcp',
+      ],
+      bearer_methods_supported: ['header'],
+      resource_documentation: `${issuer}/docs/oauth`,
+      resource_name: 'notai notes',
+    },
+    { headers: { 'cache-control': 'public, max-age=300' } },
+  );
 }

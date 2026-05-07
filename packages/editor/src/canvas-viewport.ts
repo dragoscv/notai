@@ -13,29 +13,25 @@ import type * as Y from 'yjs';
  * for the author to jiggle something.
  */
 export interface CanvasViewport {
-    /** Width of the drawing/text pane in CSS pixels at design time. */
-    width: number;
-    /** Height of the drawing/text pane in CSS pixels at design time. */
-    height: number;
-    /** Vertical scroll offset of the text column in CSS pixels. */
-    scrollTop: number;
+  /** Width of the drawing/text pane in CSS pixels at design time. */
+  width: number;
+  /** Height of the drawing/text pane in CSS pixels at design time. */
+  height: number;
+  /** Vertical scroll offset of the text column in CSS pixels. */
+  scrollTop: number;
 }
 
 const VIEWPORT_MAP = 'viewport';
 
 function readViewport(doc: Y.Doc): CanvasViewport | null {
-    const map = doc.getMap(VIEWPORT_MAP);
-    const width = map.get('width');
-    const height = map.get('height');
-    const scrollTop = map.get('scrollTop');
-    if (
-        typeof width !== 'number' ||
-        typeof height !== 'number' ||
-        typeof scrollTop !== 'number'
-    ) {
-        return null;
-    }
-    return { width, height, scrollTop };
+  const map = doc.getMap(VIEWPORT_MAP);
+  const width = map.get('width');
+  const height = map.get('height');
+  const scrollTop = map.get('scrollTop');
+  if (typeof width !== 'number' || typeof height !== 'number' || typeof scrollTop !== 'number') {
+    return null;
+  }
+  return { width, height, scrollTop };
 }
 
 /**
@@ -44,50 +40,50 @@ function readViewport(doc: Y.Doc): CanvasViewport | null {
  * resize events collapse to at most one Yjs transaction per frame.
  */
 export function useCanvasViewportWriter(
-    doc: Y.Doc | null,
-    pane: HTMLElement | null,
-    scrollTop: number,
+  doc: Y.Doc | null,
+  pane: HTMLElement | null,
+  scrollTop: number,
 ): void {
-    const lastRef = React.useRef<CanvasViewport | null>(null);
-    const rafRef = React.useRef(0);
+  const lastRef = React.useRef<CanvasViewport | null>(null);
+  const rafRef = React.useRef(0);
 
-    React.useEffect(() => {
-        if (!doc || !pane) return;
-        const map = doc.getMap(VIEWPORT_MAP);
-        const schedule = () => {
-            cancelAnimationFrame(rafRef.current);
-            rafRef.current = requestAnimationFrame(() => {
-                const next: CanvasViewport = {
-                    width: pane.clientWidth,
-                    height: pane.clientHeight,
-                    scrollTop,
-                };
-                const prev = lastRef.current;
-                if (
-                    prev &&
-                    prev.width === next.width &&
-                    prev.height === next.height &&
-                    prev.scrollTop === next.scrollTop
-                ) {
-                    return;
-                }
-                lastRef.current = next;
-                doc.transact(() => {
-                    map.set('width', next.width);
-                    map.set('height', next.height);
-                    map.set('scrollTop', next.scrollTop);
-                }, 'local-viewport');
-            });
+  React.useEffect(() => {
+    if (!doc || !pane) return;
+    const map = doc.getMap(VIEWPORT_MAP);
+    const schedule = () => {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        const next: CanvasViewport = {
+          width: pane.clientWidth,
+          height: pane.clientHeight,
+          scrollTop,
         };
-        schedule();
+        const prev = lastRef.current;
+        if (
+          prev &&
+          prev.width === next.width &&
+          prev.height === next.height &&
+          prev.scrollTop === next.scrollTop
+        ) {
+          return;
+        }
+        lastRef.current = next;
+        doc.transact(() => {
+          map.set('width', next.width);
+          map.set('height', next.height);
+          map.set('scrollTop', next.scrollTop);
+        }, 'local-viewport');
+      });
+    };
+    schedule();
 
-        const ro = new ResizeObserver(schedule);
-        ro.observe(pane);
-        return () => {
-            ro.disconnect();
-            cancelAnimationFrame(rafRef.current);
-        };
-    }, [doc, pane, scrollTop]);
+    const ro = new ResizeObserver(schedule);
+    ro.observe(pane);
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, [doc, pane, scrollTop]);
 }
 
 /**
@@ -95,18 +91,16 @@ export function useCanvasViewportWriter(
  * has published at least one geometry snapshot.
  */
 export function useCanvasViewportReader(doc: Y.Doc | null): CanvasViewport | null {
-    const [vp, setVp] = React.useState<CanvasViewport | null>(() =>
-        doc ? readViewport(doc) : null,
-    );
+  const [vp, setVp] = React.useState<CanvasViewport | null>(() => (doc ? readViewport(doc) : null));
 
-    React.useEffect(() => {
-        if (!doc) return;
-        setVp(readViewport(doc));
-        const map = doc.getMap(VIEWPORT_MAP);
-        const onChange = () => setVp(readViewport(doc));
-        map.observe(onChange);
-        return () => map.unobserve(onChange);
-    }, [doc]);
+  React.useEffect(() => {
+    if (!doc) return;
+    setVp(readViewport(doc));
+    const map = doc.getMap(VIEWPORT_MAP);
+    const onChange = () => setVp(readViewport(doc));
+    map.observe(onChange);
+    return () => map.unobserve(onChange);
+  }, [doc]);
 
-    return vp;
+  return vp;
 }

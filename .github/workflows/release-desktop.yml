@@ -81,9 +81,9 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - { os: macos-latest,  target: 'macos-universal', args: '--target universal-apple-darwin' }
-          - { os: ubuntu-22.04,  target: 'linux-x86_64',    args: '' }
-          - { os: windows-2025,  target: 'windows-x86_64',  args: '' }
+          - { os: macos-latest, target: 'macos-universal', args: '--target universal-apple-darwin' }
+          - { os: ubuntu-22.04, target: 'linux-x86_64', args: '' }
+          - { os: windows-2025, target: 'windows-x86_64', args: '' }
     runs-on: ${{ matrix.platform.os }}
     env:
       # Faster Cargo builds in CI: more parallel codegen units, no incremental
@@ -155,7 +155,7 @@ jobs:
             p.version='${{ needs.detect.outputs.version }}';
             for (const w of (p.app && p.app.windows) || []) {
               if (typeof w.url === 'string') {
-                w.url = w.url.replace(/^http:\/\/localhost:3000/, url);
+                w.url = w.url.replace(/^http:\/\/localhost:(3000|15600)/, url);
               }
             }
             fs.writeFileSync(path, JSON.stringify(p,null,2)+'\n');
@@ -194,9 +194,10 @@ jobs:
     name: Publish to Microsoft Store
     needs: [detect, build-desktop, publish-release]
     runs-on: windows-2025
-    # Skip when the Store secrets aren't configured yet (so the workflow still
-    # green-lights even before you've completed the one-time Partner Center setup).
-    if: ${{ needs.detect.outputs.bumped == 'true' }}
+    # Disabled: Microsoft Store publishing is intentionally turned off in CI
+    # while we iterate on installer + auth flows. Re-enable by flipping this
+    # back to `${{ needs.detect.outputs.bumped == 'true' }}`.
+    if: false
     steps:
       - uses: actions/checkout@v5
 

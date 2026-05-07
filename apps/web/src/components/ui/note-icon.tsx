@@ -15,25 +15,25 @@ import { cn } from '@notai/lib/utils';
  * render the default glyph so the UI never breaks.
  */
 export function NoteIcon({
-    icon,
-    className,
-    fallback,
+  icon,
+  className,
+  fallback,
 }: {
-    icon?: string | null;
-    className?: string;
-    /** Render this when no icon is set. Defaults to the `FileText` lucide glyph. */
-    fallback?: React.ReactNode;
+  icon?: string | null;
+  className?: string;
+  /** Render this when no icon is set. Defaults to the `FileText` lucide glyph. */
+  fallback?: React.ReactNode;
 }) {
-    if (!icon) {
-        return fallback !== undefined ? (
-            <>{fallback}</>
-        ) : (
-            <FileText className={cn('size-4', className)} />
-        );
-    }
-    if (icon.includes(':')) {
-        return <Icon icon={icon} className={className} />;
-    }
-    // Plain emoji / text.
-    return <span className={className}>{icon}</span>;
+  if (!icon) {
+    return fallback !== undefined ? (
+      <>{fallback}</>
+    ) : (
+      <FileText className={cn('size-4', className)} />
+    );
+  }
+  if (icon.includes(':')) {
+    return <Icon icon={icon} className={className} />;
+  }
+  // Plain emoji / text.
+  return <span className={className}>{icon}</span>;
 }

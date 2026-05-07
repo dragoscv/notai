@@ -77,7 +77,7 @@ pnpm db:push
 pnpm dev
 ```
 
-Open http://localhost:3000 and sign in.
+Open http://localhost:15600 and sign in.
 
 ### Desktop app (Tauri)
 

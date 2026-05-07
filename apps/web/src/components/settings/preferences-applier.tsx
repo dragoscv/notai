@@ -11,13 +11,13 @@ import { useAppPreferences } from '@/lib/preferences';
  * Mounted once near the root layout. Renders nothing.
  */
 export function PreferencesApplier() {
-    const [prefs] = useAppPreferences();
+  const [prefs] = useAppPreferences();
 
-    useEffect(() => {
-        const html = document.documentElement;
-        html.dataset.editorWidth = prefs.editorWidth;
-        html.spellcheck = prefs.spellcheck;
-    }, [prefs.editorWidth, prefs.spellcheck]);
+  useEffect(() => {
+    const html = document.documentElement;
+    html.dataset.editorWidth = prefs.editorWidth;
+    html.spellcheck = prefs.spellcheck;
+  }, [prefs.editorWidth, prefs.spellcheck]);
 
-    return null;
+  return null;
 }

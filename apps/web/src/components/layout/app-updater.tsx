@@ -18,101 +18,97 @@ import { isTauri, invoke } from '@/lib/tauri';
  *    Shows a subtle toast offering to reload.
  */
 export function AppUpdater() {
-    React.useEffect(() => {
-        if (isTauri()) {
-            let unlisten: (() => void) | null = null;
-            let cancelled = false;
+  React.useEffect(() => {
+    if (isTauri()) {
+      let unlisten: (() => void) | null = null;
+      let cancelled = false;
 
-            const showRestartToast = (version?: string) => {
-                toast.success(
-                    version
-                        ? `Update installed (v${version}). Restart Notai to apply.`
-                        : 'Update installed. Restart Notai to apply.',
-                    {
-                        id: 'updater-ready',
-                        duration: Infinity,
-                        action: {
-                            label: 'Restart now',
-                            onClick: () => {
-                                invoke('restart_app').catch(() => {
-                                    /* ignore — app is quitting */
-                                });
-                            },
-                        },
-                    },
-                );
-            };
+      const showRestartToast = (version?: string) => {
+        toast.success(
+          version
+            ? `Update installed (v${version}). Restart Notai to apply.`
+            : 'Update installed. Restart Notai to apply.',
+          {
+            id: 'updater-ready',
+            duration: Infinity,
+            action: {
+              label: 'Restart now',
+              onClick: () => {
+                invoke('restart_app').catch(() => {
+                  /* ignore — app is quitting */
+                });
+              },
+            },
+          },
+        );
+      };
 
-            (async () => {
-                try {
-                    const { listen } = await import('@tauri-apps/api/event');
-                    const un = await listen<{ version?: string }>(
-                        'updater://ready',
-                        (ev) => showRestartToast(ev.payload?.version),
-                    );
-                    if (cancelled) un();
-                    else unlisten = un;
-                } catch {
-                    /* tauri not ready — ignore */
-                }
-
-                // Belt-and-suspenders: if the Rust-side startup check fired
-                // before we subscribed, this second check picks up a staged
-                // update (or no-ops if there isn't one).
-                try {
-                    const applied = await invoke<boolean>('check_for_update');
-                    if (applied) showRestartToast();
-                } catch {
-                    /* offline, no update, or command missing — ignore */
-                }
-            })();
-
-            return () => {
-                cancelled = true;
-                unlisten?.();
-            };
+      (async () => {
+        try {
+          const { listen } = await import('@tauri-apps/api/event');
+          const un = await listen<{ version?: string }>('updater://ready', (ev) =>
+            showRestartToast(ev.payload?.version),
+          );
+          if (cancelled) un();
+          else unlisten = un;
+        } catch {
+          /* tauri not ready — ignore */
         }
 
-        // Browser / PWA path.
-        if (
-            typeof window === 'undefined' ||
-            !('serviceWorker' in navigator) ||
-            process.env.NODE_ENV !== 'production'
-        ) {
-            return;
+        // Belt-and-suspenders: if the Rust-side startup check fired
+        // before we subscribed, this second check picks up a staged
+        // update (or no-ops if there isn't one).
+        try {
+          const applied = await invoke<boolean>('check_for_update');
+          if (applied) showRestartToast();
+        } catch {
+          /* offline, no update, or command missing — ignore */
         }
+      })();
 
-        let reloaded = false;
-        const onControllerChange = () => {
-            if (reloaded) return;
-            reloaded = true;
-            toast('Notai updated — reload to apply', {
-                id: 'pwa-updated',
-                duration: 10_000,
-                action: {
-                    label: 'Reload',
-                    onClick: () => window.location.reload(),
-                },
-            });
-        };
-        navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+      return () => {
+        cancelled = true;
+        unlisten?.();
+      };
+    }
 
-        // Nudge the browser to check for a new SW on mount. Serwist registers
-        // the SW on its own; here we just trigger an update check so new
-        // deploys propagate quickly when users keep the tab open.
-        navigator.serviceWorker.getRegistration().then((reg) => {
-            reg?.update().catch(() => {
-                /* ignore */
-            });
-        });
+    // Browser / PWA path.
+    if (
+      typeof window === 'undefined' ||
+      !('serviceWorker' in navigator) ||
+      process.env.NODE_ENV !== 'production'
+    ) {
+      return;
+    }
 
-        return () => {
-            navigator.serviceWorker.removeEventListener(
-                'controllerchange',
-                onControllerChange,
-            );
-        };
-    }, []);
+    let reloaded = false;
+    const onControllerChange = () => {
+      if (reloaded) return;
+      reloaded = true;
+      toast('Notai updated — reload to apply', {
+        id: 'pwa-updated',
+        duration: 10_000,
+        action: {
+          label: 'Reload',
+          onClick: () => window.location.reload(),
+        },
+      });
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
 
-    return null;
+    // Nudge the browser to check for a new SW on mount. Serwist registers
+    // the SW on its own; here we just trigger an update check so new
+    // deploys propagate quickly when users keep the tab open.
+    navigator.serviceWorker.getRegistration().then((reg) => {
+      reg?.update().catch(() => {
+        /* ignore */
+      });
+    });
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+    };
+  }, []);
+
+  return null;
 }

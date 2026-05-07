@@ -1,29 +1,29 @@
 {
-    "name": "@notai/lib",
-    "version": "0.1.0",
-    "private": true,
-    "type": "module",
-    "exports": {
-        ".": "./src/index.ts",
-        "./env": "./src/env.ts",
-        "./utils": "./src/utils.ts",
-        "./jwt": "./src/jwt.ts",
-        "./oauth": "./src/oauth.ts"
-    },
-    "scripts": {
-        "typecheck": "tsc --noEmit",
-        "clean": "rimraf dist .turbo"
-    },
-    "dependencies": {
-        "@t3-oss/env-nextjs": "catalog:",
-        "clsx": "catalog:",
-        "date-fns": "catalog:",
-        "jose": "^5.9.6",
-        "tailwind-merge": "catalog:",
-        "zod": "catalog:"
-    },
-    "devDependencies": {
-        "rimraf": "^6.0.1",
-        "typescript": "catalog:"
-    }
+  "name": "@notai/lib",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./env": "./src/env.ts",
+    "./utils": "./src/utils.ts",
+    "./jwt": "./src/jwt.ts",
+    "./oauth": "./src/oauth.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist .turbo"
+  },
+  "dependencies": {
+    "@t3-oss/env-nextjs": "catalog:",
+    "clsx": "catalog:",
+    "date-fns": "catalog:",
+    "jose": "^5.9.6",
+    "tailwind-merge": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "typescript": "catalog:"
+  }
 }

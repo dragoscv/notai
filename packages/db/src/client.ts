@@ -16,29 +16,31 @@ if (!url) throw new Error('DATABASE_URL is required');
  * Next.js / Turbopack HMR module reloads don't keep creating fresh pools,
  * which quickly exhausts Postgres's `max_connections` in dev.
  */
-type DbInstance = ReturnType<typeof drizzlePg<typeof schema>> | ReturnType<typeof drizzleNeon<typeof schema>>;
+type DbInstance =
+  | ReturnType<typeof drizzlePg<typeof schema>>
+  | ReturnType<typeof drizzleNeon<typeof schema>>;
 
 const globalForDb = globalThis as unknown as {
-    __notaiSql?: ReturnType<typeof postgres>;
-    __notaiDb?: DbInstance;
+  __notaiSql?: ReturnType<typeof postgres>;
+  __notaiDb?: DbInstance;
 };
 
 function createDb(): DbInstance {
-    const isNeon = /neon\.tech|neon\.build/.test(url!);
-    if (isNeon) {
-        const client = neon(url!);
-        return drizzleNeon({ client, schema, casing: 'snake_case' });
-    }
-    const sql =
-        globalForDb.__notaiSql ??
-        postgres(url!, {
-            max: process.env.NODE_ENV === 'production' ? 10 : 5,
-            idle_timeout: 20,
-            max_lifetime: 60 * 30,
-            prepare: false,
-        });
-    if (process.env.NODE_ENV !== 'production') globalForDb.__notaiSql = sql;
-    return drizzlePg({ client: sql, schema, casing: 'snake_case' });
+  const isNeon = /neon\.tech|neon\.build/.test(url!);
+  if (isNeon) {
+    const client = neon(url!);
+    return drizzleNeon({ client, schema, casing: 'snake_case' });
+  }
+  const sql =
+    globalForDb.__notaiSql ??
+    postgres(url!, {
+      max: process.env.NODE_ENV === 'production' ? 10 : 5,
+      idle_timeout: 20,
+      max_lifetime: 60 * 30,
+      prepare: false,
+    });
+  if (process.env.NODE_ENV !== 'production') globalForDb.__notaiSql = sql;
+  return drizzlePg({ client: sql, schema, casing: 'snake_case' });
 }
 
 export const db: DbInstance = globalForDb.__notaiDb ?? createDb();

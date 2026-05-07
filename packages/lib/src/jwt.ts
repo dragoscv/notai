@@ -7,40 +7,40 @@ import { SignJWT, jwtVerify } from 'jose';
  */
 
 export interface RealtimeTokenPayload {
-    sub: string; // user id
-    name: string;
-    email: string;
-    noteId: string;
-    role: 'owner' | 'editor' | 'viewer';
+  sub: string; // user id
+  name: string;
+  email: string;
+  noteId: string;
+  role: 'owner' | 'editor' | 'viewer';
 }
 
 const ISSUER = 'notai-web';
 const AUDIENCE = 'notai-realtime';
 
 export async function signRealtimeToken(
-    payload: RealtimeTokenPayload,
-    secret: string,
-    ttlSeconds = 60 * 60, // 1h
+  payload: RealtimeTokenPayload,
+  secret: string,
+  ttlSeconds = 60 * 60, // 1h
 ): Promise<string> {
-    const key = new TextEncoder().encode(secret);
-    return await new SignJWT({ ...payload })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
-        .setIssuer(ISSUER)
-        .setAudience(AUDIENCE)
-        .setExpirationTime(`${ttlSeconds}s`)
-        .setSubject(payload.sub)
-        .sign(key);
+  const key = new TextEncoder().encode(secret);
+  return await new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setIssuer(ISSUER)
+    .setAudience(AUDIENCE)
+    .setExpirationTime(`${ttlSeconds}s`)
+    .setSubject(payload.sub)
+    .sign(key);
 }
 
 export async function verifyRealtimeToken(
-    token: string,
-    secret: string,
+  token: string,
+  secret: string,
 ): Promise<RealtimeTokenPayload> {
-    const key = new TextEncoder().encode(secret);
-    const { payload } = await jwtVerify(token, key, {
-        issuer: ISSUER,
-        audience: AUDIENCE,
-    });
-    return payload as unknown as RealtimeTokenPayload;
+  const key = new TextEncoder().encode(secret);
+  const { payload } = await jwtVerify(token, key, {
+    issuer: ISSUER,
+    audience: AUDIENCE,
+  });
+  return payload as unknown as RealtimeTokenPayload;
 }

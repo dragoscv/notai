@@ -2,9 +2,9 @@
 import { signIn, signOut } from '@/auth';
 
 export async function signInWithGoogle(redirectTo?: string) {
-    await signIn('google', { redirectTo: redirectTo ?? '/app' });
+  await signIn('google', { redirectTo: redirectTo ?? '/app' });
 }
 
 export async function signOutAction() {
-    await signOut({ redirectTo: '/' });
+  await signOut({ redirectTo: '/' });
 }

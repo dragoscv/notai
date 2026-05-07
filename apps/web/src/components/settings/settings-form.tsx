@@ -15,147 +15,147 @@ const KEY_START_MINIMIZED = 'start_minimized';
 const KEY_RESTORE_STICKIES = 'restore_stickies';
 
 interface StoreHandle {
-    get<T = unknown>(key: string): Promise<T | null | undefined>;
-    set(key: string, value: unknown): Promise<void>;
-    save(): Promise<void>;
+  get<T = unknown>(key: string): Promise<T | null | undefined>;
+  set(key: string, value: unknown): Promise<void>;
+  save(): Promise<void>;
 }
 
 async function loadStore(): Promise<StoreHandle | null> {
-    if (!isTauri()) return null;
-    const { load } = await import('@tauri-apps/plugin-store');
-    return (await load(STORE_FILE, { autoSave: true, defaults: {} })) as unknown as StoreHandle;
+  if (!isTauri()) return null;
+  const { load } = await import('@tauri-apps/plugin-store');
+  return (await load(STORE_FILE, { autoSave: true, defaults: {} })) as unknown as StoreHandle;
 }
 
 export function SettingsForm() {
-    const [runAtStartup, setRunAtStartup] = useState(false);
-    const [startMinimized, setStartMinimized] = useState(false);
-    const [restoreStickies, setRestoreStickies] = useState(true);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const [runAtStartup, setRunAtStartup] = useState(false);
+  const [startMinimized, setStartMinimized] = useState(false);
+  const [restoreStickies, setRestoreStickies] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!isTauri()) {
-            setError('Settings are only available in the desktop app.');
-            setLoading(false);
-            return;
-        }
-        let cancelled = false;
-        (async () => {
-            try {
-                const [autostart, store] = await Promise.all([
-                    invoke<boolean>('get_autostart'),
-                    loadStore(),
-                ]);
-                if (cancelled) return;
-                setRunAtStartup(autostart);
-                if (store) {
-                    const sm = await store.get<boolean>(KEY_START_MINIMIZED);
-                    const rs = await store.get<boolean>(KEY_RESTORE_STICKIES);
-                    if (cancelled) return;
-                    setStartMinimized(sm ?? false);
-                    setRestoreStickies(rs ?? true);
-                }
-            } catch (err) {
-                if (!cancelled) setError(String(err));
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    const updateAutostart = async (enabled: boolean) => {
-        setRunAtStartup(enabled);
-        try {
-            await invoke('set_autostart', { enabled });
-        } catch (err) {
-            setError(String(err));
-            setRunAtStartup(!enabled);
-        }
-    };
-
-    const updateStoredFlag = async (key: string, value: boolean) => {
-        try {
-            const store = await loadStore();
-            if (!store) return;
-            await store.set(key, value);
-            await store.save();
-        } catch (err) {
-            setError(String(err));
-        }
-    };
-
-    if (loading) {
-        return <p className="text-sm text-muted-foreground">Loading…</p>;
+  useEffect(() => {
+    if (!isTauri()) {
+      setError('Settings are only available in the desktop app.');
+      setLoading(false);
+      return;
     }
-    if (error && !isTauri()) {
-        return <p className="text-sm text-destructive">{error}</p>;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [autostart, store] = await Promise.all([
+          invoke<boolean>('get_autostart'),
+          loadStore(),
+        ]);
+        if (cancelled) return;
+        setRunAtStartup(autostart);
+        if (store) {
+          const sm = await store.get<boolean>(KEY_START_MINIMIZED);
+          const rs = await store.get<boolean>(KEY_RESTORE_STICKIES);
+          if (cancelled) return;
+          setStartMinimized(sm ?? false);
+          setRestoreStickies(rs ?? true);
+        }
+      } catch (err) {
+        if (!cancelled) setError(String(err));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const updateAutostart = async (enabled: boolean) => {
+    setRunAtStartup(enabled);
+    try {
+      await invoke('set_autostart', { enabled });
+    } catch (err) {
+      setError(String(err));
+      setRunAtStartup(!enabled);
     }
+  };
 
-    return (
-        <div className="space-y-6">
-            <section className="space-y-4">
-                <h2 className="text-sm font-medium text-muted-foreground">Startup</h2>
-                <Row
-                    id="run-at-startup"
-                    label="Run Notai when Windows starts"
-                    description="Launches the app in the background so your sticky notes and tray icon are ready immediately."
-                    checked={runAtStartup}
-                    onCheckedChange={updateAutostart}
-                />
-                <Row
-                    id="start-minimized"
-                    label="Start minimized to tray"
-                    description="Hide the main window on launch. You can open it anytime from the tray icon."
-                    checked={startMinimized}
-                    onCheckedChange={(v) => {
-                        setStartMinimized(v);
-                        void updateStoredFlag(KEY_START_MINIMIZED, v);
-                    }}
-                />
-                <Row
-                    id="restore-stickies"
-                    label="Restore open sticky notes on startup"
-                    description="Reopens the sticky-note windows that were visible the last time the app closed."
-                    checked={restoreStickies}
-                    onCheckedChange={(v) => {
-                        setRestoreStickies(v);
-                        void updateStoredFlag(KEY_RESTORE_STICKIES, v);
-                    }}
-                />
-            </section>
+  const updateStoredFlag = async (key: string, value: boolean) => {
+    try {
+      const store = await loadStore();
+      if (!store) return;
+      await store.set(key, value);
+      await store.save();
+    } catch (err) {
+      setError(String(err));
+    }
+  };
 
-            <Separator />
+  if (loading) {
+    return <p className="text-muted-foreground text-sm">Loading…</p>;
+  }
+  if (error && !isTauri()) {
+    return <p className="text-destructive text-sm">{error}</p>;
+  }
 
-            {error ? (
-                <p className="text-sm text-destructive" role="alert">
-                    {error}
-                </p>
-            ) : null}
-        </div>
-    );
+  return (
+    <div className="space-y-6">
+      <section className="space-y-4">
+        <h2 className="text-muted-foreground text-sm font-medium">Startup</h2>
+        <Row
+          id="run-at-startup"
+          label="Run Notai when Windows starts"
+          description="Launches the app in the background so your sticky notes and tray icon are ready immediately."
+          checked={runAtStartup}
+          onCheckedChange={updateAutostart}
+        />
+        <Row
+          id="start-minimized"
+          label="Start minimized to tray"
+          description="Hide the main window on launch. You can open it anytime from the tray icon."
+          checked={startMinimized}
+          onCheckedChange={(v) => {
+            setStartMinimized(v);
+            void updateStoredFlag(KEY_START_MINIMIZED, v);
+          }}
+        />
+        <Row
+          id="restore-stickies"
+          label="Restore open sticky notes on startup"
+          description="Reopens the sticky-note windows that were visible the last time the app closed."
+          checked={restoreStickies}
+          onCheckedChange={(v) => {
+            setRestoreStickies(v);
+            void updateStoredFlag(KEY_RESTORE_STICKIES, v);
+          }}
+        />
+      </section>
+
+      <Separator />
+
+      {error ? (
+        <p className="text-destructive text-sm" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 interface RowProps {
-    id: string;
-    label: string;
-    description: string;
-    checked: boolean;
-    onCheckedChange: (checked: boolean) => void;
+  id: string;
+  label: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
 }
 
 function Row({ id, label, description, checked, onCheckedChange }: RowProps) {
-    return (
-        <div className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4">
-            <div className="flex-1 space-y-1">
-                <Label htmlFor={id} className="font-medium">
-                    {label}
-                </Label>
-                <p className="text-xs text-muted-foreground">{description}</p>
-            </div>
-            <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
-        </div>
-    );
+  return (
+    <div className="bg-card flex items-start justify-between gap-4 rounded-lg border p-4">
+      <div className="flex-1 space-y-1">
+        <Label htmlFor={id} className="font-medium">
+          {label}
+        </Label>
+        <p className="text-muted-foreground text-xs">{description}</p>
+      </div>
+      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
+    </div>
+  );
 }

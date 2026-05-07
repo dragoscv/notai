@@ -11,7 +11,7 @@ use tauri_plugin_window_state::StateFlags;
 /// Base URL for the Notai web app — reads from env at compile time so
 /// `cargo tauri build` can target prod, while `pnpm tauri dev` uses localhost.
 fn app_url() -> String {
-    std::env::var("NOTAI_WEB_URL").unwrap_or_else(|_| "http://localhost:3000".into())
+    std::env::var("NOTAI_WEB_URL").unwrap_or_else(|_| "http://localhost:15600".into())
 }
 
 /// Open a sticky-note window — always-on-top, no decorations, no taskbar

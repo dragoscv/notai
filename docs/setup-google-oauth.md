@@ -18,10 +18,10 @@ You'll create an OAuth 2.0 **Client ID** inside your existing `notai-prod` GCP p
    - Application type: **Web application**
    - Name: `Notai Web`
    - **Authorized JavaScript origins**:
-     - `http://localhost:3000`
+     - `http://localhost:15600`
      - `https://your-domain.tld` *(add later when you deploy)*
    - **Authorized redirect URIs**:
-     - `http://localhost:3000/api/auth/callback/google`
+     - `http://localhost:15600/api/auth/callback/google`
      - `https://your-domain.tld/api/auth/callback/google` *(add later)*
    - Click **Create**
 

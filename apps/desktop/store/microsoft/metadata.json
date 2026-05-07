@@ -6,7 +6,15 @@
     "en-us": {
       "baseListing": {
         "copyrightAndTrademarkInfo": "Copyright (c) 2026 Codai",
-        "keywords": ["notes", "sticky notes", "drawing", "collaboration", "realtime", "ADHD", "productivity"],
+        "keywords": [
+          "notes",
+          "sticky notes",
+          "drawing",
+          "collaboration",
+          "realtime",
+          "ADHD",
+          "productivity"
+        ],
         "licenseTerms": "https://notai.ro/terms",
         "privacyPolicy": "https://notai.ro/privacy",
         "supportContact": "support@notai.ro",

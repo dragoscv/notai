@@ -3,31 +3,31 @@
 import { useEffect, useState, useTransition, type ReactNode } from 'react';
 import { useTheme } from 'next-themes';
 import {
-    User as UserIcon,
-    Palette,
-    NotebookPen,
-    ShieldAlert,
-    Download,
-    LogOut,
-    Monitor,
-    Sun,
-    Moon,
-    Loader2,
-    PenLine,
+  User as UserIcon,
+  Palette,
+  NotebookPen,
+  ShieldAlert,
+  Download,
+  LogOut,
+  Monitor,
+  Check,
+  Loader2,
+  PenLine,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from '@notai/ui/components/dialog';
 import { Button } from '@notai/ui/components/button';
 import { Input } from '@notai/ui/components/input';
 import { Label } from '@notai/ui/components/label';
 import { Switch } from '@notai/ui/components/switch';
+import { APP_THEMES } from '@notai/ui/components/theme-provider';
 import { Avatar, AvatarFallback, AvatarImage } from '@notai/ui/components/avatar';
 import { Separator } from '@notai/ui/components/separator';
 import { cn, getInitials } from '@notai/lib/utils';
@@ -36,25 +36,25 @@ import { signOutAction } from '@/server/actions/auth';
 import { updateProfile, exportUserNotes, deleteAccount } from '@/server/actions/account';
 
 export interface SettingsUser {
-    id: string;
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
 }
 
 type Section = 'profile' | 'appearance' | 'notes' | 'account';
 
 interface SettingsDialogProps {
-    user: SettingsUser;
-    open: boolean;
-    onOpenChange: (next: boolean) => void;
+  user: SettingsUser;
+  open: boolean;
+  onOpenChange: (next: boolean) => void;
 }
 
 const NAV: Array<{ id: Section; label: string; icon: ReactNode }> = [
-    { id: 'profile', label: 'Profile', icon: <UserIcon className="size-4" /> },
-    { id: 'appearance', label: 'Appearance', icon: <Palette className="size-4" /> },
-    { id: 'notes', label: 'Notes', icon: <NotebookPen className="size-4" /> },
-    { id: 'account', label: 'Account', icon: <ShieldAlert className="size-4" /> },
+  { id: 'profile', label: 'Profile', icon: <UserIcon className="size-4" /> },
+  { id: 'appearance', label: 'Appearance', icon: <Palette className="size-4" /> },
+  { id: 'notes', label: 'Notes', icon: <NotebookPen className="size-4" /> },
+  { id: 'account', label: 'Account', icon: <ShieldAlert className="size-4" /> },
 ];
 
 /**
@@ -66,435 +66,496 @@ const NAV: Array<{ id: Section; label: string; icon: ReactNode }> = [
  *  - Account: export notes, sign out, delete account
  */
 export function SettingsDialog({ user, open, onOpenChange }: SettingsDialogProps) {
-    const [section, setSection] = useState<Section>('profile');
+  const [section, setSection] = useState<Section>('profile');
 
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl gap-0 overflow-hidden border bg-card/95 p-0 shadow-2xl shadow-foreground/10 backdrop-blur-xl sm:max-w-3xl sm:rounded-2xl">
-                <DialogHeader className="relative border-b px-6 py-4">
-                    {/* warm wash */}
-                    <div
-                        aria-hidden
-                        className="pointer-events-none absolute inset-0 -z-10 opacity-70"
-                        style={{
-                            background:
-                                'radial-gradient(420px 140px at 0% 0%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 70%)',
-                        }}
-                    />
-                    <div className="flex items-center gap-3">
-                        <span
-                            aria-hidden
-                            className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm shadow-primary/20"
-                        >
-                            <PenLine className="size-4" />
-                        </span>
-                        <div>
-                            <DialogTitle className="font-serif text-xl font-semibold tracking-tight">
-                                Settings
-                            </DialogTitle>
-                            <DialogDescription>
-                                Customize your Notai experience. Changes save automatically.
-                            </DialogDescription>
-                        </div>
-                    </div>
-                </DialogHeader>
-                <div className="grid grid-cols-[180px_1fr] gap-0">
-                    <nav className="border-r bg-background/40 p-2" aria-label="Settings sections">
-                        <ul className="space-y-0.5">
-                            {NAV.map((item) => (
-                                <li key={item.id}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSection(item.id)}
-                                        className={cn(
-                                            'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors [&_svg]:text-muted-foreground',
-                                            section === item.id
-                                                ? 'bg-card font-medium text-foreground shadow-sm ring-1 ring-primary/15 [&_svg]:text-primary'
-                                                : 'text-muted-foreground hover:bg-card/60 hover:text-foreground',
-                                        )}
-                                    >
-                                        {item.icon}
-                                        {item.label}
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    </nav>
-                    <div className="max-h-[60vh] overflow-y-auto bg-background/30 p-6">
-                        {section === 'profile' && <ProfileSection user={user} />}
-                        {section === 'appearance' && <AppearanceSection />}
-                        {section === 'notes' && <NotesSection />}
-                        {section === 'account' && (
-                            <AccountSection user={user} onClose={() => onOpenChange(false)} />
-                        )}
-                    </div>
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-card/95 shadow-foreground/10 max-w-3xl gap-0 overflow-hidden border p-0 shadow-2xl backdrop-blur-xl sm:max-w-3xl sm:rounded-2xl">
+        <DialogHeader className="relative border-b px-6 py-4">
+          {/* warm wash */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10 opacity-70"
+            style={{
+              background:
+                'radial-gradient(420px 140px at 0% 0%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 70%)',
+            }}
+          />
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden
+              className="from-primary to-primary/70 text-primary-foreground shadow-primary/20 grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br shadow-sm"
+            >
+              <PenLine className="size-4" />
+            </span>
+            <div>
+              <DialogTitle className="font-serif text-xl font-semibold tracking-tight">
+                Settings
+              </DialogTitle>
+              <DialogDescription>
+                Customize your Notai experience. Changes save automatically.
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+        <div className="grid grid-cols-[180px_1fr] gap-0">
+          <nav className="bg-background/40 border-r p-2" aria-label="Settings sections">
+            <ul className="space-y-0.5">
+              {NAV.map((item) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSection(item.id)}
+                    className={cn(
+                      '[&_svg]:text-muted-foreground flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors',
+                      section === item.id
+                        ? 'bg-card text-foreground ring-primary/15 [&_svg]:text-primary font-medium shadow-sm ring-1'
+                        : 'text-muted-foreground hover:bg-card/60 hover:text-foreground',
+                    )}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <div className="bg-background/30 max-h-[60vh] overflow-y-auto p-6">
+            {section === 'profile' && <ProfileSection user={user} />}
+            {section === 'appearance' && <AppearanceSection />}
+            {section === 'notes' && <NotesSection />}
+            {section === 'account' && (
+              <AccountSection user={user} onClose={() => onOpenChange(false)} />
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 /* ------------------------------ Profile ---------------------------------- */
 
 function ProfileSection({ user }: { user: SettingsUser }) {
-    const [name, setName] = useState(user.name ?? '');
-    const [pending, startTransition] = useTransition();
+  const [name, setName] = useState(user.name ?? '');
+  const [pending, startTransition] = useTransition();
 
-    const dirty = name.trim() !== (user.name ?? '').trim();
+  const dirty = name.trim() !== (user.name ?? '').trim();
 
-    const save = () => {
-        const trimmed = name.trim();
-        if (!trimmed) {
-            toast.error('Name cannot be empty');
-            return;
-        }
-        startTransition(async () => {
-            try {
-                await updateProfile({ name: trimmed });
-                toast.success('Profile updated');
-            } catch (err) {
-                toast.error(err instanceof Error ? err.message : 'Failed to update profile');
-            }
-        });
-    };
+  const save = () => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      toast.error('Name cannot be empty');
+      return;
+    }
+    startTransition(async () => {
+      try {
+        await updateProfile({ name: trimmed });
+        toast.success('Profile updated');
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to update profile');
+      }
+    });
+  };
 
-    return (
-        <div className="space-y-6">
-            <SectionHeading title="Profile" description="How you appear in Notai." />
+  return (
+    <div className="space-y-6">
+      <SectionHeading title="Profile" description="How you appear in Notai." />
 
-            <div className="flex items-center gap-4">
-                <Avatar className="size-16">
-                    {user.image ? <AvatarImage src={user.image} alt={user.name ?? 'User'} /> : null}
-                    <AvatarFallback>{getInitials(user.name, user.email)}</AvatarFallback>
-                </Avatar>
-                <div className="text-sm text-muted-foreground">
-                    Your avatar is provided by your Google account.
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="settings-name">Display name</Label>
-                <Input
-                    id="settings-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (dirty && !pending) save();
-                        }
-                    }}
-                    maxLength={80}
-                    autoComplete="off"
-                />
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="settings-email">Email</Label>
-                <Input id="settings-email" value={user.email ?? ''} readOnly disabled />
-                <p className="text-xs text-muted-foreground">
-                    Email is tied to your Google account and cannot be changed here.
-                </p>
-            </div>
-
-            <div className="flex justify-end">
-                <Button type="button" onClick={save} disabled={!dirty || pending}>
-                    {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-                    Save changes
-                </Button>
-            </div>
+      <div className="flex items-center gap-4">
+        <Avatar className="size-16">
+          {user.image ? <AvatarImage src={user.image} alt={user.name ?? 'User'} /> : null}
+          <AvatarFallback>{getInitials(user.name, user.email)}</AvatarFallback>
+        </Avatar>
+        <div className="text-muted-foreground text-sm">
+          Your avatar is provided by your Google account.
         </div>
-    );
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="settings-name">Display name</Label>
+        <Input
+          id="settings-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              if (dirty && !pending) save();
+            }
+          }}
+          maxLength={80}
+          autoComplete="off"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="settings-email">Email</Label>
+        <Input id="settings-email" value={user.email ?? ''} readOnly disabled />
+        <p className="text-muted-foreground text-xs">
+          Email is tied to your Google account and cannot be changed here.
+        </p>
+      </div>
+
+      <div className="flex justify-end">
+        <Button type="button" onClick={save} disabled={!dirty || pending}>
+          {pending ? <Loader2 className="size-4 animate-spin" /> : null}
+          Save changes
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 /* ----------------------------- Appearance -------------------------------- */
 
 function AppearanceSection() {
-    const { theme, setTheme } = useTheme();
-    const [prefs, setPrefs] = useAppPreferences();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [prefs, setPrefs] = useAppPreferences();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-    return (
-        <div className="space-y-6">
-            <SectionHeading title="Appearance" description="Theme and editor layout." />
+  const current = mounted ? theme : null;
 
-            <div className="space-y-2">
-                <Label>Theme</Label>
-                <SegmentedControl<'light' | 'dark' | 'system'>
-                    value={(theme as 'light' | 'dark' | 'system') ?? 'system'}
-                    onChange={(v) => setTheme(v)}
-                    options={[
-                        { value: 'light', label: 'Light', icon: <Sun className="size-3.5" /> },
-                        { value: 'dark', label: 'Dark', icon: <Moon className="size-3.5" /> },
-                        { value: 'system', label: 'System', icon: <Monitor className="size-3.5" /> },
-                    ]}
-                />
-            </div>
+  return (
+    <div className="space-y-6">
+      <SectionHeading title="Appearance" description="Theme and editor layout." />
 
-            <div className="space-y-2">
-                <Label>Editor width</Label>
-                <SegmentedControl<AppPreferences['editorWidth']>
-                    value={prefs.editorWidth}
-                    onChange={(v) => setPrefs({ editorWidth: v })}
-                    options={[
-                        { value: 'narrow', label: 'Narrow' },
-                        { value: 'comfortable', label: 'Comfortable' },
-                        { value: 'wide', label: 'Wide' },
-                    ]}
-                />
-                <p className="text-xs text-muted-foreground">
-                    Controls the maximum width of the note content column.
-                </p>
-            </div>
+      <div className="space-y-3">
+        <Label>Theme</Label>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <ThemeCard
+            active={current === 'system'}
+            onClick={() => setTheme('system')}
+            label="System"
+            mode="auto"
+            swatch={['var(--background)', 'var(--primary)']}
+            icon={<Monitor className="size-3.5" />}
+          />
+          {APP_THEMES.map((t) => {
+            const isActive = current === t.id || (current === 'system' && resolvedTheme === t.id);
+            return (
+              <ThemeCard
+                key={t.id}
+                active={isActive}
+                onClick={() => setTheme(t.id)}
+                label={t.label}
+                mode={t.mode}
+                swatch={t.swatch}
+              />
+            );
+          })}
         </div>
-    );
+      </div>
+
+      <div className="space-y-2">
+        <Label>Editor width</Label>
+        <SegmentedControl<AppPreferences['editorWidth']>
+          value={prefs.editorWidth}
+          onChange={(v) => setPrefs({ editorWidth: v })}
+          options={[
+            { value: 'narrow', label: 'Narrow' },
+            { value: 'comfortable', label: 'Comfortable' },
+            { value: 'wide', label: 'Wide' },
+          ]}
+        />
+        <p className="text-muted-foreground text-xs">
+          Controls the maximum width of the note content column.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ThemeCard({
+  active,
+  onClick,
+  label,
+  mode,
+  swatch,
+  icon,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  mode: string;
+  swatch: readonly [string, string];
+  icon?: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'hover:border-primary/40 group relative flex flex-col gap-2 overflow-hidden rounded-lg border p-2 text-left transition-all hover:shadow-sm',
+        active && 'border-primary/70 ring-primary/30 ring-2',
+      )}
+      aria-pressed={active}
+    >
+      <span
+        aria-hidden
+        className="ring-border/50 block h-12 w-full rounded-md ring-1"
+        style={{
+          background: `linear-gradient(135deg, ${swatch[0]} 55%, ${swatch[1]} 55%)`,
+        }}
+      />
+      <div className="flex items-center justify-between gap-1">
+        <div className="flex min-w-0 items-center gap-1.5">
+          {icon}
+          <span className="truncate text-xs font-medium">{label}</span>
+        </div>
+        <span className="text-muted-foreground/70 shrink-0 text-[9px] uppercase tracking-wide">
+          {mode}
+        </span>
+      </div>
+      {active && (
+        <span className="bg-primary text-primary-foreground absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full shadow">
+          <Check className="size-2.5" />
+        </span>
+      )}
+    </button>
+  );
 }
 
 /* -------------------------------- Notes ---------------------------------- */
 
 function NotesSection() {
-    const [prefs, setPrefs] = useAppPreferences();
+  const [prefs, setPrefs] = useAppPreferences();
 
-    return (
-        <div className="space-y-6">
-            <SectionHeading title="Notes" description="Defaults for your notes." />
+  return (
+    <div className="space-y-6">
+      <SectionHeading title="Notes" description="Defaults for your notes." />
 
-            <div className="space-y-2">
-                <Label>Sort order</Label>
-                <SegmentedControl<AppPreferences['noteSort']>
-                    value={prefs.noteSort}
-                    onChange={(v) => setPrefs({ noteSort: v })}
-                    options={[
-                        { value: 'updated', label: 'Last updated' },
-                        { value: 'created', label: 'Created date' },
-                        { value: 'alphabetical', label: 'Alphabetical' },
-                    ]}
-                />
-                <p className="text-xs text-muted-foreground">
-                    Applied to the notes list in the sidebar and home view.
-                </p>
-            </div>
+      <div className="space-y-2">
+        <Label>Sort order</Label>
+        <SegmentedControl<AppPreferences['noteSort']>
+          value={prefs.noteSort}
+          onChange={(v) => setPrefs({ noteSort: v })}
+          options={[
+            { value: 'updated', label: 'Last updated' },
+            { value: 'created', label: 'Created date' },
+            { value: 'alphabetical', label: 'Alphabetical' },
+          ]}
+        />
+        <p className="text-muted-foreground text-xs">
+          Applied to the notes list in the sidebar and home view.
+        </p>
+      </div>
 
-            <Row
-                id="settings-spellcheck"
-                label="Spellcheck"
-                description="Enable the browser's spellchecker inside the editor."
-                checked={prefs.spellcheck}
-                onCheckedChange={(v) => setPrefs({ spellcheck: v })}
-            />
-        </div>
-    );
+      <Row
+        id="settings-spellcheck"
+        label="Spellcheck"
+        description="Enable the browser's spellchecker inside the editor."
+        checked={prefs.spellcheck}
+        onCheckedChange={(v) => setPrefs({ spellcheck: v })}
+      />
+    </div>
+  );
 }
 
 /* -------------------------------- Account -------------------------------- */
 
 function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => void }) {
-    const [exporting, startExport] = useTransition();
-    const [signingOut, startSignOut] = useTransition();
-    const [confirmEmail, setConfirmEmail] = useState('');
-    const [deleting, startDelete] = useTransition();
+  const [exporting, startExport] = useTransition();
+  const [signingOut, startSignOut] = useTransition();
+  const [confirmEmail, setConfirmEmail] = useState('');
+  const [deleting, startDelete] = useTransition();
 
-    const exportNotes = () => {
-        startExport(async () => {
-            try {
-                const data = await exportUserNotes();
-                const blob = new Blob([JSON.stringify(data, null, 2)], {
-                    type: 'application/json',
-                });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                const stamp = new Date().toISOString().slice(0, 10);
-                a.download = `notai-export-${stamp}.json`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-                toast.success(`Exported ${data.notes.length} note${data.notes.length === 1 ? '' : 's'}`);
-            } catch (err) {
-                toast.error(err instanceof Error ? err.message : 'Export failed');
-            }
+  const exportNotes = () => {
+    startExport(async () => {
+      try {
+        const data = await exportUserNotes();
+        const blob = new Blob([JSON.stringify(data, null, 2)], {
+          type: 'application/json',
         });
-    };
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const stamp = new Date().toISOString().slice(0, 10);
+        a.download = `notai-export-${stamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        toast.success(`Exported ${data.notes.length} note${data.notes.length === 1 ? '' : 's'}`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Export failed');
+      }
+    });
+  };
 
-    const doSignOut = () => {
-        startSignOut(async () => {
-            await signOutAction();
-        });
-    };
+  const doSignOut = () => {
+    startSignOut(async () => {
+      await signOutAction();
+    });
+  };
 
-    const canDelete =
-        !!user.email && confirmEmail.trim().toLowerCase() === user.email.toLowerCase();
+  const canDelete = !!user.email && confirmEmail.trim().toLowerCase() === user.email.toLowerCase();
 
-    const doDelete = () => {
-        if (!canDelete) return;
-        startDelete(async () => {
-            try {
-                await deleteAccount({ confirmEmail: confirmEmail.trim() });
-                onClose();
-            } catch (err) {
-                // deleteAccount calls signOut() which throws a redirect — that's not an error.
-                // Only surface real errors here.
-                const message = err instanceof Error ? err.message : '';
-                if (!message.includes('NEXT_REDIRECT')) {
-                    toast.error(message || 'Failed to delete account');
-                }
-            }
-        });
-    };
+  const doDelete = () => {
+    if (!canDelete) return;
+    startDelete(async () => {
+      try {
+        await deleteAccount({ confirmEmail: confirmEmail.trim() });
+        onClose();
+      } catch (err) {
+        // deleteAccount calls signOut() which throws a redirect — that's not an error.
+        // Only surface real errors here.
+        const message = err instanceof Error ? err.message : '';
+        if (!message.includes('NEXT_REDIRECT')) {
+          toast.error(message || 'Failed to delete account');
+        }
+      }
+    });
+  };
 
-    return (
-        <div className="space-y-6">
-            <SectionHeading title="Account" description="Your data and session." />
+  return (
+    <div className="space-y-6">
+      <SectionHeading title="Account" description="Your data and session." />
 
-            <div className="rounded-xl border bg-card/60 p-4 backdrop-blur">
-                <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-0.5">
-                        <p className="text-sm font-medium">Export your notes</p>
-                        <p className="text-xs text-muted-foreground">
-                            Download every note as a JSON file. Includes titles, bodies and
-                            metadata.
-                        </p>
-                    </div>
-                    <Button type="button" variant="outline" onClick={exportNotes} disabled={exporting}>
-                        {exporting ? (
-                            <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                            <Download className="size-4" />
-                        )}
-                        Export
-                    </Button>
-                </div>
-            </div>
-
-            <div className="rounded-xl border bg-card/60 p-4 backdrop-blur">
-                <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-0.5">
-                        <p className="text-sm font-medium">Sign out</p>
-                        <p className="text-xs text-muted-foreground">
-                            End your session on this device.
-                        </p>
-                    </div>
-                    <Button type="button" variant="outline" onClick={doSignOut} disabled={signingOut}>
-                        {signingOut ? (
-                            <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                            <LogOut className="size-4" />
-                        )}
-                        Sign out
-                    </Button>
-                </div>
-            </div>
-
-            <Separator />
-
-            <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 backdrop-blur">
-                <div className="space-y-2">
-                    <p className="text-sm font-medium text-destructive">Delete account</p>
-                    <p className="text-xs text-muted-foreground">
-                        Permanently deletes your account and every note you own. This cannot be
-                        undone. Type <span className="font-medium">{user.email}</span> to confirm.
-                    </p>
-                    <Input
-                        value={confirmEmail}
-                        onChange={(e) => setConfirmEmail(e.target.value)}
-                        placeholder={user.email ?? ''}
-                        autoComplete="off"
-                        spellCheck={false}
-                    />
-                </div>
-                <DialogFooter className="mt-4 sm:justify-start">
-                    <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={doDelete}
-                        disabled={!canDelete || deleting}
-                    >
-                        {deleting ? <Loader2 className="size-4 animate-spin" /> : null}
-                        Delete account
-                    </Button>
-                </DialogFooter>
-            </div>
+      <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium">Export your notes</p>
+            <p className="text-muted-foreground text-xs">
+              Download every note as a JSON file. Includes titles, bodies and metadata.
+            </p>
+          </div>
+          <Button type="button" variant="outline" onClick={exportNotes} disabled={exporting}>
+            {exporting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4" />
+            )}
+            Export
+          </Button>
         </div>
-    );
+      </div>
+
+      <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium">Sign out</p>
+            <p className="text-muted-foreground text-xs">End your session on this device.</p>
+          </div>
+          <Button type="button" variant="outline" onClick={doSignOut} disabled={signingOut}>
+            {signingOut ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <LogOut className="size-4" />
+            )}
+            Sign out
+          </Button>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="border-destructive/40 bg-destructive/5 rounded-xl border p-4 backdrop-blur">
+        <div className="space-y-2">
+          <p className="text-destructive text-sm font-medium">Delete account</p>
+          <p className="text-muted-foreground text-xs">
+            Permanently deletes your account and every note you own. This cannot be undone. Type{' '}
+            <span className="font-medium">{user.email}</span> to confirm.
+          </p>
+          <Input
+            value={confirmEmail}
+            onChange={(e) => setConfirmEmail(e.target.value)}
+            placeholder={user.email ?? ''}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </div>
+        <DialogFooter className="mt-4 sm:justify-start">
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={doDelete}
+            disabled={!canDelete || deleting}
+          >
+            {deleting ? <Loader2 className="size-4 animate-spin" /> : null}
+            Delete account
+          </Button>
+        </DialogFooter>
+      </div>
+    </div>
+  );
 }
 
 /* ------------------------------ Shared UI -------------------------------- */
 
 function SectionHeading({ title, description }: { title: string; description: string }) {
-    return (
-        <div>
-            <p className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] text-primary uppercase">
-                <span className="size-1 rounded-full bg-primary/60" />
-                {title}
-            </p>
-            <h2 className="mt-1.5 font-serif text-2xl font-semibold tracking-tight">{title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-        </div>
-    );
+  return (
+    <div>
+      <p className="text-primary inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]">
+        <span className="bg-primary/60 size-1 rounded-full" />
+        {title}
+      </p>
+      <h2 className="mt-1.5 font-serif text-2xl font-semibold tracking-tight">{title}</h2>
+      <p className="text-muted-foreground mt-1 text-sm">{description}</p>
+    </div>
+  );
 }
 
 interface SegmentOption<T extends string> {
-    value: T;
-    label: string;
-    icon?: ReactNode;
+  value: T;
+  label: string;
+  icon?: ReactNode;
 }
 
 function SegmentedControl<T extends string>({
-    value,
-    onChange,
-    options,
+  value,
+  onChange,
+  options,
 }: {
-    value: T;
-    onChange: (v: T) => void;
-    options: SegmentOption<T>[];
+  value: T;
+  onChange: (v: T) => void;
+  options: SegmentOption<T>[];
 }) {
-    return (
-        <div
-            className="inline-flex rounded-lg border bg-card/60 p-0.5 backdrop-blur"
-            role="radiogroup"
+  return (
+    <div className="bg-card/60 inline-flex rounded-lg border p-0.5 backdrop-blur" role="radiogroup">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          role="radio"
+          aria-checked={value === opt.value}
+          onClick={() => onChange(opt.value)}
+          className={cn(
+            'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors',
+            value === opt.value
+              ? 'bg-background text-foreground ring-primary/15 shadow-sm ring-1'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
         >
-            {options.map((opt) => (
-                <button
-                    key={opt.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={value === opt.value}
-                    onClick={() => onChange(opt.value)}
-                    className={cn(
-                        'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors',
-                        value === opt.value
-                            ? 'bg-background text-foreground shadow-sm ring-1 ring-primary/15'
-                            : 'text-muted-foreground hover:text-foreground',
-                    )}
-                >
-                    {opt.icon}
-                    {opt.label}
-                </button>
-            ))}
-        </div>
-    );
+          {opt.icon}
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 interface RowProps {
-    id: string;
-    label: string;
-    description: string;
-    checked: boolean;
-    onCheckedChange: (checked: boolean) => void;
+  id: string;
+  label: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
 }
 
 function Row({ id, label, description, checked, onCheckedChange }: RowProps) {
-    return (
-        <div className="flex items-start justify-between gap-4 rounded-xl border bg-card/60 p-4 backdrop-blur transition-colors hover:bg-card/80">
-            <div className="flex-1 space-y-0.5">
-                <Label htmlFor={id} className="font-medium">
-                    {label}
-                </Label>
-                <p className="text-xs text-muted-foreground">{description}</p>
-            </div>
-            <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
-        </div>
-    );
+  return (
+    <div className="bg-card/60 hover:bg-card/80 flex items-start justify-between gap-4 rounded-xl border p-4 backdrop-blur transition-colors">
+      <div className="flex-1 space-y-0.5">
+        <Label htmlFor={id} className="font-medium">
+          {label}
+        </Label>
+        <p className="text-muted-foreground text-xs">{description}</p>
+      </div>
+      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
+    </div>
+  );
 }
 
 /* ------------------------ Convenience: controlled hook ------------------- */
@@ -504,14 +565,14 @@ export const SETTINGS_OPEN_EVENT = 'notai:open-settings';
 
 /** Subscribe to open requests. Useful when the dialog lives in the root layout. */
 export function useSettingsOpenRequests(onOpen: () => void) {
-    useEffect(() => {
-        const handler = () => onOpen();
-        window.addEventListener(SETTINGS_OPEN_EVENT, handler);
-        return () => window.removeEventListener(SETTINGS_OPEN_EVENT, handler);
-    }, [onOpen]);
+  useEffect(() => {
+    const handler = () => onOpen();
+    window.addEventListener(SETTINGS_OPEN_EVENT, handler);
+    return () => window.removeEventListener(SETTINGS_OPEN_EVENT, handler);
+  }, [onOpen]);
 }
 
 /** Dispatches the "open settings" event. Safe to call from anywhere in the app. */
 export function requestOpenSettings() {
-    window.dispatchEvent(new Event(SETTINGS_OPEN_EVENT));
+  window.dispatchEvent(new Event(SETTINGS_OPEN_EVENT));
 }

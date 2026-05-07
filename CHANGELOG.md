@@ -101,6 +101,43 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.10] - 2026-05-08
+
+### Changed
+
+- **Desktop sign-in is now silent.** Replaced the `notai://auth?token=…`
+  deep-link round-trip (which triggered Windows' "This site is trying to
+  open Notai" confirmation dialog) with a device-pairing flow:
+  1. The desktop generates a 256-bit random `device` code in the renderer.
+  2. It opens the system browser at `/desktop-signin?device=<code>` and
+     starts polling `/api/desktop-auth/poll?device=<code>` every 2.5s.
+  3. After Google sign-in, `/api/desktop-auth/issue` stores the handoff
+     token under the device code and shows a "you can close this tab"
+     page — no `notai://` redirect, no browser dialog.
+  4. The desktop poll picks up the token and navigates the webview to
+     `/api/desktop-auth/consume` to set the session cookie.
+  - The button now shows a "Waiting for browser sign-in…" spinner and a
+    sonner toast while polling, with a 5-minute timeout. The legacy
+    deep-link path stays in `/api/desktop-auth/issue` as a fallback for
+    desktop builds that haven't auto-updated yet.
+- **Dev ports moved to the 15600+ range** so they don't collide with
+  unrelated local services running on the common 3000 / 4040 / 5432:
+  - Web (`@notai/web`): `3000` → `15600`
+  - Hocuspocus realtime: `4040` → `15601`
+  - Postgres (Docker compose): `5432` → `15602`
+  - pgAdmin (Docker compose, optional): `5050` → `15605`
+  - Updated `apps/web/package.json`, `apps/realtime-server/src/index.ts`,
+    `apps/desktop/src-tauri/tauri.conf.json` (`devUrl` + main window),
+    `apps/desktop/src-tauri/src/lib.rs` (`NOTAI_WEB_URL` fallback),
+    `.env.local` / `.env.example`, `docker/compose.yaml`, the release
+    workflow's `localhost:3000` → prod-URL rewrite (now also matches
+    `15600`), `README.md`, and the OAuth setup docs.
+  - **Action required:** add `http://localhost:15600/api/auth/callback/google`
+    as an authorized redirect URI in the Google Cloud OAuth client (the
+    old `localhost:3000` entry can be removed).
+  - The released app talks to `https://notai.ro` and
+    `wss://realtime.notai.ro` over 443, so nothing changes for users.
+
 ## [@notai/desktop 0.1.9] - 2026-05-07
 
 ### Fixed

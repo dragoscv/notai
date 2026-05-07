@@ -9,18 +9,18 @@ import { useSidebar } from './app-shell';
  * Place inside each page header (Today, NoteWorkspace, etc).
  */
 export function SidebarToggle({ className }: { className?: string }) {
-    const { toggleMobile } = useSidebar();
-    return (
-        <Button
-            type="button"
-            size="icon-sm"
-            variant="ghost"
-            className={cn('md:hidden', className)}
-            onClick={toggleMobile}
-            aria-label="Open navigation"
-            title="Open navigation"
-        >
-            <Menu />
-        </Button>
-    );
+  const { toggleMobile } = useSidebar();
+  return (
+    <Button
+      type="button"
+      size="icon-sm"
+      variant="ghost"
+      className={cn('md:hidden', className)}
+      onClick={toggleMobile}
+      aria-label="Open navigation"
+      title="Open navigation"
+    >
+      <Menu />
+    </Button>
+  );
 }

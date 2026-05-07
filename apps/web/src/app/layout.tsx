@@ -12,46 +12,44 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
-    title: { default: 'Notai', template: '%s · Notai' },
-    description: 'A calm, collaborative notes app with drawing, lists, and sticky notes on desktop.',
-    applicationName: 'Notai',
-    manifest: '/manifest.webmanifest',
-    appleWebApp: { capable: true, title: 'Notai', statusBarStyle: 'black-translucent' },
-    icons: {
-        icon: [{ url: '/icons/icon.svg', type: 'image/svg+xml' }],
-        apple: '/icons/icon.svg',
-    },
+  title: { default: 'Notai', template: '%s · Notai' },
+  description: 'A calm, collaborative notes app with drawing, lists, and sticky notes on desktop.',
+  applicationName: 'Notai',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, title: 'Notai', statusBarStyle: 'black-translucent' },
+  icons: {
+    icon: [{ url: '/icons/icon.svg', type: 'image/svg+xml' }],
+    apple: '/icons/icon.svg',
+  },
 };
 
 export const viewport: Viewport = {
-    themeColor: [
-        { media: '(prefers-color-scheme: light)', color: '#fbfaf5' },
-        { media: '(prefers-color-scheme: dark)', color: '#1a1625' },
-    ],
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-    interactiveWidget: 'resizes-content',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#fbfaf5' },
+    { media: '(prefers-color-scheme: dark)', color: '#1a1625' },
+  ],
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  interactiveWidget: 'resizes-content',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <html lang="en" suppressHydrationWarning>
-            <body
-                className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
-            >
-                <ThemeProvider>
-                    <TooltipProvider delayDuration={200}>
-                        <ConsentProvider>
-                            <PreferencesApplier />
-                            {children}
-                            <CookieConsent />
-                            <Toaster position="bottom-right" richColors />
-                        </ConsentProvider>
-                    </TooltipProvider>
-                </ThemeProvider>
-            </body>
-        </html>
-    );
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+        <ThemeProvider>
+          <TooltipProvider delayDuration={200}>
+            <ConsentProvider>
+              <PreferencesApplier />
+              {children}
+              <CookieConsent />
+              <Toaster position="bottom-right" richColors />
+            </ConsentProvider>
+          </TooltipProvider>
+        </ThemeProvider>
+      </body>
+    </html>
+  );
 }

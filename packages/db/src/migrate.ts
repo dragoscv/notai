@@ -9,8 +9,8 @@ const host = new URL(url).hostname;
 const isLocal = host === 'localhost' || host.startsWith('127.') || host === '::1';
 
 const sql = postgres(url, {
-    max: 1,
-    ssl: isLocal ? false : { rejectUnauthorized: false },
+  max: 1,
+  ssl: isLocal ? false : { rejectUnauthorized: false },
 });
 const db = drizzle(sql);
 
