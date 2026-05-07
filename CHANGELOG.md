@@ -45,6 +45,15 @@ Each app in this monorepo is versioned independently:
 - ESLint: `postcss.config.mjs` anonymous default export warning; React 19
   `set-state-in-effect` rule disabled for legitimate mount-only reads.
 
+## [@notai/realtime-server 0.1.3] - 2026-05-07
+
+### Fixed
+
+- Switched build to esbuild bundling so the Cloud Run container ships a
+  single self-contained `bundle.mjs`. This avoids Node's
+  `ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING` when workspace packages
+  (`@notai/db`, `@notai/lib`) export `.ts` source directly.
+
 ## [@notai/realtime-server 0.1.2] - 2026-05-07
 
 ### Fixed

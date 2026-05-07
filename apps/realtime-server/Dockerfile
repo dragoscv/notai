@@ -3,7 +3,7 @@ FROM node:22-alpine AS base
 RUN corepack enable && corepack prepare pnpm@10.13.1 --activate
 WORKDIR /repo
 
-# --- install full workspace deps (cacheable layer) ---
+# --- install full workspace deps ---
 FROM base AS deps
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json .npmrc ./
 COPY turbo.json tsconfig.base.json ./
@@ -12,20 +12,19 @@ COPY packages/db/package.json ./packages/db/
 COPY packages/lib/package.json ./packages/lib/
 RUN pnpm install --frozen-lockfile --filter @notai/realtime-server...
 
-# --- build + deploy (flattens workspace deps) ---
+# --- build into a single self-contained bundle ---
 FROM deps AS build
 COPY apps/realtime-server ./apps/realtime-server
 COPY packages/db ./packages/db
 COPY packages/lib ./packages/lib
-RUN pnpm --filter @notai/realtime-server... build \
- && pnpm --filter=@notai/realtime-server --prod --legacy deploy /out
+RUN pnpm --filter @notai/realtime-server build
 
-# --- runtime (only the deployed bundle) ---
+# --- runtime: only the bundle, no node_modules ---
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 RUN addgroup -S app && adduser -S app -G app
-COPY --from=build --chown=app:app /out ./
+COPY --from=build --chown=app:app /repo/apps/realtime-server/dist/bundle.mjs ./bundle.mjs
 USER app
 EXPOSE 1234
-CMD ["node", "dist/index.js"]
+CMD ["node", "bundle.mjs"]
