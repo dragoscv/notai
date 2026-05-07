@@ -20,5 +20,7 @@ export * from './components/theme-toggle';
 export * from './components/toaster';
 export * from './components/spinner';
 export * from './components/command';
+export * from './components/consent-provider';
+export * from './components/cookie-consent';
 export * from './hooks/use-mobile';
 export * from './hooks/use-hotkey';

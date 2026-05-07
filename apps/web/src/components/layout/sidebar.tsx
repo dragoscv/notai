@@ -57,7 +57,10 @@ export function Sidebar({ user, notes, folders }: SidebarProps) {
     });
 
     return (
-        <aside className="relative flex h-full w-64 flex-col border-r bg-card/50 backdrop-blur">
+        <aside
+            aria-label="Primary navigation"
+            className="relative flex h-full w-64 flex-col border-r bg-card/50 backdrop-blur"
+        >
             {/* Soft warm wash at the top to match the rest of the app */}
             <div
                 aria-hidden
@@ -131,14 +134,22 @@ export function Sidebar({ user, notes, folders }: SidebarProps) {
                             </Avatar>
                             <div className="min-w-0 flex-1">
                                 <p className="truncate font-medium">{user.name ?? 'Anon'}</p>
-                                <p className="truncate text-xs text-muted-foreground">
-                                    {user.email}
-                                </p>
                             </div>
                         </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" side="top" className="w-56">
-                        <DropdownMenuLabel>My account</DropdownMenuLabel>
+                    <DropdownMenuContent align="end" side="top" className="w-64">
+                        <DropdownMenuLabel className="font-normal">
+                            <div className="flex flex-col gap-0.5">
+                                <p className="truncate text-sm font-medium">
+                                    {user.name ?? 'Anon'}
+                                </p>
+                                {user.email && (
+                                    <p className="truncate text-xs text-muted-foreground">
+                                        {user.email}
+                                    </p>
+                                )}
+                            </div>
+                        </DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={() => setSettingsOpen(true)}>
                             <Settings /> Settings

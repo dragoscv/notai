@@ -44,3 +44,44 @@
     --tw-prose-code: var(--color-foreground);
     --tw-prose-pre-bg: var(--color-muted);
 }
+
+/* Accessibility — global focus + reduced-motion preferences */
+@layer base {
+    /* Visible, high-contrast focus ring for keyboard users on every focusable
+     * element, regardless of which component library the element comes from. */
+    :focus-visible {
+        outline: 2px solid var(--color-ring, currentColor);
+        outline-offset: 2px;
+        border-radius: 0.375rem;
+    }
+    /* Skip-link helper used by the legal pages and the app shell. */
+    .a11y-skip-link {
+        position: absolute;
+        left: 1rem;
+        top: 1rem;
+        z-index: 100;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        background: var(--color-primary);
+        color: var(--color-primary-foreground);
+        font-weight: 500;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+        transform: translateY(-150%);
+        transition: transform 0.15s ease;
+    }
+    .a11y-skip-link:focus,
+    .a11y-skip-link:focus-visible {
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}

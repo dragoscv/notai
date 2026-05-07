@@ -24,11 +24,14 @@ export default async function LandingPage() {
 
     return (
         <div className="relative min-h-dvh overflow-hidden bg-background text-foreground">
+            <a href="#landing-main" className="a11y-skip-link">
+                Skip to content
+            </a>
             <AuroraBackground />
 
             <SiteHeader signedIn={!!session?.user} />
 
-            <main className="relative">
+            <main id="landing-main" className="relative">
                 <Hero ctaHref={ctaHref} ctaLabel={ctaLabel} />
                 <BentoFeatures />
                 <UseCases />
@@ -731,14 +734,20 @@ function FinalCta({
 function SiteFooter() {
     return (
         <footer className="relative mx-auto max-w-6xl px-6 pb-10">
-            <div className="flex flex-col items-center justify-between gap-4 border-t pt-6 text-xs text-muted-foreground sm:flex-row">
+            <div className="flex flex-col items-center justify-between gap-6 border-t pt-8 text-xs text-muted-foreground sm:flex-row sm:items-start">
                 <div className="flex items-center gap-2">
-                    <span className="grid size-5 place-items-center rounded-md bg-primary/15 text-primary">
+                    <span
+                        aria-hidden
+                        className="grid size-5 place-items-center rounded-md bg-primary/15 text-primary"
+                    >
                         <PenLine className="size-3" />
                     </span>
-                    <span>© {new Date().getFullYear()} Notai · Made with care.</span>
+                    <span>© {new Date().getFullYear()} Codai · Made with care in Romania.</span>
                 </div>
-                <div className="flex items-center gap-5">
+                <nav
+                    aria-label="Footer"
+                    className="grid grid-cols-2 gap-x-8 gap-y-2 sm:grid-cols-3"
+                >
                     <Link href="/signin" className="hover:text-foreground">
                         Sign in
                     </Link>
@@ -748,7 +757,22 @@ function SiteFooter() {
                     <a href="#start" className="hover:text-foreground">
                         Get started
                     </a>
-                </div>
+                    <Link href="/privacy-policy" className="hover:text-foreground">
+                        Privacy
+                    </Link>
+                    <Link href="/terms" className="hover:text-foreground">
+                        Terms
+                    </Link>
+                    <Link href="/cookies" className="hover:text-foreground">
+                        Cookies
+                    </Link>
+                    <Link href="/accessibility" className="hover:text-foreground">
+                        Accessibility
+                    </Link>
+                    <Link href="/contact" className="hover:text-foreground">
+                        Contact
+                    </Link>
+                </nav>
             </div>
         </footer>
     );

@@ -87,6 +87,9 @@ export function AppShell({
 
     return (
         <SidebarContext.Provider value={value}>
+            <a href="#app-main" className="a11y-skip-link">
+                Skip to content
+            </a>
             <div className="flex h-dvh w-full overflow-hidden bg-background">
                 {sidebar}
 
@@ -100,7 +103,13 @@ export function AppShell({
                     aria-hidden={!mobileOpen}
                 />
 
-                <main className="relative flex min-w-0 flex-1 flex-col">{children}</main>
+                <main
+                    id="app-main"
+                    tabIndex={-1}
+                    className="relative flex min-w-0 flex-1 flex-col focus:outline-none"
+                >
+                    {children}
+                </main>
                 {commandPalette}
             </div>
         </SidebarContext.Provider>

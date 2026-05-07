@@ -1,5 +1,10 @@
 # Microsoft Store publishing — Notai
 
+> **Looking for the full step-by-step setup guide (with Microsoft Entra
+> instructions, screenshots, and troubleshooting)?**
+> See [`docs/microsoft-store-setup.md`](../../../docs/microsoft-store-setup.md).
+> This README is the quick reference; the linked doc is the playbook.
+
 ## What this folder contains
 
 - `microsoft/metadata.json` — Store listing fields (description, keywords, etc.). Edit and push to update the live listing automatically.
