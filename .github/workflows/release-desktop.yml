@@ -1,0 +1,182 @@
+name: Release desktop (Tauri)
+
+# Builds Notai desktop installers for Windows, macOS (universal),
+# and Linux (deb + AppImage) when apps/desktop/package.json is bumped
+# on `main`. Also runnable manually.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Override version (else read from package.json)'
+        required: false
+
+concurrency:
+  group: release-desktop
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    name: Detect version bump
+    runs-on: ubuntu-latest
+    outputs:
+      bumped: ${{ steps.detect.outputs.bumped }}
+      version: ${{ steps.detect.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: detect
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          node scripts/detect-version-bumps.mjs ${{ github.event.before }} ${{ github.sha }} > bumps.json
+          cat bumps.json
+          BUMPED=$(node -e "const b=require('./bumps.json'); process.stdout.write(b.desktop ? 'true' : 'false')")
+          VERSION=$(node -e "const b=require('./bumps.json'); process.stdout.write(b.desktopVersion || '')")
+          echo "bumped=$BUMPED" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  create-release:
+    name: Create draft release
+    needs: detect
+    if: needs.detect.outputs.bumped == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.release.outputs.id }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-v${{ needs.detect.outputs.version }}
+          name: 'Notai Desktop v${{ needs.detect.outputs.version }}'
+          draft: true
+          prerelease: false
+          body: |
+            See [CHANGELOG.md](./CHANGELOG.md).
+
+            ### Downloads
+
+            - **Windows**: `.msi` and `.exe` installers
+            - **macOS**: universal `.dmg`
+            - **Linux**: `.AppImage` and `.deb`
+          generate_release_notes: true
+
+  build-desktop:
+    name: Build (${{ matrix.platform.target }})
+    needs: [detect, create-release]
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { os: macos-latest,   target: 'macos-universal', args: '--target universal-apple-darwin' }
+          - { os: ubuntu-22.04,   target: 'linux-x86_64',    args: '' }
+          - { os: windows-latest, target: 'windows-x86_64',  args: '' }
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux deps (Ubuntu only)
+        if: startsWith(matrix.platform.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file
+
+      - name: Install Rust (with universal-apple-darwin on macOS)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ startsWith(matrix.platform.os, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Cargo cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.13.1'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Sync Tauri version with package.json
+        shell: bash
+        run: |
+          node -e "const fs=require('fs');const p=require('./apps/desktop/src-tauri/tauri.conf.json');p.version='${{ needs.detect.outputs.version }}';fs.writeFileSync('./apps/desktop/src-tauri/tauri.conf.json',JSON.stringify(p,null,2)+'\n');"
+
+      - name: Build web app (frontendDist sourced from Next export-less build)
+        env:
+          NEXT_PUBLIC_APP_URL: ${{ vars.WEB_PUBLIC_URL || 'https://notai.app' }}
+          NEXT_PUBLIC_HOCUSPOCUS_URL: ${{ vars.HOCUSPOCUS_PUBLIC_URL || 'wss://realtime.notai.app' }}
+          # Build is needed before tauri bundles; the bundled app loads
+          # the deployed web URL but we still want the build artifacts cached.
+          DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+          AUTH_SECRET: ci-only-not-a-real-secret-ci-only-not-a-real-secret
+          AUTH_GOOGLE_ID: ci
+          AUTH_GOOGLE_SECRET: ci
+          HOCUSPOCUS_JWT_SECRET: ci-only-not-a-real-secret-ci-only-not-a-real-secret
+        run: pnpm --filter @notai/web build
+
+      - name: Build + sign Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS code signing (optional — workflow still runs without)
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Tauri auto-updater signing (optional)
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          args: ${{ matrix.platform.args }}
+
+  publish-release:
+    name: Publish release
+    needs: [detect, create-release, build-desktop]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Promote draft to published
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "desktop-v${{ needs.detect.outputs.version }}" --draft=false --latest

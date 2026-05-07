@@ -1,0 +1,45 @@
+name: notai
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: notai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: notai
+      POSTGRES_PASSWORD: notai
+      POSTGRES_DB: notai
+      # Enable extensions we need via init script
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    ports:
+      - "5432:5432"
+    volumes:
+      - notai-pgdata:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notai -d notai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Optional: pgAdmin web UI. Visit http://localhost:5050
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: notai-pgadmin
+    restart: unless-stopped
+    profiles: ["tools"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@notai.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - notai-pgadmin:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  notai-pgdata:
+  notai-pgadmin:

@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# Pre-push gate: full lint + typecheck across the workspace. The build is
+# verified by CI (it's expensive and needs env vars).
+pnpm lint || { echo "✖ lint failed"; exit 1; }
+pnpm typecheck || { echo "✖ typecheck failed"; exit 1; }

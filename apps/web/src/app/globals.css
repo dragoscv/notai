@@ -1,0 +1,46 @@
+@import '@notai/ui/styles.css';
+
+/* Tailwind v4 auto-scans source files but excludes node_modules — our
+ * workspace packages are symlinked there via pnpm, so we need to register
+ * them explicitly or their class names won't be generated. */
+@source "../../../../packages/ui/src/**/*.{ts,tsx}";
+@source "../../../../packages/editor/src/**/*.{ts,tsx}";
+
+/* App-specific tweaks */
+@layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        overscroll-behavior-y: none;
+    }
+
+    /* Editor column width — driven by the app preferences applier which sets
+     * `data-editor-width` on <html>. Consumed by `.editor-column` below. */
+    :root {
+        --editor-max-w: 48rem; /* comfortable (≈ Tailwind max-w-3xl) */
+    }
+    :root[data-editor-width='narrow'] {
+        --editor-max-w: 40rem;
+    }
+    :root[data-editor-width='wide'] {
+        --editor-max-w: 64rem;
+    }
+}
+
+.editor-column {
+    max-width: var(--editor-max-w);
+}
+
+/* ProseMirror prose overrides to match our muted palette */
+.prose {
+    --tw-prose-body: var(--color-foreground);
+    --tw-prose-headings: var(--color-foreground);
+    --tw-prose-links: var(--color-primary);
+    --tw-prose-bold: var(--color-foreground);
+    --tw-prose-bullets: var(--color-muted-foreground);
+    --tw-prose-quotes: var(--color-muted-foreground);
+    --tw-prose-code: var(--color-foreground);
+    --tw-prose-pre-bg: var(--color-muted);
+}

@@ -1,0 +1,52 @@
+{
+    "name": "notai",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Notai — a collaborative, S Pen-friendly notes app with realtime sync and desktop sticky notes",
+    "packageManager": "pnpm@10.13.1",
+    "engines": {
+        "node": ">=22",
+        "pnpm": ">=10"
+    },
+    "scripts": {
+        "dev": "turbo run dev --parallel --filter=@notai/web --filter=@notai/realtime-server",
+        "dev:web": "turbo run dev --filter=@notai/web",
+        "dev:realtime": "turbo run dev --filter=@notai/realtime-server",
+        "dev:desktop": "turbo run dev --filter=@notai/desktop",
+        "build": "turbo run build --filter=!@notai/desktop",
+        "build:desktop": "turbo run build --filter=@notai/desktop",
+        "lint": "turbo run lint",
+        "typecheck": "turbo run typecheck",
+        "test": "turbo run test",
+        "clean": "turbo run clean && rimraf node_modules .turbo",
+        "db:generate": "pnpm --filter @notai/db generate",
+        "db:push": "pnpm --filter @notai/db push",
+        "db:migrate": "pnpm --filter @notai/db migrate",
+        "db:studio": "pnpm --filter @notai/db studio",
+        "db:seed": "pnpm --filter @notai/db seed",
+        "docker:up": "docker compose -f docker/compose.yaml up -d",
+        "docker:down": "docker compose -f docker/compose.yaml down",
+        "docker:logs": "docker compose -f docker/compose.yaml logs -f",
+        "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\"",
+        "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yaml,yml}\"",
+        "prepare": "husky"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.5",
+        "husky": "^9.1.7",
+        "lint-staged": "^15.3.0",
+        "prettier": "^3.4.2",
+        "prettier-plugin-tailwindcss": "^0.6.9",
+        "rimraf": "^6.0.1",
+        "turbo": "^2.3.3",
+        "typescript": "^5.9.2"
+    },
+    "lint-staged": {
+        "*.{ts,tsx}": [
+            "prettier --write"
+        ],
+        "*.{json,md,yaml,yml}": [
+            "prettier --write"
+        ]
+    }
+}

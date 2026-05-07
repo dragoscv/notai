@@ -1,0 +1,76 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+logs/
+pnpm-debug.log*
+npm-debug.log*
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+Plain
+
+
+
+
+
+
+
+
+Plain
+
+
+
+
+
+
+
+
+# Tauri
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+
+# Terraform
+infra/**/.terraform/
+infra/**/*.tfstate
+infra/**/*.tfstate.*
+infra/**/.terraform.lock.hcl
+infra/**/terraform.tfvars
+infra/**/*.auto.tfvars
+
+# Secrets
+*.pem
+*.key
+service-account*.json
+gcp-credentials*.json
+.pnpm-cache/

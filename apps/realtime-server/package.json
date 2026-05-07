@@ -1,0 +1,28 @@
+{
+    "name": "@notai/realtime-server",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "main": "src/index.ts",
+    "scripts": {
+        "dev": "tsx watch --env-file=../web/.env.local src/index.ts",
+        "build": "tsc -p tsconfig.build.json",
+        "start": "node dist/index.js",
+        "typecheck": "tsc --noEmit",
+        "clean": "rimraf dist .turbo"
+    },
+    "dependencies": {
+        "@hocuspocus/extension-database": "catalog:",
+        "@hocuspocus/extension-logger": "catalog:",
+        "@hocuspocus/server": "catalog:",
+        "@notai/db": "workspace:*",
+        "@notai/lib": "workspace:*",
+        "yjs": "catalog:"
+    },
+    "devDependencies": {
+        "@types/node": "catalog:",
+        "rimraf": "^6.0.1",
+        "tsx": "catalog:",
+        "typescript": "catalog:"
+    }
+}

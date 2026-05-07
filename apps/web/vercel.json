@@ -1,0 +1,17 @@
+{
+    "$schema": "https://openapi.vercel.sh/vercel.json",
+    "framework": "nextjs",
+    "buildCommand": "cd ../.. && pnpm turbo run build --filter=@notai/web",
+    "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+    "outputDirectory": ".next",
+    "ignoreCommand": "node ../../scripts/vercel-should-build.mjs",
+    "regions": ["fra1"],
+    "headers": [
+        {
+            "source": "/(.*)",
+            "headers": [
+                { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "name": "@notai/desktop",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev.ps1 dev",
+        "build": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev.ps1 build",
+        "tauri": "tauri",
+        "typecheck": "echo \"(tauri app — Rust only, no TS)\""
+    },
+    "devDependencies": {
+        "@tauri-apps/cli": "^2.1.0"
+    }
+}

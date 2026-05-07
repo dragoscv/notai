@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# Pre-commit gate: format staged files, then enforce a CHANGELOG entry
+# on any package.json version bump. Lint + typecheck run on pre-push.
+pnpm exec lint-staged || exit 1
+node scripts/check-changelog.mjs || exit 1

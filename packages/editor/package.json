@@ -1,0 +1,50 @@
+{
+    "name": "@notai/editor",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit",
+        "clean": "rimraf dist .turbo"
+    },
+    "dependencies": {
+        "@hocuspocus/provider": "catalog:",
+        "@notai/lib": "workspace:*",
+        "@notai/ui": "workspace:*",
+        "@tiptap/core": "catalog:",
+        "@tiptap/extension-collaboration": "catalog:",
+        "@tiptap/extension-collaboration-cursor": "catalog:",
+        "@tiptap/extension-highlight": "catalog:",
+        "@tiptap/extension-link": "catalog:",
+        "@tiptap/extension-placeholder": "catalog:",
+        "@tiptap/extension-task-item": "catalog:",
+        "@tiptap/extension-task-list": "catalog:",
+        "@tiptap/extension-typography": "catalog:",
+        "@tiptap/extension-text-style": "catalog:",
+        "@tiptap/extension-color": "catalog:",
+        "@tiptap/extension-underline": "catalog:",
+        "@tiptap/extension-font-family": "catalog:",
+        "@tiptap/extension-text-align": "catalog:",
+        "@tiptap/extension-subscript": "catalog:",
+        "@tiptap/extension-superscript": "catalog:",
+        "@tiptap/react": "catalog:",
+        "@tiptap/starter-kit": "catalog:",
+        "lucide-react": "catalog:",
+        "@excalidraw/excalidraw": "catalog:",
+        "pdfjs-dist": "catalog:"
+    },
+    "peerDependencies": {
+        "react": "catalog:",
+        "react-dom": "catalog:",
+        "yjs": "catalog:",
+        "y-indexeddb": "catalog:"
+    },
+    "devDependencies": {
+        "@types/react": "catalog:",
+        "rimraf": "^6.0.1",
+        "typescript": "catalog:"
+    }
+}

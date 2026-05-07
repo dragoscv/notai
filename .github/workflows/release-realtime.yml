@@ -1,0 +1,116 @@
+name: Release realtime-server (Cloud Run)
+
+# Builds the Hocuspocus image and rolls it out to Cloud Run only when
+# apps/realtime-server/package.json version changes on `main`.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/realtime-server/**'
+      - 'packages/db/**'
+      - 'packages/lib/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+
+concurrency:
+  group: release-realtime
+  cancel-in-progress: false
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION }}
+  ARTIFACT_REPO: notai
+  SERVICE_NAME: notai-realtime
+  IMAGE_NAME: realtime
+
+jobs:
+  detect:
+    name: Detect version bump
+    runs-on: ubuntu-latest
+    outputs:
+      bumped: ${{ steps.detect.outputs.bumped }}
+      version: ${{ steps.detect.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: detect
+        run: |
+          node scripts/detect-version-bumps.mjs ${{ github.event.before }} ${{ github.sha }} > bumps.json
+          cat bumps.json
+          BUMPED=$(node -e "const b=require('./bumps.json'); process.stdout.write(b.realtime ? 'true' : 'false')")
+          VERSION=$(node -e "const b=require('./bumps.json'); process.stdout.write(b.realtimeVersion || '')")
+          echo "bumped=$BUMPED" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Build + deploy to Cloud Run
+    needs: detect
+    if: needs.detect.outputs.bumped == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    environment:
+      name: production-realtime
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Configure docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/realtime-server/Dockerfile
+          push: true
+          tags: |
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ needs.detect.outputs.version }}
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.GCP_REGION }}
+          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ needs.detect.outputs.version }}
+
+      - name: Tag release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="realtime-v${{ needs.detect.outputs.version }}"
+          git tag "$TAG" "${{ github.sha }}"
+          git push origin "$TAG"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: realtime-v${{ needs.detect.outputs.version }}
+          name: '@notai/realtime-server v${{ needs.detect.outputs.version }}'
+          body: |
+            Cloud Run service: ${{ steps.deploy.outputs.url }}
+
+            See [CHANGELOG.md](./CHANGELOG.md) for details.
+          generate_release_notes: true
