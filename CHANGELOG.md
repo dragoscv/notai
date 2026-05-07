@@ -101,6 +101,37 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.9] - 2026-05-07
+
+### Fixed
+
+- **`tauri.conf.json` schema validation broke v0.1.8 release builds on every
+  platform.** `bundle.windows.nsis.allowDowngrades` is not a valid NSIS field
+  in Tauri 2.x — it lives at `bundle.windows.allowDowngrades`. Moved the key
+  out of `nsis`, which had been failing the build with
+  `"... is not valid under any of the schemas listed in the 'anyOf' keyword"`
+  and producing zero installers since v0.1.7. As a result, users were stuck on
+  v0.1.7 (or earlier) and never received the OAuth/auto-update fixes shipped
+  in v0.1.8.
+- **Google sign-in button silently swallowed all opener errors on Windows.**
+  Clicking "Continue with Google" in the desktop app appeared to do nothing
+  because every failure path was caught and ignored. Rewrote the click
+  handler to:
+  - Try `@tauri-apps/plugin-opener` `openUrl`, then `@tauri-apps/api/core`
+    `invoke('plugin:opener|open_url')`, then a final raw
+    `__TAURI_INTERNALS__.invoke` fallback.
+  - Recheck the Tauri globals on click (not just on mount) in case they
+    were injected late.
+  - Show a sonner toast with the failed URL and per-attempt error messages
+    when every path fails, so the user can copy the link into a browser
+    instead of seeing nothing happen.
+  - Log every failed attempt to the console for support diagnosis.
+- **Desktop sign-in no longer requires two clicks.** The button used to open
+  the system browser at `/signin`, which then required the user to click
+  "Continue with Google" a second time. New `/desktop-signin` route handler
+  calls `signIn('google', { redirectTo: '/api/desktop-auth/issue' })`
+  immediately, so the browser lands directly on Google's consent screen.
+
 ## [@notai/desktop 0.1.8] - 2026-05-07
 
 ### Added
