@@ -56,6 +56,12 @@ Vercel automatically on every push to `main` — no version bump required.
 - `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — for the
   built-in Tauri auto-updater. Generate with `pnpm --filter @notai/desktop tauri signer generate`.
 
+> **Note:** the workflow currently does *not* pass any signing env vars to
+> `tauri-action`, so unsigned installers ship by default. To enable signing,
+> add the env block back to the `Build + sign Tauri app` step in
+> `.github/workflows/release-desktop.yml` only after populating the secrets
+> above (an empty `APPLE_CERTIFICATE` causes `security import` to fail).
+
 ### Repository **variables** (Settings → Secrets and variables → Actions → Variables)
 
 - `GCP_PROJECT_ID` — e.g. `notai-prod`
