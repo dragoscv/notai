@@ -74,3 +74,4 @@ infra/**/*.auto.tfvars
 service-account*.json
 gcp-credentials*.json
 .pnpm-cache/
+.vercel
