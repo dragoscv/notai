@@ -45,6 +45,17 @@ Each app in this monorepo is versioned independently:
 - ESLint: `postcss.config.mjs` anonymous default export warning; React 19
   `set-state-in-effect` rule disabled for legitimate mount-only reads.
 
+## [@notai/desktop 0.1.1] - 2026-05-07
+
+### Fixed
+
+- `release-desktop` workflow: drop `beforeBuildCommand` (Tauri loads remote
+  URL at runtime, no need to rebuild Next inside `tauri-action`).
+- `WebviewWindowBuilder::transparent(false)` removed — gated behind opt-in
+  Cargo feature in tauri 2.10, broke macOS/Linux/Windows compilation.
+- Skip optional Apple/Tauri signing env vars when secrets are empty;
+  unsigned installers ship by default until certs are configured.
+
 ## [0.1.0] - 2026-01-15
 
 ### Added
