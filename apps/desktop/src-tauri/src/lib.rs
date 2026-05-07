@@ -47,7 +47,6 @@ fn spawn_sticky(app: &AppHandle, note_id: &str) -> Result<(), String> {
         .inner_size(320.0, 400.0)
         .min_inner_size(220.0, 180.0)
         .decorations(false)
-        .transparent(false)
         .always_on_top(true)
         .skip_taskbar(true)
         .resizable(true)
