@@ -45,6 +45,15 @@ Each app in this monorepo is versioned independently:
 - ESLint: `postcss.config.mjs` anonymous default export warning; React 19
   `set-state-in-effect` rule disabled for legitimate mount-only reads.
 
+## [@notai/realtime-server 0.1.2] - 2026-05-07
+
+### Fixed
+
+- Dockerfile now uses `pnpm deploy` to flatten workspace symlinks; the
+  previous image failed to start with `ERR_MODULE_NOT_FOUND` for
+  `@hocuspocus/server` because pnpm's symlink layout was not preserved
+  across multi-stage `COPY`.
+
 ## [@notai/realtime-server 0.1.1] - 2026-05-07
 
 ### Added
