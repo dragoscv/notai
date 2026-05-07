@@ -20,24 +20,47 @@ const TRACKED = [
     /^pnpm-workspace\.yaml$/,
     /^turbo\.json$/,
     /^tsconfig\.base\.json$/,
+    /^vercel\.json$/,
 ];
 
-function changedFiles() {
-    try {
-        const out = execSync('git diff --name-only HEAD~1 HEAD', { encoding: 'utf8' });
-        return out.split('\n').filter(Boolean);
-    } catch {
-        return ['__force__'];
-    }
+const ZERO_SHA = '0000000000000000000000000000000000000000';
+
+function build(reason) {
+    console.log(`✓ ${reason} — proceeding with build.`);
+    process.exit(1);
 }
 
-const files = changedFiles();
-const shouldBuild = files.some((f) => TRACKED.some((r) => r.test(f)));
-
-if (shouldBuild) {
-    console.log('✓ Web-relevant changes detected — proceeding with build.');
-    process.exit(1); // build
+function skip(reason) {
+    console.log(`• ${reason} — skipping Vercel build.`);
+    process.exit(0);
 }
 
-console.log('• No web changes — skipping Vercel build.');
-process.exit(0); // skip
+// Vercel injects these on every build:
+//   VERCEL_GIT_COMMIT_SHA   — the commit being built
+//   VERCEL_GIT_PREVIOUS_SHA — last successful production build (empty on first deploy)
+const head = process.env.VERCEL_GIT_COMMIT_SHA || 'HEAD';
+const prev = process.env.VERCEL_GIT_PREVIOUS_SHA;
+
+if (!prev || prev === ZERO_SHA) {
+    build('First deploy (no previous build to diff against)');
+}
+
+let files = [];
+try {
+    const out = execSync(`git diff --name-only ${prev} ${head}`, { encoding: 'utf8' });
+    files = out.split('\n').filter(Boolean);
+} catch (err) {
+    build(`Could not diff ${prev}..${head} (${err.message})`);
+}
+
+if (files.length === 0) {
+    build('No files reported in diff (defensive build)');
+}
+
+const matched = files.filter((f) => TRACKED.some((r) => r.test(f)));
+if (matched.length > 0) {
+    console.log(`  matched: ${matched.slice(0, 10).join(', ')}${matched.length > 10 ? ` (+${matched.length - 10})` : ''}`);
+    build('Web-relevant changes detected');
+}
+
+skip(`No web changes in ${files.length} file(s)`);
