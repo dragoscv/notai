@@ -101,6 +101,16 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.4] - 2026-05-07
+
+### Fixed
+
+- Re-issued minisign signing keypair after `0.1.3` build failed with
+  `incorrect updater private key password`. The new public key is
+  embedded in `tauri.conf.json` and the matching private key + password
+  are stored as repository secrets `TAURI_SIGNING_PRIVATE_KEY` /
+  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+
 ## [@notai/desktop 0.1.3] - 2026-05-07
 
 ### Added
