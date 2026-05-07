@@ -101,6 +101,15 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.5] - 2026-05-07
+
+### Fixed
+
+- Re-encoded `TAURI_SIGNING_PRIVATE_KEY` GitHub secret as base64 of the
+  minisign key file (tauri-action expects base64 contents, not the raw
+  `untrusted comment: ...` file text). Previous build failed with
+  `failed to decode base64 secret key`.
+
 ## [@notai/desktop 0.1.4] - 2026-05-07
 
 ### Fixed
