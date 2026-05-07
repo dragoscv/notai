@@ -27,7 +27,7 @@ jobs:
       bumped: ${{ steps.detect.outputs.bumped }}
       version: ${{ steps.detect.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - id: detect
@@ -54,9 +54,9 @@ jobs:
     outputs:
       release_id: ${{ steps.release.outputs.id }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - id: release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: desktop-v${{ needs.detect.outputs.version }}
           name: 'Notai Desktop v${{ needs.detect.outputs.version }}'
@@ -81,18 +81,26 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - { os: macos-latest,   target: 'macos-universal', args: '--target universal-apple-darwin' }
-          - { os: ubuntu-22.04,   target: 'linux-x86_64',    args: '' }
-          - { os: windows-latest, target: 'windows-x86_64',  args: '' }
+          - { os: macos-latest,  target: 'macos-universal', args: '--target universal-apple-darwin' }
+          - { os: ubuntu-22.04,  target: 'linux-x86_64',    args: '' }
+          - { os: windows-2025,  target: 'windows-x86_64',  args: '' }
     runs-on: ${{ matrix.platform.os }}
+    env:
+      # Faster Cargo builds in CI: more parallel codegen units, no incremental
+      # (pointless on cold caches), thinner debug info.
+      CARGO_INCREMENTAL: '0'
+      CARGO_NET_RETRY: '10'
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: short
+      RUSTUP_MAX_RETRIES: '10'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Linux deps (Ubuntu only)
         if: startsWith(matrix.platform.os, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev \
             libappindicator3-dev \
             librsvg2-dev \
@@ -101,8 +109,6 @@ jobs:
             libsoup-3.0-dev \
             libjavascriptcoregtk-4.1-dev \
             build-essential \
-            curl \
-            wget \
             file
 
       - name: Install Rust (with universal-apple-darwin on macOS)
@@ -114,17 +120,27 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: apps/desktop/src-tauri -> target
+          # Share the cache across workflow runs even if Cargo.lock churns slightly.
+          shared-key: tauri-${{ matrix.platform.target }}
+          cache-on-failure: true
+          # Persist target directory so incremental linker results survive too.
+          cache-targets: true
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: '10.13.1'
+          run_install: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      # Only install the desktop package + its (tiny) deps. The full monorepo
+      # install pulls in Next.js, React, Drizzle, etc. — none of which Tauri
+      # needs. This cuts install time from ~30s to ~5s.
+      - name: Install desktop deps only
+        run: pnpm install --frozen-lockfile --filter @notai/desktop
 
       - name: Sync Tauri version + production URL
         shell: bash
@@ -137,13 +153,11 @@ jobs:
             const p=JSON.parse(fs.readFileSync(path,'utf8'));
             const url=process.env.WEB_URL || 'https://notai.ro';
             p.version='${{ needs.detect.outputs.version }}';
-            // Point the main window at the deployed web app instead of localhost.
             for (const w of (p.app && p.app.windows) || []) {
               if (typeof w.url === 'string') {
                 w.url = w.url.replace(/^http:\/\/localhost:3000/, url);
               }
             }
-            // devUrl stays for dev; not used in prod builds.
             fs.writeFileSync(path, JSON.stringify(p,null,2)+'\n');
             console.log('Wrote production config:', JSON.stringify({version:p.version, mainUrl:p.app.windows[0].url}, null, 2));
           "
@@ -152,11 +166,9 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Used by lib.rs `app_url()` for sticky + settings windows.
           NOTAI_WEB_URL: ${{ vars.WEB_PUBLIC_URL || 'https://notai.ro' }}
           NEXT_PUBLIC_APP_URL: ${{ vars.WEB_PUBLIC_URL || 'https://notai.ro' }}
           NEXT_PUBLIC_HOCUSPOCUS_URL: ${{ vars.HOCUSPOCUS_PUBLIC_URL || 'wss://realtime.notai.ro' }}
-          # Updater signing (publishes latest.json + .sig files alongside installers).
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
@@ -171,7 +183,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Promote draft to published
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

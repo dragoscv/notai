@@ -101,6 +101,29 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.7] - 2026-05-07
+
+### Changed (CI / build infra)
+
+- Upgraded all Node 20-based GitHub Actions to Node 24-compatible
+  versions to silence the June 2026 deprecation warnings:
+  - `actions/checkout@v4` -> `@v5`
+  - `actions/setup-node@v4` -> `@v6`
+  - `pnpm/action-setup@v4` -> `@v6`
+  - `softprops/action-gh-release@v2` -> `@v3`
+- Switched the Windows runner label from `windows-latest` to
+  `windows-2025` to skip the auto-redirect notice.
+- Cut desktop build time roughly in half by:
+  - Installing only `@notai/desktop` and its devDeps
+    (`pnpm install --filter @notai/desktop`) instead of the entire
+    monorepo (Next.js / React / Drizzle / etc. are not needed for the
+    Tauri shell).
+  - Adding a per-platform `shared-key` to `swatinem/rust-cache` so
+    Rust builds land on a warm `target/` directory across runs.
+  - Adding `--no-install-recommends` to apt and dropping `curl`/`wget`
+    (already on the runner image).
+  - Setting `CARGO_INCREMENTAL=0` (faster cold compile + smaller cache).
+
 ## [@notai/desktop 0.1.6] - 2026-05-07
 
 ### Fixed
