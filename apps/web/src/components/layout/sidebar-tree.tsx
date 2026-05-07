@@ -416,7 +416,8 @@ export function SidebarTree({ folders, notes }: SidebarTreeProps) {
     return (
         <div className="flex min-h-0 flex-1 flex-col">
             <div className="mt-4 flex items-center justify-between px-3 pb-1">
-                <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <h3 className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] text-primary uppercase">
+                    <span className="size-1 rounded-full bg-primary/60" />
                     Notes
                 </h3>
                 <div className="flex items-center gap-0.5">

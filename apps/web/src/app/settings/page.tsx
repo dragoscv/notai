@@ -1,3 +1,4 @@
+import { PenLine } from 'lucide-react';
 import { SettingsForm } from '@/components/settings/settings-form';
 
 /**
@@ -7,12 +8,30 @@ import { SettingsForm } from '@/components/settings/settings-form';
  */
 export default function SettingsPage() {
     return (
-        <main className="mx-auto max-w-xl px-6 py-8">
-            <header className="mb-6">
-                <h1 className="text-2xl font-semibold">Settings</h1>
-                <p className="text-sm text-muted-foreground">
-                    Desktop app preferences. Changes are saved automatically.
-                </p>
+        <main className="relative mx-auto min-h-dvh max-w-xl px-6 py-8">
+            {/* soft warm wash */}
+            <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 -z-10"
+                style={{
+                    background:
+                        'radial-gradient(600px 240px at 50% 0%, color-mix(in oklab, var(--primary) 10%, transparent), transparent 70%)',
+                }}
+            />
+
+            <header className="mb-8 flex items-center gap-3">
+                <span
+                    aria-hidden
+                    className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm shadow-primary/20"
+                >
+                    <PenLine className="size-4" />
+                </span>
+                <div>
+                    <h1 className="font-serif text-2xl font-semibold tracking-tight">Settings</h1>
+                    <p className="text-sm text-muted-foreground">
+                        Desktop app preferences. Changes are saved automatically.
+                    </p>
+                </div>
             </header>
             <SettingsForm />
         </main>

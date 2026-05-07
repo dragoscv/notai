@@ -1,0 +1,79 @@
+'use client';
+import { useTransition } from 'react';
+import { Button } from '@notai/ui/components/button';
+import { revokeMyClient } from '@/server/actions/oauth-clients';
+
+interface MyClientCardProps {
+    client: {
+        id: string;
+        clientId: string;
+        name: string;
+        type: 'public' | 'confidential';
+        redirectUris: string[];
+        allowedScopes: string;
+        dynamicallyRegistered: boolean;
+        createdAt: Date;
+        revokedAt: Date | null;
+    };
+}
+
+export function MyClientCard({ client }: MyClientCardProps) {
+    const [pending, start] = useTransition();
+    const revoked = !!client.revokedAt;
+
+    return (
+        <div className={`rounded-xl border bg-card p-4 ${revoked ? 'opacity-60' : ''}`}>
+            <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                    <div className="truncate font-medium">{client.name}</div>
+                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                        {client.type === 'public' ? 'Public' : 'Confidential'}
+                        {client.dynamicallyRegistered ? ' · DCR' : ''}
+                        {revoked ? ' · revoked' : ''}
+                    </div>
+                </div>
+                {!revoked ? (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={pending}
+                        onClick={() => {
+                            if (!confirm(`Revoke ${client.name}? All tokens will be invalidated.`)) return;
+                            start(() => revokeMyClient(client.id));
+                        }}
+                    >
+                        {pending ? 'Revoking…' : 'Revoke'}
+                    </Button>
+                ) : null}
+            </div>
+
+            <dl className="mt-3 space-y-1.5 text-xs">
+                <Row label="client_id">
+                    <code className="break-all">{client.clientId}</code>
+                </Row>
+                <Row label="redirect_uris">
+                    <ul className="space-y-0.5">
+                        {client.redirectUris.map((u) => (
+                            <li key={u}>
+                                <code className="break-all text-muted-foreground">{u}</code>
+                            </li>
+                        ))}
+                    </ul>
+                </Row>
+                <Row label="scopes">
+                    <code className="text-muted-foreground">{client.allowedScopes}</code>
+                </Row>
+            </dl>
+        </div>
+    );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div className="grid grid-cols-[max-content_1fr] gap-x-3">
+            <dt className="font-medium text-foreground">{label}</dt>
+            <dd>{children}</dd>
+        </div>
+    );
+}
