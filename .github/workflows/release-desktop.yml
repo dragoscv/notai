@@ -131,23 +131,15 @@ jobs:
         run: |
           node -e "const fs=require('fs');const p=require('./apps/desktop/src-tauri/tauri.conf.json');p.version='${{ needs.detect.outputs.version }}';fs.writeFileSync('./apps/desktop/src-tauri/tauri.conf.json',JSON.stringify(p,null,2)+'\n');"
 
-      - name: Build web app (frontendDist sourced from Next export-less build)
-        env:
-          NEXT_PUBLIC_APP_URL: ${{ vars.WEB_PUBLIC_URL || 'https://notai.app' }}
-          NEXT_PUBLIC_HOCUSPOCUS_URL: ${{ vars.HOCUSPOCUS_PUBLIC_URL || 'wss://realtime.notai.app' }}
-          # Build is needed before tauri bundles; the bundled app loads
-          # the deployed web URL but we still want the build artifacts cached.
-          DATABASE_URL: postgres://ci:ci@localhost:5432/ci
-          AUTH_SECRET: ci-only-not-a-real-secret-ci-only-not-a-real-secret
-          AUTH_GOOGLE_ID: ci
-          AUTH_GOOGLE_SECRET: ci
-          HOCUSPOCUS_JWT_SECRET: ci-only-not-a-real-secret-ci-only-not-a-real-secret
-        run: pnpm --filter @notai/web build
-
       - name: Build + sign Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The bundled desktop app loads the deployed web URL at runtime;
+          # frontendDist is a placeholder static directory. These two are
+          # baked into the (currently unused) static frontend just in case.
+          NEXT_PUBLIC_APP_URL: ${{ vars.WEB_PUBLIC_URL || 'https://notai.app' }}
+          NEXT_PUBLIC_HOCUSPOCUS_URL: ${{ vars.HOCUSPOCUS_PUBLIC_URL || 'wss://realtime.notai.app' }}
           # macOS code signing (optional — workflow still runs without)
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}

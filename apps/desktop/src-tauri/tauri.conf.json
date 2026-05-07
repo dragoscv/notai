@@ -6,7 +6,7 @@
     "build": {
         "beforeDevCommand": "",
         "devUrl": "http://localhost:3000",
-        "beforeBuildCommand": "pnpm --filter @notai/web build",
+        "beforeBuildCommand": "",
         "frontendDist": "./frontend"
     },
     "app": {
