@@ -91,6 +91,22 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
           image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ needs.detect.outputs.version }}
+          flags: >-
+            --port=1234
+            --service-account=notai-deploy@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+            --allow-unauthenticated
+            --min-instances=0
+            --max-instances=3
+            --cpu=1
+            --memory=512Mi
+            --timeout=3600
+            --session-affinity
+          env_vars: |
+            HOCUSPOCUS_PORT=1234
+            NODE_ENV=production
+          secrets: |
+            DATABASE_URL=DATABASE_URL:latest
+            HOCUSPOCUS_JWT_SECRET=HOCUSPOCUS_JWT_SECRET:latest
 
       - name: Tag release
         env:

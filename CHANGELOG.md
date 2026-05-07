@@ -45,6 +45,15 @@ Each app in this monorepo is versioned independently:
 - ESLint: `postcss.config.mjs` anonymous default export warning; React 19
   `set-state-in-effect` rule disabled for legitimate mount-only reads.
 
+## [@notai/realtime-server 0.1.1] - 2026-05-07
+
+### Added
+
+- First Cloud Run deployment to `europe-west1` (project `notai-prod`).
+- `release-realtime.yml` now wires Secret Manager refs for `DATABASE_URL`
+  and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
+  the `notai-deploy` service account.
+
 ## [@notai/desktop 0.1.1] - 2026-05-07
 
 ### Fixed
