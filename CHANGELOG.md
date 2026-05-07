@@ -45,6 +45,14 @@ Each app in this monorepo is versioned independently:
 - ESLint: `postcss.config.mjs` anonymous default export warning; React 19
   `set-state-in-effect` rule disabled for legitimate mount-only reads.
 
+## [@notai/realtime-server 0.1.6] - 2026-05-07
+
+### Fixed
+
+- `DATABASE_URL` socket form needs a placeholder host (`localhost`) so
+  Node's WHATWG URL parser accepts it; Cloud SQL connection is then
+  routed through the `?host=/cloudsql/...` query param.
+
 ## [@notai/realtime-server 0.1.5] - 2026-05-07
 
 ### Changed
