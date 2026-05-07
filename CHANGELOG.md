@@ -4,14 +4,13 @@ All notable changes to Notai are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Each app in this monorepo is versioned independently and released through its
-own GitHub Actions workflow:
+Each app in this monorepo is versioned independently:
 
-| App                       | Triggers release on                                         |
-| ------------------------- | ----------------------------------------------------------- |
-| `@notai/web`              | bump in `apps/web/package.json` merged to `main`            |
-| `@notai/realtime-server`  | bump in `apps/realtime-server/package.json` merged to `main`|
-| `@notai/desktop`          | tag `desktop-v*` (also auto-tagged on `apps/desktop` bump)  |
+| App                       | Triggers release on                                          |
+| ------------------------- | ------------------------------------------------------------ |
+| `@notai/web`              | every push to `main` (Vercel git integration, auto-deploy)   |
+| `@notai/realtime-server`  | bump in `apps/realtime-server/package.json` merged to `main` |
+| `@notai/desktop`          | tag `desktop-v*` (also auto-tagged on `apps/desktop` bump)   |
 
 ## [Unreleased]
 
@@ -21,15 +20,16 @@ own GitHub Actions workflow:
   typecheck, build, and a CHANGELOG entry on version bumps.
 - `getFolder` server action and `previewHtml` preview field on `listNotes`.
 - GitHub Actions (release-only — quality gates run locally before push):
-  - `release-web.yml` — builds and deploys the web app to Vercel when
-    `apps/web/package.json` version changes on `main`.
   - `release-realtime.yml` — builds the Docker image and rolls out the
     Hocuspocus server to Cloud Run when `apps/realtime-server/package.json`
     version changes on `main`.
   - `release-desktop.yml` — builds and signs Windows / macOS / Linux installers
     via `tauri-apps/tauri-action` and publishes a GitHub Release when
     `apps/desktop/package.json` version changes on `main`.
-- `vercel.json` and `apps/web/Dockerfile` for hybrid deploy targets.
+- Vercel git integration handles the web app — auto-deploys on every push
+  to `main`. `apps/web/vercel.json` + `scripts/vercel-should-build.mjs`
+  skip rebuilds when the commit didn't touch the web app.
+- Optional self-host `apps/web/Dockerfile` for non-Vercel targets.
 - `scripts/check-changelog.mjs` and `scripts/detect-version-bumps.mjs` helpers.
 
 ### Changed

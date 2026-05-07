@@ -19,7 +19,6 @@ const base = baseRaw && baseRaw !== '0000000000000000000000000000000000000000' ?
 const head = headRaw || 'HEAD';
 
 const APPS = {
-    web: 'apps/web/package.json',
     realtime: 'apps/realtime-server/package.json',
     desktop: 'apps/desktop/package.json',
 };

@@ -1,14 +1,14 @@
 # Deployment Guide
 
-Notai ships three independently-versioned apps; each has its own GitHub Actions
-workflow that runs **only when its `package.json` version is bumped on `main`**.
-Branch pushes never trigger releases.
+Notai ships three independently-versioned apps. Two of them release through
+GitHub Actions when their `package.json` version is bumped on `main`; the web
+app ships through Vercel's native git integration on every `main` push.
 
-| App                       | Workflow                                | Target                              |
-| ------------------------- | --------------------------------------- | ----------------------------------- |
-| `@notai/web`              | `.github/workflows/release-web.yml`     | Vercel (primary)                    |
-| `@notai/realtime-server`  | `.github/workflows/release-realtime.yml`| Cloud Run (`notai-realtime`)        |
-| `@notai/desktop`          | `.github/workflows/release-desktop.yml` | GitHub Releases (Win/macOS/Linux)   |
+| App                       | How it deploys                                          | Trigger                                          |
+| ------------------------- | ------------------------------------------------------- | ------------------------------------------------ |
+| `@notai/web`              | Vercel git integration (auto)                           | every push to `main` (or any preview branch)     |
+| `@notai/realtime-server`  | `.github/workflows/release-realtime.yml` → Cloud Run    | bump in `apps/realtime-server/package.json`      |
+| `@notai/desktop`          | `.github/workflows/release-desktop.yml` → GitHub Release| bump in `apps/desktop/package.json`              |
 
 Quality gates (lint, typecheck, format, build) run **locally as Husky hooks
 before every push**, never on GitHub Actions. CI is reserved for shipping
@@ -22,31 +22,25 @@ artifacts.
 # 1. Update CHANGELOG.md under [Unreleased] → cut a new section [x.y.z]
 code CHANGELOG.md
 
-# 2. Bump the relevant package.json
-pnpm --filter @notai/web version patch        # or minor / major
-# or:  pnpm --filter @notai/realtime-server version patch
+# 2. Bump the relevant package.json (only for realtime / desktop — web auto-deploys)
+pnpm --filter @notai/realtime-server version patch     # or minor / major
 # or:  pnpm --filter @notai/desktop version patch
 
-# 3. Commit + push (pre-commit checks the CHANGELOG; pre-push runs lint+typecheck)
+# 3. Commit + push (pre-commit checks the CHANGELOG; pre-push runs lint+typecheck+build)
 git add .
-git commit -m "chore(web): release 0.1.1"
+git commit -m "chore(realtime): release 0.1.1"
 git push
 ```
 
-The matching workflow runs on merge to `main`, deploys, tags `web-vX.Y.Z`
-(or `realtime-vX.Y.Z` / `desktop-vX.Y.Z`), and creates a GitHub Release.
+The matching workflow runs on merge to `main`, deploys, tags `realtime-vX.Y.Z`
+(or `desktop-vX.Y.Z`), and creates a GitHub Release. The web app is updated by
+Vercel automatically on every push to `main` — no version bump required.
 
 ---
 
 ## One-time GitHub setup
 
 ### Repository **secrets** (Settings → Secrets and variables → Actions → Secrets)
-
-**Vercel — `release-web.yml`:**
-
-- `VERCEL_TOKEN` — create at https://vercel.com/account/tokens
-- `VERCEL_ORG_ID` — `vercel link` then read `.vercel/project.json`
-- `VERCEL_PROJECT_ID` — same file
 
 **Google Cloud — `release-realtime.yml`** (uses Workload Identity Federation,
 *no service-account JSON keys*):
@@ -71,8 +65,8 @@ The matching workflow runs on merge to `main`, deploys, tags `web-vX.Y.Z`
 
 ### GitHub **environments** (Settings → Environments)
 
-Create `production-web` and `production-realtime`. Add reviewers if you want
-manual approval before each deploy.
+Create `production-realtime`. Add reviewers if you want manual approval before
+each deploy.
 
 ---
 
@@ -128,27 +122,27 @@ runtime service account.
 
 ## One-time Vercel setup
 
-```powershell
-# From the repo root
-pnpm dlx vercel login
-cd apps/web
-pnpm dlx vercel link
-# Reads `.vercel/project.json` — copy projectId + orgId into GitHub Secrets.
+Vercel deploys the web app automatically on every push to `main` — no GitHub
+Actions secrets required. Just connect the GitHub repo once:
 
-# Set the env vars on Vercel (production scope)
-vercel env add DATABASE_URL production
-vercel env add AUTH_SECRET production
-vercel env add AUTH_GOOGLE_ID production
-vercel env add AUTH_GOOGLE_SECRET production
-vercel env add HOCUSPOCUS_JWT_SECRET production
-vercel env add NEXT_PUBLIC_HOCUSPOCUS_URL production
-vercel env add NEXT_PUBLIC_APP_URL production
-```
+1. Go to https://vercel.com/new and import `dragoscv/notai`.
+2. Set the **Root Directory** to `apps/web`.
+3. Vercel auto-detects Next.js. Override the install command if needed:
+   `cd ../.. && pnpm install --frozen-lockfile`
+   and the build command:
+   `cd ../.. && pnpm turbo run build --filter=@notai/web`.
+4. Add the production environment variables under Project Settings → Environment Variables:
+   - `DATABASE_URL`
+   - `AUTH_SECRET`
+   - `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`
+   - `HOCUSPOCUS_JWT_SECRET`
+   - `NEXT_PUBLIC_HOCUSPOCUS_URL`
+   - `NEXT_PUBLIC_APP_URL`
 
-The repo's `apps/web/vercel.json` configures the build command and a
-`vercel-should-build.mjs` "ignored build step" so unrelated commits don't
-trigger Vercel rebuilds — releases come exclusively from the GitHub Actions
-workflow.
+The `apps/web/vercel.json` + `scripts/vercel-should-build.mjs` skip-build script
+ensures Vercel only rebuilds when the web app or its shared packages actually
+changed — pushes that touch only the realtime server, desktop, infra, or docs
+are a no-op.
 
 ---
 
