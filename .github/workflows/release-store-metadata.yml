@@ -1,0 +1,59 @@
+name: Update Microsoft Store metadata
+
+# Pushes listing changes (description, screenshots, keywords) to the live
+# Microsoft Store submission. See apps/desktop/store/README.md for setup.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/store/microsoft/metadata.json'
+      - 'apps/desktop/store/screenshots/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ms-store-metadata
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Push metadata + screenshots to Partner Center
+    runs-on: windows-2025
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.repository == 'dragoscv/notai') }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check Store credentials
+        id: check
+        shell: pwsh
+        run: |
+          if ('${{ secrets.MS_STORE_PRODUCT_ID }}' -and '${{ secrets.MS_STORE_TENANT_ID }}' -and '${{ secrets.MS_STORE_CLIENT_ID }}' -and '${{ secrets.MS_STORE_CLIENT_SECRET }}' -and '${{ secrets.MS_STORE_SELLER_ID }}') {
+            "configured=true" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "::warning::MS_STORE_* secrets not set; skipping. See apps/desktop/store/README.md."
+            "configured=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Configure Microsoft Store CLI
+        if: steps.check.outputs.configured == 'true'
+        uses: microsoft/microsoft-store-apppublisher@v1.1
+
+      - name: Reconfigure store credentials
+        if: steps.check.outputs.configured == 'true'
+        shell: pwsh
+        run: |
+          msstore reconfigure `
+            --tenantId ${{ secrets.MS_STORE_TENANT_ID }} `
+            --sellerId ${{ secrets.MS_STORE_SELLER_ID }} `
+            --clientId ${{ secrets.MS_STORE_CLIENT_ID }} `
+            --clientSecret ${{ secrets.MS_STORE_CLIENT_SECRET }}
+
+      - name: Update metadata
+        if: steps.check.outputs.configured == 'true'
+        shell: pwsh
+        env:
+          PRODUCT_ID: ${{ secrets.MS_STORE_PRODUCT_ID }}
+        run: |
+          $metadata = Get-Content -Raw "${{ github.workspace }}/apps/desktop/store/microsoft/metadata.json"
+          msstore submission updateMetadata $env:PRODUCT_ID $metadata
+          msstore submission publish $env:PRODUCT_ID

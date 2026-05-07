@@ -1,0 +1,53 @@
+{
+  "_comment": "Notai - Microsoft Store listing metadata. Push changes here to trigger metadata update via release-desktop.yml.",
+  "_instructions": "Run the 'Microsoft Store: get base metadata' workflow once via Actions tab to capture the live schema, paste the result here, then edit. Do NOT commit secrets.",
+
+  "listings": {
+    "en-us": {
+      "baseListing": {
+        "copyrightAndTrademarkInfo": "Copyright (c) 2026 Codai",
+        "keywords": ["notes", "sticky notes", "drawing", "collaboration", "realtime", "ADHD", "productivity"],
+        "licenseTerms": "https://notai.ro/terms",
+        "privacyPolicy": "https://notai.ro/privacy",
+        "supportContact": "support@notai.ro",
+        "websiteUrl": "https://notai.ro",
+        "description": "Notai is a calm, collaborative notes app with sticky-note windows that float above every other window. Designed for ADHD-friendly thinking: capture an idea, draw on it, share it in real time, and never lose it.\n\nFeatures:\n- Realtime collaborative notes powered by CRDTs\n- Always-on-top sticky note windows\n- Drawing canvas with pressure-sensitive ink\n- PDF import & annotation\n- Cross-device sync\n- Offline-first; your work is never lost\n- Privacy-respecting; your data is yours",
+        "shortDescription": "Calm, collaborative notes with sticky-note windows that float above everything else.",
+        "title": "Notai",
+        "features": [
+          "Realtime collaboration via CRDTs",
+          "Always-on-top sticky note windows",
+          "Drawing canvas with pressure-sensitive ink",
+          "PDF import and annotation",
+          "Cross-device sync",
+          "Offline-first"
+        ],
+        "appFeatures": [],
+        "hardwareRequirements": [],
+        "recommendedHardware": [],
+        "minimumHardware": [],
+        "images": []
+      },
+      "platformOverrides": null
+    }
+  },
+  "properties": {
+    "category": "ProductivityTools",
+    "subcategory": "NotImported",
+    "supportContactInfo": "https://notai.ro/support",
+    "websiteUrl": "https://notai.ro",
+    "privacyPolicyUrl": "https://notai.ro/privacy",
+    "isPrivacyPolicyRequired": true
+  },
+  "pricing": {
+    "trialPeriod": "NoFreeTrial",
+    "marketSpecificPricings": {},
+    "sales": [],
+    "priceId": "Free",
+    "isAdvancedPricingModel": true
+  },
+  "allowTargetFutureDeviceFamilies": {},
+  "allowMicrosoftDecideAppAvailabilityToFutureDeviceFamilies": true,
+  "enterpriseLicensing": "Online",
+  "applicationCategory": "ProductivityTools"
+}

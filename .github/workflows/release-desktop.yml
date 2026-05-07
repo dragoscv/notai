@@ -189,3 +189,72 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release edit "desktop-v${{ needs.detect.outputs.version }}" --draft=false --latest
+
+  publish-microsoft-store:
+    name: Publish to Microsoft Store
+    needs: [detect, build-desktop, publish-release]
+    runs-on: windows-2025
+    # Skip when the Store secrets aren't configured yet (so the workflow still
+    # green-lights even before you've completed the one-time Partner Center setup).
+    if: ${{ needs.detect.outputs.bumped == 'true' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check Store credentials
+        id: check
+        shell: pwsh
+        run: |
+          if ('${{ secrets.MS_STORE_PRODUCT_ID }}' -and '${{ secrets.MS_STORE_TENANT_ID }}' -and '${{ secrets.MS_STORE_CLIENT_ID }}' -and '${{ secrets.MS_STORE_CLIENT_SECRET }}' -and '${{ secrets.MS_STORE_SELLER_ID }}') {
+            "configured=true" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "::notice::MS_STORE_* secrets not set; skipping Microsoft Store publish. See apps/desktop/store/README.md."
+            "configured=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Configure Microsoft Store CLI
+        if: steps.check.outputs.configured == 'true'
+        uses: microsoft/microsoft-store-apppublisher@v1.1
+
+      - name: Reconfigure store credentials
+        if: steps.check.outputs.configured == 'true'
+        shell: pwsh
+        run: |
+          msstore reconfigure `
+            --tenantId ${{ secrets.MS_STORE_TENANT_ID }} `
+            --sellerId ${{ secrets.MS_STORE_SELLER_ID }} `
+            --clientId ${{ secrets.MS_STORE_CLIENT_ID }} `
+            --clientSecret ${{ secrets.MS_STORE_CLIENT_SECRET }}
+
+      - name: Update package URL in submission
+        if: steps.check.outputs.configured == 'true'
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.detect.outputs.version }}
+          PRODUCT_ID: ${{ secrets.MS_STORE_PRODUCT_ID }}
+        run: |
+          # The Store listing for an MSI/EXE app keeps a list of installer URLs
+          # per installer type. We update the URL to the freshly-published
+          # GitHub Release setup.exe and submit for certification.
+          $url = "https://github.com/dragoscv/notai/releases/download/desktop-v$env:VERSION/Notai_${env:VERSION}_x64-setup.exe"
+          Write-Host "Setting package URL to: $url"
+          msstore submission update $env:PRODUCT_ID --packageUrl $url
+          msstore submission publish $env:PRODUCT_ID
+
+  microsoft-store-get-base-metadata:
+    # Manually-triggered helper to print the live Store submission metadata
+    # JSON. Use it once after the first manual submission to seed
+    # apps/desktop/store/microsoft/metadata.json. See apps/desktop/store/README.md.
+    name: 'Microsoft Store: get base metadata'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.version == '__msstore_get_metadata__'
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v5
+      - uses: microsoft/microsoft-store-apppublisher@v1.1
+      - shell: pwsh
+        run: |
+          msstore reconfigure `
+            --tenantId ${{ secrets.MS_STORE_TENANT_ID }} `
+            --sellerId ${{ secrets.MS_STORE_SELLER_ID }} `
+            --clientId ${{ secrets.MS_STORE_CLIENT_ID }} `
+            --clientSecret ${{ secrets.MS_STORE_CLIENT_SECRET }}
+          msstore submission get ${{ secrets.MS_STORE_PRODUCT_ID }}

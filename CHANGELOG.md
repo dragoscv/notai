@@ -101,6 +101,53 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.8] - 2026-05-07
+
+### Added
+
+- **Silent-friendly Windows installer.** New `nsis` config block in
+  `tauri.conf.json` sets:
+  - `installMode: currentUser` -> no UAC prompt; installs to
+    `%LOCALAPPDATA%\Notai`.
+  - `installerHooks: windows/hooks.nsh` -> auto-runs the previous
+    version's uninstaller silently before laying down the new files
+    (no "already installed, abort?" prompt; no leftover files).
+  - `displayLanguageSelector: false` + `languages: ["English"]` ->
+    skip the language picker dialog.
+  - `allowDowngrades: true` -> reinstalling/downgrading just works.
+  - `installerIcon: icons/icon.ico` -> the setup.exe shows the Notai
+    icon in Explorer instead of the generic NSIS icon.
+  - `compression: lzma` -> ~30% smaller installer.
+- **Auto-update is now passive on Windows.** The updater plugin uses
+  `installMode: passive` so updates show only a progress bar (no
+  clicks, no UAC).
+- **Microsoft Store auto-publish pipeline.** Added
+  `publish-microsoft-store` job to `release-desktop.yml` and a
+  separate `release-store-metadata.yml` workflow. Both use the
+  official `microsoft/microsoft-store-apppublisher@v1.1` action via
+  `msstore submission update / publish`.
+- `apps/desktop/src-tauri/tauri.microsoftstore.conf.json` -> Store
+  config overlay that switches Webview2 to the offline installer
+  (required for Store-distributed installers).
+- `apps/desktop/store/` -> Store assets folder (metadata template +
+  screenshot drop zone) with a complete one-time setup README
+  (Partner Center enrolment, Entra app, GitHub secrets).
+
+### How to fully silence first-time install
+
+The stock NSIS template still shows a 2-page wizard for users who
+double-click the setup.exe. To install with zero UI, run from a shell:
+
+```
+Notai_0.1.8_x64-setup.exe /S
+```
+
+or with progress only (no clicks):
+
+```
+Notai_0.1.8_x64-setup.exe /P
+```
+
 ## [@notai/desktop 0.1.7] - 2026-05-07
 
 ### Changed (CI / build infra)
