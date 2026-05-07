@@ -156,6 +156,9 @@ jobs:
           NOTAI_WEB_URL: ${{ vars.WEB_PUBLIC_URL || 'https://notai.ro' }}
           NEXT_PUBLIC_APP_URL: ${{ vars.WEB_PUBLIC_URL || 'https://notai.ro' }}
           NEXT_PUBLIC_HOCUSPOCUS_URL: ${{ vars.HOCUSPOCUS_PUBLIC_URL || 'wss://realtime.notai.ro' }}
+          # Updater signing (publishes latest.json + .sig files alongside installers).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
           releaseId: ${{ needs.create-release.outputs.release_id }}

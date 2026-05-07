@@ -7,7 +7,6 @@ import {
     MoreHorizontal,
     PanelRight,
     PenLine,
-    Wifi,
     WifiOff,
 } from 'lucide-react';
 import type { Editor } from '@tiptap/react';
@@ -82,11 +81,14 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
 
     return (
         <div className="flex h-full flex-col">
-            <header className="flex shrink-0 items-center gap-2 border-b px-4 py-2">
+            <header className="flex shrink-0 items-center gap-2 border-b bg-background/70 px-4 py-2 backdrop-blur">
                 <Button
                     size="sm"
-                    variant={drawing ? 'secondary' : 'ghost'}
-                    className="h-7 gap-1.5 px-2 text-xs"
+                    variant={drawing ? 'default' : 'ghost'}
+                    className={cn(
+                        'h-7 gap-1.5 px-2 text-xs transition-all',
+                        drawing && 'shadow-sm shadow-primary/20',
+                    )}
                     onClick={() => setDrawing((v) => !v)}
                     title="Toggle draw mode"
                 >
@@ -111,8 +113,11 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                             toast.success(note.isPinned ? 'Unpinned' : 'Pinned');
                         }}
                         aria-label="Pin"
+                        title={note.isPinned ? 'Unpin' : 'Pin to top'}
                     >
-                        <Pin className={cn(note.isPinned && 'fill-current')} />
+                        <Pin
+                            className={cn(note.isPinned && 'fill-current text-primary')}
+                        />
                     </Button>
                     <Button
                         size="icon-sm"
@@ -121,8 +126,11 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                             await updateNote({ id: note.id, isFavorite: !note.isFavorite });
                         }}
                         aria-label="Favorite"
+                        title={note.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                     >
-                        <Star className={cn(note.isFavorite && 'fill-yellow-500 text-yellow-500')} />
+                        <Star
+                            className={cn(note.isFavorite && 'fill-yellow-500 text-yellow-500')}
+                        />
                     </Button>
                     <Button
                         size="icon-sm"
@@ -157,9 +165,11 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <Avatar className="ml-2 size-7">
+                    <Avatar className="ml-2 size-7 ring-2 ring-card">
                         {user.image && <AvatarImage src={user.image} />}
-                        <AvatarFallback>{getInitials(user.name, user.email)}</AvatarFallback>
+                        <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/10 text-[10px] font-medium text-foreground/80">
+                            {getInitials(user.name, user.email)}
+                        </AvatarFallback>
                     </Avatar>
                 </div>
             </header>
@@ -241,17 +251,27 @@ function ConnectionPill({
     synced: boolean;
 }) {
     const online = status === 'connected' && synced;
+    const connecting = status === 'connecting';
     return (
         <span
             className={cn(
-                'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px]',
-                online
-                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                    : 'border-muted-foreground/20 bg-muted text-muted-foreground',
+                'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] backdrop-blur',
+                online &&
+                    'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+                connecting &&
+                    'border-primary/30 bg-primary/10 text-primary',
+                !online && !connecting && 'border-muted-foreground/20 bg-muted text-muted-foreground',
             )}
         >
-            {online ? <Wifi className="size-3" /> : <WifiOff className="size-3" />}
-            {online ? 'Synced' : status === 'connecting' ? 'Connecting' : 'Offline'}
+            {online ? (
+                <span className="relative flex size-1.5">
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+                    <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+                </span>
+            ) : (
+                <WifiOff className="size-3" />
+            )}
+            {online ? 'Synced' : connecting ? 'Connecting' : 'Offline'}
         </span>
     );
 }

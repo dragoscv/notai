@@ -17,7 +17,7 @@
 
 import * as React from 'react';
 import { Icon, addCollection, type IconifyJSON } from '@iconify/react';
-import { Search, X, Trash2, Clock } from 'lucide-react';
+import { Search, X, Trash2, Clock, Sparkles } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -162,12 +162,33 @@ export function IconPicker({ open, onOpenChange, value, onChange, title = 'Choos
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="flex h-[78vh] max-h-[720px] w-full max-w-3xl flex-col gap-3 p-0">
-                <DialogHeader className="border-b px-4 py-3">
-                    <DialogTitle>{title}</DialogTitle>
-                    <DialogDescription>
-                        Pick from {COLLECTIONS.length} icon libraries or use any emoji.
-                    </DialogDescription>
+            <DialogContent className="flex h-[78vh] max-h-[720px] w-full max-w-3xl flex-col gap-3 border bg-card/95 p-0 shadow-2xl shadow-foreground/10 backdrop-blur-xl sm:rounded-2xl">
+                <DialogHeader className="relative border-b px-4 py-3">
+                    {/* warm wash */}
+                    <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 -z-10 opacity-70"
+                        style={{
+                            background:
+                                'radial-gradient(420px 140px at 0% 0%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 70%)',
+                        }}
+                    />
+                    <div className="flex items-center gap-3">
+                        <span
+                            aria-hidden
+                            className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm shadow-primary/20"
+                        >
+                            <Sparkles className="size-4" />
+                        </span>
+                        <div>
+                            <DialogTitle className="font-serif text-lg font-semibold tracking-tight">
+                                {title}
+                            </DialogTitle>
+                            <DialogDescription>
+                                Pick from {COLLECTIONS.length} icon libraries or use any emoji.
+                            </DialogDescription>
+                        </div>
+                    </div>
                 </DialogHeader>
 
                 {/* Tabs */}
@@ -273,7 +294,7 @@ function TabButton({
             className={cn(
                 'inline-flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
                 active
-                    ? 'bg-primary text-primary-foreground'
+                    ? 'bg-primary/15 text-primary ring-1 ring-primary/25'
                     : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             )}
         >

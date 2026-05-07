@@ -1,0 +1,149 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "docker: up",
+      "type": "shell",
+      "command": "pnpm docker:up",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "dev",
+        "clear": false
+      },
+      "detail": "Start Postgres 17 (and optional pgAdmin) via docker compose."
+    },
+    {
+      "label": "dev: web",
+      "type": "shell",
+      "command": "pnpm dev",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/web"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "dev",
+        "clear": false
+      },
+      "detail": "Run Next.js web app (@notai/web) via Turborepo."
+    },
+    {
+      "label": "dev: realtime",
+      "type": "shell",
+      "command": "pnpm dev",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/realtime-server"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "dev",
+        "clear": false
+      },
+      "detail": "Run Hocuspocus realtime server (@notai/realtime-server) via Turborepo."
+    },
+    {
+      "label": "dev: desktop",
+      "type": "shell",
+      "command": "pnpm dev",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/desktop"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "dev",
+        "clear": false
+      },
+      "detail": "Run Tauri desktop app (@notai/desktop)."
+    },
+    {
+      "label": "start dev",
+      "dependsOn": ["dev: web", "dev: realtime"],
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "detail": "Run web + realtime dev servers in linked dedicated terminals."
+    },
+    {
+      "label": "start dev (with desktop)",
+      "dependsOn": ["dev: web", "dev: realtime", "dev: desktop"],
+      "problemMatcher": [],
+      "detail": "Run web + realtime + Tauri desktop in linked dedicated terminals."
+    },
+    {
+      "label": "db: migrate (local)",
+      "type": "shell",
+      "command": "node",
+      "args": ["scripts/migrate.mjs", "--env=local"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "db",
+        "clear": true,
+        "echo": false
+      },
+      "detail": "Apply pending Drizzle migrations to the LOCAL Postgres (.env.local). Shows pending migrations, asks for Enter to confirm, and verifies tables afterwards."
+    },
+    {
+      "label": "db: migrate (local, dry run)",
+      "type": "shell",
+      "command": "node",
+      "args": ["scripts/migrate.mjs", "--env=local", "--dry-run", "--yes"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "db",
+        "clear": true,
+        "echo": false
+      },
+      "detail": "Show what WOULD run against the local DB without changing anything."
+    },
+    {
+      "label": "db: migrate (production)",
+      "type": "shell",
+      "command": "node",
+      "args": ["scripts/migrate.mjs", "--env=production", "--backup"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "db",
+        "clear": true,
+        "echo": false
+      },
+      "detail": "PRODUCTION migration: pulls .env.production from Vercel if missing, takes a Cloud SQL on-demand backup (or pg_dump fallback), prints pending diffs, requires you to type \"apply\" to proceed, then verifies."
+    },
+    {
+      "label": "db: migrate (production, dry run)",
+      "type": "shell",
+      "command": "node",
+      "args": ["scripts/migrate.mjs", "--env=production", "--dry-run", "--yes"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "db",
+        "clear": true,
+        "echo": false
+      },
+      "detail": "Show pending production migrations and connection target without changing anything. No backup, no apply."
+    }
+  ]
+}

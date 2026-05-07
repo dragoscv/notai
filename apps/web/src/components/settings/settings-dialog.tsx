@@ -13,6 +13,7 @@ import {
     Sun,
     Moon,
     Loader2,
+    PenLine,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -69,15 +70,36 @@ export function SettingsDialog({ user, open, onOpenChange }: SettingsDialogProps
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl gap-0 overflow-hidden p-0 sm:max-w-3xl">
-                <DialogHeader className="border-b px-6 py-4">
-                    <DialogTitle>Settings</DialogTitle>
-                    <DialogDescription>
-                        Customize your Notai experience. Changes save automatically.
-                    </DialogDescription>
+            <DialogContent className="max-w-3xl gap-0 overflow-hidden border bg-card/95 p-0 shadow-2xl shadow-foreground/10 backdrop-blur-xl sm:max-w-3xl sm:rounded-2xl">
+                <DialogHeader className="relative border-b px-6 py-4">
+                    {/* warm wash */}
+                    <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 -z-10 opacity-70"
+                        style={{
+                            background:
+                                'radial-gradient(420px 140px at 0% 0%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 70%)',
+                        }}
+                    />
+                    <div className="flex items-center gap-3">
+                        <span
+                            aria-hidden
+                            className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm shadow-primary/20"
+                        >
+                            <PenLine className="size-4" />
+                        </span>
+                        <div>
+                            <DialogTitle className="font-serif text-xl font-semibold tracking-tight">
+                                Settings
+                            </DialogTitle>
+                            <DialogDescription>
+                                Customize your Notai experience. Changes save automatically.
+                            </DialogDescription>
+                        </div>
+                    </div>
                 </DialogHeader>
                 <div className="grid grid-cols-[180px_1fr] gap-0">
-                    <nav className="border-r bg-muted/30 p-2" aria-label="Settings sections">
+                    <nav className="border-r bg-background/40 p-2" aria-label="Settings sections">
                         <ul className="space-y-0.5">
                             {NAV.map((item) => (
                                 <li key={item.id}>
@@ -85,10 +107,10 @@ export function SettingsDialog({ user, open, onOpenChange }: SettingsDialogProps
                                         type="button"
                                         onClick={() => setSection(item.id)}
                                         className={cn(
-                                            'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors',
+                                            'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors [&_svg]:text-muted-foreground',
                                             section === item.id
-                                                ? 'bg-background font-medium shadow-sm'
-                                                : 'text-muted-foreground hover:bg-background/60 hover:text-foreground',
+                                                ? 'bg-card font-medium text-foreground shadow-sm ring-1 ring-primary/15 [&_svg]:text-primary'
+                                                : 'text-muted-foreground hover:bg-card/60 hover:text-foreground',
                                         )}
                                     >
                                         {item.icon}
@@ -98,7 +120,7 @@ export function SettingsDialog({ user, open, onOpenChange }: SettingsDialogProps
                             ))}
                         </ul>
                     </nav>
-                    <div className="max-h-[60vh] overflow-y-auto p-6">
+                    <div className="max-h-[60vh] overflow-y-auto bg-background/30 p-6">
                         {section === 'profile' && <ProfileSection user={user} />}
                         {section === 'appearance' && <AppearanceSection />}
                         {section === 'notes' && <NotesSection />}
@@ -324,7 +346,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
         <div className="space-y-6">
             <SectionHeading title="Account" description="Your data and session." />
 
-            <div className="rounded-lg border p-4">
+            <div className="rounded-xl border bg-card/60 p-4 backdrop-blur">
                 <div className="flex items-start justify-between gap-4">
                     <div className="space-y-0.5">
                         <p className="text-sm font-medium">Export your notes</p>
@@ -344,7 +366,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
                 </div>
             </div>
 
-            <div className="rounded-lg border p-4">
+            <div className="rounded-xl border bg-card/60 p-4 backdrop-blur">
                 <div className="flex items-start justify-between gap-4">
                     <div className="space-y-0.5">
                         <p className="text-sm font-medium">Sign out</p>
@@ -365,7 +387,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
 
             <Separator />
 
-            <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+            <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 backdrop-blur">
                 <div className="space-y-2">
                     <p className="text-sm font-medium text-destructive">Delete account</p>
                     <p className="text-xs text-muted-foreground">
@@ -401,8 +423,12 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
 function SectionHeading({ title, description }: { title: string; description: string }) {
     return (
         <div>
-            <h2 className="text-lg font-semibold">{title}</h2>
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <p className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] text-primary uppercase">
+                <span className="size-1 rounded-full bg-primary/60" />
+                {title}
+            </p>
+            <h2 className="mt-1.5 font-serif text-2xl font-semibold tracking-tight">{title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
     );
 }
@@ -423,7 +449,10 @@ function SegmentedControl<T extends string>({
     options: SegmentOption<T>[];
 }) {
     return (
-        <div className="inline-flex rounded-md border bg-background p-0.5" role="radiogroup">
+        <div
+            className="inline-flex rounded-lg border bg-card/60 p-0.5 backdrop-blur"
+            role="radiogroup"
+        >
             {options.map((opt) => (
                 <button
                     key={opt.value}
@@ -432,9 +461,9 @@ function SegmentedControl<T extends string>({
                     aria-checked={value === opt.value}
                     onClick={() => onChange(opt.value)}
                     className={cn(
-                        'flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-sm transition-colors',
+                        'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors',
                         value === opt.value
-                            ? 'bg-accent text-accent-foreground shadow-sm'
+                            ? 'bg-background text-foreground shadow-sm ring-1 ring-primary/15'
                             : 'text-muted-foreground hover:text-foreground',
                     )}
                 >
@@ -456,7 +485,7 @@ interface RowProps {
 
 function Row({ id, label, description, checked, onCheckedChange }: RowProps) {
     return (
-        <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+        <div className="flex items-start justify-between gap-4 rounded-xl border bg-card/60 p-4 backdrop-blur transition-colors hover:bg-card/80">
             <div className="flex-1 space-y-0.5">
                 <Label htmlFor={id} className="font-medium">
                     {label}

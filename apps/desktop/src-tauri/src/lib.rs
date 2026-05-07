@@ -5,6 +5,7 @@ use tauri::{
 };
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_deep_link::DeepLinkExt;
+use tauri_plugin_updater::UpdaterExt;
 use tauri_plugin_window_state::StateFlags;
 
 /// Base URL for the Notai web app — reads from env at compile time so
@@ -184,6 +185,23 @@ fn handle_deep_link(app: &AppHandle, url: &str) {
     }
 }
 
+/// Check GitHub Releases for a newer version. If one is found, download +
+/// install in the background and restart the app. The endpoint URL +
+/// signing pubkey live in `tauri.conf.json` under `plugins.updater`.
+async fn check_for_updates(app: AppHandle) -> Result<(), String> {
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    let Some(update) = updater.check().await.map_err(|e| e.to_string())? else {
+        return Ok(());
+    };
+    println!("[updater] new version available: {}", update.version);
+    update
+        .download_and_install(|_chunk, _total| {}, || {})
+        .await
+        .map_err(|e| e.to_string())?;
+    println!("[updater] installed; restarting");
+    app.restart();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -217,6 +235,8 @@ pub fn run() {
             Some(vec!["--minimized"]),
         ))
         .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             open_sticky,
             close_sticky,
@@ -237,6 +257,17 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            // Check GitHub Releases for an update on startup. Runs in the
+            // background so the UI doesn't block; if found, downloads +
+            // installs + restarts. Errors (offline, rate-limited, etc.)
+            // are silently ignored — they're not fatal.
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = check_for_updates(handle).await {
+                    eprintln!("[updater] {}", e);
+                }
+            });
+
             // Register the `notai://` scheme at runtime (needed in dev on
             // Windows/Linux; the installer handles this in release builds).
             #[cfg(any(windows, target_os = "linux"))]

@@ -101,6 +101,21 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.3] - 2026-05-07
+
+### Added
+
+- **Auto-update.** On startup the app checks
+  `https://github.com/dragoscv/notai/releases/latest/download/latest.json`
+  for a newer version. If found, the signed installer is downloaded,
+  verified against the embedded minisign public key, and applied (the
+  app then restarts itself).
+- Workflow signs every release with `TAURI_SIGNING_PRIVATE_KEY` and
+  publishes `latest.json` plus per-platform `.sig` files alongside the
+  installers, which `tauri-plugin-updater` consumes.
+- Linux: only `.AppImage` updates in-place; `.deb` users still need
+  apt/dpkg.
+
 ## [@notai/desktop 0.1.2] - 2026-05-07
 
 ### Fixed

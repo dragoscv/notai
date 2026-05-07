@@ -13,8 +13,12 @@ out/
 # Env
 .env
 .env.local
+.env.production
 .env.*.local
 !.env.example
+
+# DB backups
+backups/
 
 # Logs
 *.log
@@ -32,6 +36,7 @@ test-results/
 !.vscode/settings.json
 !.vscode/extensions.json
 !.vscode/launch.json
+!.vscode/tasks.json
 .idea/
 
 # OS
