@@ -45,6 +45,16 @@ Each app in this monorepo is versioned independently:
 - ESLint: `postcss.config.mjs` anonymous default export warning; React 19
   `set-state-in-effect` rule disabled for legitimate mount-only reads.
 
+## [@notai/realtime-server 0.1.4] - 2026-05-07
+
+### Fixed
+
+- esbuild now externalises every npm dependency and only inlines the
+  workspace packages (`@notai/*`). Bundling CJS deps like `ws` into ESM
+  broke at runtime with `Dynamic require of "events" is not supported`.
+  Dockerfile uses `pnpm deploy` to ship the flattened third-party
+  `node_modules` next to the bundled `dist/index.js`.
+
 ## [@notai/realtime-server 0.1.3] - 2026-05-07
 
 ### Fixed

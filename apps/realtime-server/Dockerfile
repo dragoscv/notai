@@ -12,19 +12,21 @@ COPY packages/db/package.json ./packages/db/
 COPY packages/lib/package.json ./packages/lib/
 RUN pnpm install --frozen-lockfile --filter @notai/realtime-server...
 
-# --- build into a single self-contained bundle ---
+# --- bundle workspace pkgs into dist/index.js, then `pnpm deploy` to flatten
+#     node_modules for third-party deps (ws, postgres, jose, hocuspocus, ...) ---
 FROM deps AS build
 COPY apps/realtime-server ./apps/realtime-server
 COPY packages/db ./packages/db
 COPY packages/lib ./packages/lib
-RUN pnpm --filter @notai/realtime-server build
+RUN pnpm --filter @notai/realtime-server build \
+ && pnpm --filter=@notai/realtime-server --prod --legacy deploy /out
 
-# --- runtime: only the bundle, no node_modules ---
+# --- runtime ---
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 RUN addgroup -S app && adduser -S app -G app
-COPY --from=build --chown=app:app /repo/apps/realtime-server/dist/bundle.mjs ./bundle.mjs
+COPY --from=build --chown=app:app /out ./
 USER app
 EXPOSE 1234
-CMD ["node", "bundle.mjs"]
+CMD ["node", "dist/index.js"]
