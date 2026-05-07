@@ -1,5 +1,38 @@
 #!/usr/bin/env sh
-# Pre-push gate: full lint + typecheck across the workspace. The build is
-# verified by CI (it's expensive and needs env vars).
-pnpm lint || { echo "✖ lint failed"; exit 1; }
-pnpm typecheck || { echo "✖ typecheck failed"; exit 1; }
+# Pre-push gate: full quality bar for the monorepo. CI on GitHub is reserved
+# for shipping artifacts (desktop installers, Vercel deploy, Cloud Run deploy);
+# every code-quality check runs locally before the push leaves your machine.
+#
+#   1. lint
+#   2. typecheck
+#   3. format check
+#   4. build (web + realtime — desktop is built by GitHub Actions on release)
+#
+# Bypass with `git push --no-verify` only when truly necessary.
+
+set -e
+
+echo "▶ pnpm lint"
+pnpm lint
+
+echo "▶ pnpm typecheck"
+pnpm typecheck
+
+echo "▶ pnpm format:check"
+pnpm format:check
+
+# Build needs *some* env vars so Next can statically analyse the app.
+# These are dummy values — real secrets live on Vercel / Cloud Run.
+export DATABASE_URL="${DATABASE_URL:-postgres://ci:ci@localhost:5432/ci}"
+export AUTH_SECRET="${AUTH_SECRET:-prepush-only-not-a-real-secret-prepush-only}"
+export AUTH_TRUST_HOST="${AUTH_TRUST_HOST:-true}"
+export AUTH_GOOGLE_ID="${AUTH_GOOGLE_ID:-prepush}"
+export AUTH_GOOGLE_SECRET="${AUTH_GOOGLE_SECRET:-prepush}"
+export HOCUSPOCUS_JWT_SECRET="${HOCUSPOCUS_JWT_SECRET:-prepush-only-not-a-real-secret-prepush}"
+export NEXT_PUBLIC_HOCUSPOCUS_URL="${NEXT_PUBLIC_HOCUSPOCUS_URL:-ws://localhost:4040}"
+export NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:-http://localhost:3000}"
+
+echo "▶ pnpm build (web + realtime)"
+pnpm build
+
+echo "✓ All pre-push checks passed."

@@ -8,11 +8,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/desktop/**'
-      - 'apps/web/**'
-      - 'packages/**'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
+      - 'apps/desktop/package.json'
   workflow_dispatch:
     inputs:
       version:

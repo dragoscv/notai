@@ -10,7 +10,9 @@ Branch pushes never trigger releases.
 | `@notai/realtime-server`  | `.github/workflows/release-realtime.yml`| Cloud Run (`notai-realtime`)        |
 | `@notai/desktop`          | `.github/workflows/release-desktop.yml` | GitHub Releases (Win/macOS/Linux)   |
 
-CI (`ci.yml`) runs on every PR and `main` push: install → lint → typecheck → build → format check, plus a CHANGELOG check on PRs touching `package.json`.
+Quality gates (lint, typecheck, format, build) run **locally as Husky hooks
+before every push**, never on GitHub Actions. CI is reserved for shipping
+artifacts.
 
 ---
 
@@ -159,7 +161,9 @@ workflow.
   `scripts/check-changelog.mjs` to require a `CHANGELOG.md` entry whenever a
   `package.json` version is bumped.
 - **`commit-msg`**: validates Conventional Commits format.
-- **`pre-push`**: full `pnpm lint` + `pnpm typecheck`.
+- **`pre-push`**: full `pnpm lint` + `pnpm typecheck` + `pnpm format:check` +
+  `pnpm build` (web + realtime). This is the entire CI gate — GitHub Actions
+  only ships release artifacts, never re-runs these checks.
 
 Bypass in emergencies with `git commit --no-verify` / `git push --no-verify`,
-but CI will fail and your release won't trigger.
+but please don't make a habit of it.

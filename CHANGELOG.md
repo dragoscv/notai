@@ -18,18 +18,19 @@ own GitHub Actions workflow:
 ### Added
 
 - Pre-commit and pre-push hooks (Husky + lint-staged) enforcing format, lint,
-  typecheck, and a CHANGELOG entry on version bumps.
+  typecheck, build, and a CHANGELOG entry on version bumps.
 - `getFolder` server action and `previewHtml` preview field on `listNotes`.
-- GitHub Actions:
-  - `ci.yml` — lint + typecheck + build on every PR and push to `main`.
-  - `release-web.yml` — builds Docker image and deploys the web app to Vercel
-    when `apps/web/package.json` version changes on `main`.
-  - `release-realtime.yml` — builds Docker image and rolls out the Hocuspocus
-    server to Cloud Run when `apps/realtime-server/package.json` changes.
+- GitHub Actions (release-only — quality gates run locally before push):
+  - `release-web.yml` — builds and deploys the web app to Vercel when
+    `apps/web/package.json` version changes on `main`.
+  - `release-realtime.yml` — builds the Docker image and rolls out the
+    Hocuspocus server to Cloud Run when `apps/realtime-server/package.json`
+    version changes on `main`.
   - `release-desktop.yml` — builds and signs Windows / macOS / Linux installers
-    via `tauri-apps/tauri-action` and publishes a GitHub Release.
+    via `tauri-apps/tauri-action` and publishes a GitHub Release when
+    `apps/desktop/package.json` version changes on `main`.
 - `vercel.json` and `apps/web/Dockerfile` for hybrid deploy targets.
-- `scripts/check-changelog.mjs` helper used by the version-bump pre-commit hook.
+- `scripts/check-changelog.mjs` and `scripts/detect-version-bumps.mjs` helpers.
 
 ### Changed
 

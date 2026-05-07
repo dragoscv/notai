@@ -42,7 +42,9 @@ for (const [key, file] of Object.entries(APPS)) {
     const headJson = JSON.parse(show(head, file) ?? readFileSync(file, 'utf8'));
     const baseJsonRaw = show(base, file);
     if (!baseJsonRaw) {
-        result[key] = true;
+        // First time the file exists in the range — not a bump, just the
+        // initial appearance. We never want to ship a release on bootstrap.
+        result[key] = false;
         result[`${key}Version`] = headJson.version;
         continue;
     }

@@ -7,11 +7,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/web/**'
-      - 'packages/**'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'turbo.json'
+      - 'apps/web/package.json'
 
 concurrency:
   group: release-web
