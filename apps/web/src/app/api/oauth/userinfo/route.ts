@@ -2,8 +2,7 @@
  * UserInfo endpoint (OIDC Core 1.0 §5.3).
  * Bearer access token with `openid` scope required.
  */
-import { eq } from 'drizzle-orm';
-import { db, users } from '@notai/db';
+import { db, eq, users } from '@notai/db';
 import { parseScopes } from '@notai/lib/oauth';
 import { findActiveTokenByHash, oauthError } from '@/server/oauth-store';
 

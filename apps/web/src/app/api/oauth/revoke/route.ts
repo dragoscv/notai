@@ -4,8 +4,7 @@
  * Always returns 200 even when the token doesn't exist — required by
  * the spec to avoid leaking which tokens are still active.
  */
-import { eq } from 'drizzle-orm';
-import { db, oauthTokens } from '@notai/db';
+import { db, eq, oauthTokens } from '@notai/db';
 import { compareSecret, hashToken } from '@notai/lib/oauth';
 import { findActiveClientByClientId, oauthError } from '@/server/oauth-store';
 

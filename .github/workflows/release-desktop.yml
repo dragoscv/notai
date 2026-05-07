@@ -126,19 +126,36 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Sync Tauri version with package.json
+      - name: Sync Tauri version + production URL
         shell: bash
+        env:
+          WEB_URL: ${{ vars.WEB_PUBLIC_URL }}
         run: |
-          node -e "const fs=require('fs');const p=require('./apps/desktop/src-tauri/tauri.conf.json');p.version='${{ needs.detect.outputs.version }}';fs.writeFileSync('./apps/desktop/src-tauri/tauri.conf.json',JSON.stringify(p,null,2)+'\n');"
+          node -e "
+            const fs=require('fs');
+            const path='./apps/desktop/src-tauri/tauri.conf.json';
+            const p=JSON.parse(fs.readFileSync(path,'utf8'));
+            const url=process.env.WEB_URL || 'https://notai.ro';
+            p.version='${{ needs.detect.outputs.version }}';
+            // Point the main window at the deployed web app instead of localhost.
+            for (const w of (p.app && p.app.windows) || []) {
+              if (typeof w.url === 'string') {
+                w.url = w.url.replace(/^http:\/\/localhost:3000/, url);
+              }
+            }
+            // devUrl stays for dev; not used in prod builds.
+            fs.writeFileSync(path, JSON.stringify(p,null,2)+'\n');
+            console.log('Wrote production config:', JSON.stringify({version:p.version, mainUrl:p.app.windows[0].url}, null, 2));
+          "
 
       - name: Build + sign Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # The bundled desktop app loads the deployed web URL at runtime;
-          # frontendDist is a placeholder static directory.
-          NEXT_PUBLIC_APP_URL: ${{ vars.WEB_PUBLIC_URL || 'https://notai.app' }}
-          NEXT_PUBLIC_HOCUSPOCUS_URL: ${{ vars.HOCUSPOCUS_PUBLIC_URL || 'wss://realtime.notai.app' }}
+          # Used by lib.rs `app_url()` for sticky + settings windows.
+          NOTAI_WEB_URL: ${{ vars.WEB_PUBLIC_URL || 'https://notai.ro' }}
+          NEXT_PUBLIC_APP_URL: ${{ vars.WEB_PUBLIC_URL || 'https://notai.ro' }}
+          NEXT_PUBLIC_HOCUSPOCUS_URL: ${{ vars.HOCUSPOCUS_PUBLIC_URL || 'wss://realtime.notai.ro' }}
         with:
           projectPath: apps/desktop
           releaseId: ${{ needs.create-release.outputs.release_id }}

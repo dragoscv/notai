@@ -6,15 +6,7 @@
  * sha256 hashes only. Lookups are by hash.
  */
 import 'server-only';
-import { and, eq, gt, isNull } from 'drizzle-orm';
-import {
-    db,
-    oauthClients,
-    oauthTokens,
-    oauthConsents,
-    type OauthClient,
-    type OauthToken,
-} from '@notai/db';
+import { and, db, eq, gt, isNull, oauthClients, oauthTokens, oauthConsents, type OauthClient, type OauthToken } from '@notai/db';
 import {
     expiresIn,
     hashToken,

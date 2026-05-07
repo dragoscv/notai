@@ -23,8 +23,7 @@
  *   - me               (openid)
  */
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
-import { db, users } from '@notai/db';
+import { db, eq, users } from '@notai/db';
 import { requireBearer } from '@/server/oauth-store';
 import {
     apiArchiveNote,

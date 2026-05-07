@@ -10,9 +10,16 @@
  * up the change on next open. For richer Yjs-aware writes a future
  * version can route through Hocuspocus.
  */
-import { and, asc, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 import {
     db,
+    and,
+    asc,
+    desc,
+    eq,
+    ilike,
+    isNull,
+    or,
+    sql,
     folders,
     notes,
     noteCollaborators,
@@ -200,8 +207,8 @@ export async function apiArchiveNote(userId: string, id: string) {
         .update(notes)
         .set({ isArchived: true, updatedAt: new Date() })
         .where(and(eq(notes.id, id), eq(notes.ownerId, userId)))
-        .returning({ id: notes.id });
-    return row ?? null;
+        .returning();
+    return row ? { id: row.id } : null;
 }
 
 export async function apiListFolders(userId: string) {

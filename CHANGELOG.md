@@ -101,6 +101,23 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.2] - 2026-05-07
+
+### Fixed
+
+- Released installers (Windows / macOS / Linux) previously opened
+  `http://localhost:3000/app` because the build workflow never
+  rewrote `tauri.conf.json` to the production URL. The workflow now
+  swaps `localhost:3000` → `https://notai.ro` for every window before
+  invoking `tauri build`.
+- `NOTAI_WEB_URL` env var is now passed to `tauri-action` so the Rust
+  `app_url()` helper (used by sticky + settings windows) targets prod
+  too.
+- Auth + database are inherited automatically: the desktop app is a
+  thin webview pointing at `https://notai.ro`, so Auth.js (Google) and
+  Cloud SQL run server-side just like in the browser. No desktop-side
+  env vars required.
+
 ## [@notai/desktop 0.1.1] - 2026-05-07
 
 ### Fixed
