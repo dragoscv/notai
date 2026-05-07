@@ -101,6 +101,20 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.6] - 2026-05-07
+
+### Fixed
+
+- Re-uploaded `TAURI_SIGNING_PRIVATE_KEY` and
+  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` GitHub Actions secrets. The
+  prior uploads used `gh secret set --body -`, which set the secret
+  to the literal string `-` (gh CLI treats `--body -` as a literal
+  value, NOT "read from stdin"). The CI build then failed with
+  `Invalid symbol 45, offset 0` (45 is ASCII `-`). Fixed by piping
+  to `gh secret set` without the `--body` flag at all (stdin is used
+  automatically when `--body` is omitted).
+- New keypair generated; `pubkey` in `tauri.conf.json` updated to match.
+
 ## [@notai/desktop 0.1.5] - 2026-05-07
 
 ### Fixed
