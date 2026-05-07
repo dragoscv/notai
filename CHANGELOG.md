@@ -45,6 +45,17 @@ Each app in this monorepo is versioned independently:
 - ESLint: `postcss.config.mjs` anonymous default export warning; React 19
   `set-state-in-effect` rule disabled for legitimate mount-only reads.
 
+## [@notai/realtime-server 0.1.5] - 2026-05-07
+
+### Changed
+
+- Switched DB provider from Neon to Cloud SQL Postgres 16 in
+  `notai-prod`/`europe-west1` (instance `notai-pg`).
+- Cloud Run deploy attaches Cloud SQL via `--add-cloudsql-instances`;
+  `DATABASE_URL` in Secret Manager uses Unix socket form.
+- Mapped `realtime.notai.ro` to the Cloud Run service via Google Cloud
+  domain mapping; CNAME added to Vercel DNS.
+
 ## [@notai/realtime-server 0.1.4] - 2026-05-07
 
 ### Fixed

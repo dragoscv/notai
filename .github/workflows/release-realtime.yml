@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - 'apps/realtime-server/package.json'
+      - '.github/workflows/release-realtime.yml'
 
 concurrency:
   group: release-realtime
@@ -94,6 +95,7 @@ jobs:
           flags: >-
             --port=1234
             --service-account=notai-deploy@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+            --add-cloudsql-instances=${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:notai-pg
             --allow-unauthenticated
             --min-instances=0
             --max-instances=3

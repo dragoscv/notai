@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
     pgTable,
     text,
@@ -116,7 +116,10 @@ export const notes = pgTable(
         index('notes_owner_updated_idx').on(t.ownerId, t.updatedAt.desc()),
         index('notes_owner_pinned_idx').on(t.ownerId, t.isPinned, t.updatedAt.desc()),
         index('notes_owner_folder_pos_idx').on(t.ownerId, t.folderId, t.position),
-        index('notes_plaintext_trgm_idx').using('gin', t.plaintext),
+        index('notes_plaintext_trgm_idx').using(
+            'gin',
+            sql`${t.plaintext} gin_trgm_ops`,
+        ),
     ],
 );
 
