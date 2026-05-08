@@ -14,6 +14,20 @@ Each app in this monorepo is versioned independently:
 
 ## [Unreleased]
 
+### Fixed — `@notai/realtime-server` 0.1.7 (Cloud SQL Unix socket)
+
+- **`packages/db/src/client.ts`**: Cloud Run realtime service couldn't start
+  on Postgres because the production `DATABASE_URL` uses the Cloud SQL Unix
+  socket form `postgres://user:pass@/dbname?host=/cloudsql/...`, which Node's
+  WHATWG URL parser rejects (empty hostname). The client now detects that
+  exact form and constructs a `postgres()` config object directly instead of
+  passing the raw URL string. Plain Postgres URLs and Neon URLs are
+  unchanged.
+
+## [@notai/realtime-server 0.1.7] - 2026-05-08
+
+See Unreleased above.
+
 ### Added — Phase 0–3 expansion
 
 #### Phase 0 — table-stakes for "really" daily-use

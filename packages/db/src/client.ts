@@ -32,14 +32,30 @@ function createDb(): DbInstance {
     const client = neon(url!);
     return drizzleNeon({ client, schema, casing: 'snake_case' }) as unknown as DbInstance;
   }
+  // Cloud SQL Unix socket form `postgres://user:pass@/dbname?host=/cloudsql/...`
+  // is rejected by Node's WHATWG URL parser (empty hostname). Detect it and
+  // build a config object instead of letting postgres-js call `new URL()`.
+  const cloudSqlMatch = url!.match(/^postgres(?:ql)?:\/\/([^:]+):([^@]+)@\/([^?]+)\?host=([^&]+)/);
   const sql =
     globalForDb.__notaiSql ??
-    postgres(url!, {
-      max: process.env.NODE_ENV === 'production' ? 10 : 5,
-      idle_timeout: 20,
-      max_lifetime: 60 * 30,
-      prepare: false,
-    });
+    (cloudSqlMatch
+      ? postgres({
+          host: decodeURIComponent(cloudSqlMatch[4]!),
+          database: decodeURIComponent(cloudSqlMatch[3]!),
+          user: decodeURIComponent(cloudSqlMatch[1]!),
+          password: decodeURIComponent(cloudSqlMatch[2]!),
+          ssl: false,
+          max: process.env.NODE_ENV === 'production' ? 10 : 5,
+          idle_timeout: 20,
+          max_lifetime: 60 * 30,
+          prepare: false,
+        })
+      : postgres(url!, {
+          max: process.env.NODE_ENV === 'production' ? 10 : 5,
+          idle_timeout: 20,
+          max_lifetime: 60 * 30,
+          prepare: false,
+        }));
   if (process.env.NODE_ENV !== 'production') globalForDb.__notaiSql = sql;
   return drizzlePg({ client: sql, schema, casing: 'snake_case' });
 }

@@ -15,7 +15,12 @@ out/
 .env.local
 .env.production
 .env.*.local
+.env.vercel*
 !.env.example
+
+# Local helper scripts (secrets / one-off ops)
+fix-*.ps1
+inspect*.ps1
 
 # DB backups
 backups/
