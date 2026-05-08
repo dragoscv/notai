@@ -101,6 +101,25 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.14] - 2026-05-09
+
+### Fixed
+
+- **Sign-in actually opens the system browser.** The desktop app's main
+  window loads remote content (`https://notai.ro/app`), but the default
+  capability had no `remote.urls` whitelist — Tauri 2 capabilities are
+  `local: true` by default, so plugin commands (including
+  `plugin:opener|open_url`) were rejected by the ACL with
+  `Command plugin:opener|open_url not allowed by ACL` whenever they were
+  invoked from a remote page. Sign-in showed the manual-URL fallback
+  toast on every click.
+
+### Changed
+
+- Added `remote.urls = ["https://notai.ro/*", "http://localhost:*/*"]`
+  to `apps/desktop/src-tauri/capabilities/default.json` so all listed
+  permissions apply to the production web app and to local dev.
+
 ## [@notai/desktop 0.1.13] - 2026-05-09
 
 ### Fixed

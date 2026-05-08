@@ -3,6 +3,9 @@
   "identifier": "default",
   "description": "Default capability for main and sticky windows",
   "windows": ["main", "sticky-*", "settings"],
+  "remote": {
+    "urls": ["https://notai.ro/*", "http://localhost:*/*"]
+  },
   "permissions": [
     "core:default",
     "core:window:allow-set-always-on-top",
