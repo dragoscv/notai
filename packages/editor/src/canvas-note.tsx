@@ -290,70 +290,48 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     };
   }, []);
 
-  /* ---------- Sticky/readOnly auto-fit on resize ---------- */
+  /* ---------- Sticky/readOnly auto-fit ---------- */
   React.useEffect(() => {
     if (!api || !stickyMode || !host) return;
-    if (typeof ResizeObserver === 'undefined') return;
 
-    let raf = 0;
+    let cancelled = false;
     let succeededOnce = false;
-    const fit = (): boolean => {
-      cancelAnimationFrame(raf);
-      let ok = false;
-      raf = requestAnimationFrame(() => {
-        api.refresh();
-        const els = api.getSceneElementsIncludingDeleted();
-        ok = fitStickyViewport(api, host, els);
-        if (ok) succeededOnce = true;
-      });
-      return ok;
+    let attempts = 0;
+
+    const tryFit = () => {
+      if (cancelled || succeededOnce) return;
+      attempts += 1;
+      api.refresh();
+      const els = api.getSceneElementsIncludingDeleted();
+      const ok = fitStickyViewport(api, host, els);
+      if (ok) {
+        succeededOnce = true;
+        return;
+      }
+      // Retry until host has dimensions and blocks/elements are mounted.
+      // Cap attempts so a truly empty doc stops polling after ~5s.
+      if (attempts < 40) setTimeout(tryFit, 120);
     };
+    tryFit();
 
-    fit();
-
-    const ro = new ResizeObserver(() => {
-      if (!stickyMode && viewportDirtyRef.current) {
-        api.refresh();
-        return;
-      }
-      fit();
-    });
-    ro.observe(host);
-
-    // MutationObserver on the blocks layer: re-fit whenever a text block
-    // mounts or its rendered height changes (e.g. content streams in
-    // from realtime).
-    const blocksLayer = host.querySelector<HTMLElement>('[data-blocks-layer]');
-    const mo = blocksLayer
-      ? new MutationObserver(() => {
-          fit();
-        })
-      : null;
-    mo?.observe(blocksLayer!, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['style'],
-      characterData: true,
-    });
-
-    // Polling fallback for the first ~3s in case neither RO nor MO fires
-    // before the host has real dimensions / blocks have rendered.
-    const interval = setInterval(() => {
-      if (succeededOnce) {
-        clearInterval(interval);
-        return;
-      }
-      fit();
-    }, 120);
-    const stopPolling = setTimeout(() => clearInterval(interval), 3000);
+    // Refit on host resize.
+    const ro =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            if (!succeededOnce) {
+              tryFit();
+              return;
+            }
+            api.refresh();
+            const els = api.getSceneElementsIncludingDeleted();
+            fitStickyViewport(api, host, els);
+          })
+        : null;
+    ro?.observe(host);
 
     return () => {
-      ro.disconnect();
-      mo?.disconnect();
-      cancelAnimationFrame(raf);
-      clearInterval(interval);
-      clearTimeout(stopPolling);
+      cancelled = true;
+      ro?.disconnect();
     };
   }, [api, stickyMode, host]);
 
