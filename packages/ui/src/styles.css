@@ -669,6 +669,78 @@
         border: 1px solid var(--border);
     }
 
+    /* Properties popover bits (font family / size / align / layers
+     * radios, opacity slider track, color swatches). Excalidraw bakes
+     * `#fff` / hard-coded grays into a few of these surfaces, so we
+     * override directly instead of relying on the CSS-var cascade. */
+    .canvas-note .excalidraw .RadioGroup,
+    .canvas-note .excalidraw .RadioGroup__choice,
+    .canvas-note .excalidraw .ButtonIconSelect > button,
+    .canvas-note .excalidraw .color-picker__button,
+    .canvas-note .excalidraw .color-picker-content,
+    .canvas-note .excalidraw .picker,
+    .canvas-note .excalidraw .picker-content,
+    .canvas-note .excalidraw .properties-content,
+    .canvas-note .excalidraw .Stack > .buttonList button {
+        background-color: var(--card) !important;
+        color: var(--foreground) !important;
+        border-color: var(--border) !important;
+    }
+    .canvas-note .excalidraw .RadioGroup__choice:hover,
+    .canvas-note .excalidraw .ButtonIconSelect > button:hover,
+    .canvas-note .excalidraw .color-picker__button:hover {
+        background-color: var(--accent) !important;
+        color: var(--accent-foreground) !important;
+    }
+    .canvas-note .excalidraw .RadioGroup__choice.active,
+    .canvas-note .excalidraw .RadioGroup__choice--active,
+    .canvas-note .excalidraw .ButtonIconSelect > button.active,
+    .canvas-note .excalidraw .color-picker__button--active,
+    .canvas-note .excalidraw .color-picker__button.active {
+        background-color: var(--primary) !important;
+        color: var(--primary-foreground) !important;
+        border-color: var(--primary) !important;
+    }
+
+    /* Section labels inside the properties panel ("Stroke", "Font
+     * family", …) are muted in our system. */
+    .canvas-note .excalidraw .control-label,
+    .canvas-note .excalidraw legend,
+    .canvas-note .excalidraw fieldset > legend {
+        color: var(--muted-foreground) !important;
+    }
+
+    /* Hint banner ("Tip: you can also add text…") + footer islands
+     * (zoom / undo-redo / library / help). */
+    .canvas-note .excalidraw .HintViewer,
+    .canvas-note .excalidraw .HintViewer span {
+        background-color: var(--card) !important;
+        color: var(--muted-foreground) !important;
+        border: 1px solid var(--border) !important;
+    }
+    .canvas-note .excalidraw .zoom-actions,
+    .canvas-note .excalidraw .undo-redo-buttons,
+    .canvas-note .excalidraw .help-icon {
+        background-color: var(--card) !important;
+        color: var(--foreground) !important;
+        border: 1px solid var(--border) !important;
+    }
+    .canvas-note .excalidraw .zoom-actions button,
+    .canvas-note .excalidraw .undo-redo-buttons button {
+        color: var(--foreground) !important;
+        background-color: transparent !important;
+    }
+    .canvas-note .excalidraw .zoom-actions button:hover,
+    .canvas-note .excalidraw .undo-redo-buttons button:hover {
+        background-color: var(--accent) !important;
+        color: var(--accent-foreground) !important;
+    }
+
+    /* Range/slider track for opacity. */
+    .canvas-note .excalidraw input[type='range'] {
+        accent-color: var(--primary);
+    }
+
     /* Tool buttons — match our ghost-button hover + active states. */
     .canvas-note .excalidraw .ToolIcon__icon,
     .canvas-note .excalidraw .ToolIcon_type_button {

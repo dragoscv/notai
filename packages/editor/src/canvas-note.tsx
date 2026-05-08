@@ -680,19 +680,27 @@ function writeViewport(key: string, v: PersistedViewport): void {
   }
 }
 
+const DARK_THEME_IDS = new Set(['midnight', 'oled', 'slate', 'rose', 'forest', 'mocha']);
+
+function readDocumentTheme(): 'light' | 'dark' {
+  if (typeof document === 'undefined') return 'light';
+  const html = document.documentElement;
+  if (html.classList.contains('dark')) return 'dark';
+  const dataTheme = html.getAttribute('data-theme');
+  if (dataTheme && DARK_THEME_IDS.has(dataTheme)) return 'dark';
+  return 'light';
+}
+
 function useResolvedTheme(explicit?: 'light' | 'dark'): 'light' | 'dark' {
-  const [detected, setDetected] = React.useState<'light' | 'dark'>(() => {
-    if (typeof document === 'undefined') return 'light';
-    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-  });
+  const [detected, setDetected] = React.useState<'light' | 'dark'>(() => readDocumentTheme());
   React.useEffect(() => {
     if (explicit) return;
     if (typeof document === 'undefined') return;
     const html = document.documentElement;
-    const read = () => setDetected(html.classList.contains('dark') ? 'dark' : 'light');
+    const read = () => setDetected(readDocumentTheme());
     read();
     const mo = new MutationObserver(read);
-    mo.observe(html, { attributes: true, attributeFilter: ['class'] });
+    mo.observe(html, { attributes: true, attributeFilter: ['class', 'data-theme'] });
     return () => mo.disconnect();
   }, [explicit]);
   return explicit ?? detected;
