@@ -176,6 +176,51 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.platform.args }}
 
+      # Wrap the NSIS setup.exe in a fully-silent launcher so first-time
+      # installs from the GitHub Release don't show ANY UI/prompts. Auto-
+      # updates already use NSIS `/S /R` via `installMode: quiet` in
+      # tauri.conf.json, this covers the manual-install path.
+      - name: Build silent installer wrapper (Windows)
+        if: matrix.platform.target == 'windows-x86_64'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.detect.outputs.version }}
+        run: |
+          $bundleDir = "apps/desktop/src-tauri/target/release/bundle/nsis"
+          $inner = Get-ChildItem -Path $bundleDir -Filter "*-setup.exe" |
+              Where-Object { $_.Name -notlike "*silent*" } |
+              Sort-Object LastWriteTime -Descending |
+              Select-Object -First 1
+          if (-not $inner) { throw "No Tauri setup exe found in $bundleDir" }
+
+          # tauri-action downloads NSIS into %LOCALAPPDATA%\tauri\NSIS\.
+          $makensis = "$env:LOCALAPPDATA\tauri\NSIS\makensis.exe"
+          if (-not (Test-Path $makensis)) {
+              $makensis = Get-ChildItem -Path "$env:LOCALAPPDATA\tauri" `
+                  -Recurse -Filter "makensis.exe" -ErrorAction SilentlyContinue -Depth 5 |
+                  Select-Object -First 1 -ExpandProperty FullName
+          }
+          if (-not $makensis) { throw "makensis.exe not found after tauri build." }
+          Write-Host "Using makensis: $makensis"
+
+          $nsi  = "apps/desktop/scripts/silent-wrapper.nsi"
+          $icon = "apps/desktop/src-tauri/icons/icon.ico"
+          $outName = $inner.Name -replace "-setup\.exe$", "-silent-setup.exe"
+          $out = Join-Path $bundleDir $outName
+
+          & $makensis `
+              "/DAPP_VERSION=$env:VERSION" `
+              "/DOUT_FILE=$out" `
+              "/DINNER_SETUP=$($inner.FullName)" `
+              "/DICON_FILE=$icon" `
+              $nsi
+          if ($LASTEXITCODE -ne 0) { throw "makensis failed ($LASTEXITCODE)" }
+
+          Write-Host "Built silent installer: $out"
+          gh release upload "desktop-v$env:VERSION" "$out" --clobber
+          Write-Host "Uploaded $outName to release desktop-v$env:VERSION"
+
   publish-release:
     name: Publish release
     needs: [detect, create-release, build-desktop]

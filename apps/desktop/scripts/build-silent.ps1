@@ -36,7 +36,9 @@ $out = Join-Path $bundleDir $outName
 
 # 5. Compile the silent wrapper.
 Write-Host "==> Building silent wrapper -> $outName" -ForegroundColor Cyan
+$pkg = Get-Content (Join-Path $appDir "package.json") -Raw | ConvertFrom-Json
 & $makensis `
+    "/DAPP_VERSION=$($pkg.version)" `
     "/DOUT_FILE=$out" `
     "/DINNER_SETUP=$($inner.FullName)" `
     "/DICON_FILE=$icon" `

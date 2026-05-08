@@ -101,6 +101,35 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.11] - 2026-05-08
+
+### Changed
+
+- **Windows installer is now fully silent on both first install and
+  auto-update.**
+  - **Auto-updates** (`tauri-plugin-updater`): switched
+    `plugins.updater.windows.installMode` from `passive` (which still shows
+    a progress UI) to `quiet`. Per `tauri-plugin-updater` source this maps
+    NSIS args to `/S /R` — no UI, no prompts, restart on completion. The
+    updater plugin already had `dialog: false`, so the entire update path
+    is silent and automatic.
+  - **First-time installs from GitHub Releases**: the standard Tauri NSIS
+    installer always shows pages on double-click, so a new release asset
+    `Notai_<version>_x64-silent-setup.exe` is built in CI by wrapping the
+    Tauri setup in a tiny NSIS launcher (`apps/desktop/scripts/silent-wrapper.nsi`,
+    `SilentInstall silent`). Double-click installs with **zero** UI: it
+    extracts the inner setup to `%TEMP%`, runs it with `/S`, and launches
+    the app. The original `*-setup.exe` is still uploaded for users who
+    prefer the classic UI.
+  - GitHub Actions: new "Build silent installer wrapper (Windows)" step in
+    `release-desktop.yml` runs after `tauri-action` on the Windows runner,
+    re-uses the NSIS toolchain Tauri downloaded into `%LOCALAPPDATA%\tauri\NSIS`,
+    compiles the wrapper with the release version embedded, and uploads it
+    to the draft release via `gh release upload --clobber`.
+  - The wrapper picks up the version via `/DAPP_VERSION`; local builds via
+    `apps/desktop/scripts/build-silent.ps1` now read it from
+    `apps/desktop/package.json` instead of the hard-coded `0.1.0`.
+
 ## [@notai/desktop 0.1.10] - 2026-05-08
 
 ### Changed
