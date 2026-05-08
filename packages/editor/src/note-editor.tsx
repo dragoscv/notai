@@ -15,9 +15,11 @@ import FontFamily from '@tiptap/extension-font-family';
 import TextAlign from '@tiptap/extension-text-align';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
+import Image from '@tiptap/extension-image';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import { Extension } from '@tiptap/core';
+import { Backlink } from './backlink-extension';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
 import type * as Y from 'yjs';
 import { cn } from '@notai/lib/utils';
@@ -56,6 +58,8 @@ export interface NoteEditorProps {
   className?: string;
   onReady?: (editor: Editor) => void;
   onPlaintextChange?: (text: string) => void;
+  /** Optional handler for [[note]] backlink suggestions. */
+  searchBacklinks?: (query: string) => Promise<Array<{ id: string; title: string }>>;
 }
 
 export function NoteEditor({
@@ -67,6 +71,7 @@ export function NoteEditor({
   className,
   onReady,
   onPlaintextChange,
+  searchBacklinks,
 }: NoteEditorProps) {
   const editor = useEditor(
     {
@@ -103,6 +108,13 @@ export function NoteEditor({
         TextAlign.configure({ types: ['heading', 'paragraph'] }),
         Subscript,
         Superscript,
+        Image.configure({
+          HTMLAttributes: { class: 'rounded-md max-w-full my-3' },
+          allowBase64: false,
+        }),
+        ...(searchBacklinks
+          ? [Backlink.configure({ searchBacklinks })]
+          : []),
         Collaboration.configure({ document: doc }),
         CollaborationCursor.configure({ provider, user }),
       ],

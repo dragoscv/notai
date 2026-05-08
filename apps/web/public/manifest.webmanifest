@@ -33,6 +33,38 @@
             "url": "url"
         }
     },
+    "shortcuts": [
+        {
+            "name": "New note",
+            "short_name": "New",
+            "description": "Start a fresh note",
+            "url": "/app?new=1",
+            "icons": [{ "src": "/icons/icon-128.png", "sizes": "128x128" }]
+        },
+        {
+            "name": "Quick capture",
+            "short_name": "Capture",
+            "description": "Capture a thought as a sticky",
+            "url": "/app/quick-capture",
+            "icons": [{ "src": "/icons/icon-128.png", "sizes": "128x128" }]
+        },
+        {
+            "name": "Ask my notes",
+            "short_name": "Ask",
+            "description": "AI search across your notes",
+            "url": "/app?ask=1",
+            "icons": [{ "src": "/icons/icon-128.png", "sizes": "128x128" }]
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/icons/icon-1024.png",
+            "sizes": "1024x1024",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "The main note workspace"
+        }
+    ],
     "protocol_handlers": [
         {
             "protocol": "web+notai",

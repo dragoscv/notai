@@ -5,6 +5,7 @@ use tauri::{
 };
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_deep_link::DeepLinkExt;
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use tauri_plugin_updater::UpdaterExt;
 use tauri_plugin_window_state::StateFlags;
 
@@ -120,6 +121,40 @@ async fn open_settings(app: AppHandle) -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+/// Spawn a fresh sticky-style capture window. Hits the web app's
+/// `/app/quick-capture` route, which creates a note server-side and
+/// streams the editor immediately. Always-on-top + small footprint —
+/// designed for the "thought just landed, write it now" hotkey.
+fn spawn_quick_capture(app: &AppHandle) -> Result<(), String> {
+    let label = "quick-capture";
+    if let Some(existing) = app.get_webview_window(label) {
+        let _ = existing.show();
+        let _ = existing.unminimize();
+        let _ = existing.set_focus();
+        return Ok(());
+    }
+    let url = format!("{}/app/quick-capture", app_url());
+    let parsed = url::Url::parse(&url).map_err(|e| e.to_string())?;
+    WebviewWindowBuilder::new(app, label, WebviewUrl::External(parsed))
+        .title("Capture")
+        .inner_size(360.0, 420.0)
+        .min_inner_size(260.0, 200.0)
+        .decorations(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(true)
+        .visible(true)
+        .focused(true)
+        .build()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn quick_capture(app: AppHandle) -> Result<(), String> {
+    spawn_quick_capture(&app)
 }
 
 /// Enable or disable Windows autostart via the autostart plugin.
@@ -242,6 +277,7 @@ pub fn run() {
             close_sticky,
             show_main,
             open_settings,
+            quick_capture,
             set_autostart,
             get_autostart,
         ])
@@ -316,11 +352,9 @@ pub fn run() {
                     let handle = app.clone();
                     match ev.id.as_ref() {
                         "new-sticky" => {
+                            let h = handle.clone();
                             tauri::async_runtime::spawn(async move {
-                                let _ = show_main_window(&handle).await;
-                                if let Some(w) = handle.get_webview_window("main") {
-                                    let _ = w.eval("window.location.href='/app?sticky=1'");
-                                }
+                                let _ = spawn_quick_capture(&h);
                             });
                         }
                         "show-main" => {
@@ -371,6 +405,26 @@ pub fn run() {
                 if let Some(w) = app.get_webview_window("main") {
                     let _ = w.hide();
                 }
+            }
+
+            // Global hotkey: Ctrl/Cmd + Shift + N → quick-capture sticky.
+            // Registers at startup; if the user already has another app
+            // bound to the same combo, registration silently fails and we
+            // continue without the shortcut (Tauri returns Err on conflict).
+            #[cfg(target_os = "macos")]
+            let modifiers = Modifiers::SUPER | Modifiers::SHIFT;
+            #[cfg(not(target_os = "macos"))]
+            let modifiers = Modifiers::CONTROL | Modifiers::SHIFT;
+            let capture_shortcut = Shortcut::new(Some(modifiers), Code::KeyN);
+
+            let gs = app.global_shortcut();
+            let cap_for_handler = capture_shortcut;
+            if let Err(e) = gs.on_shortcut(cap_for_handler, move |app, _shortcut, event| {
+                if event.state == ShortcutState::Pressed {
+                    let _ = spawn_quick_capture(app);
+                }
+            }) {
+                eprintln!("[shortcut] failed to register quick-capture hotkey: {}", e);
             }
 
             Ok(())

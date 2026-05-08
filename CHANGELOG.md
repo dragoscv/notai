@@ -14,7 +14,93 @@ Each app in this monorepo is versioned independently:
 
 ## [Unreleased]
 
+### Added — Phase 0–3 expansion
+
+#### Phase 0 — table-stakes for "really" daily-use
+
+- **Sharing**: per-note collaborator + invite-by-email flow. Pending invites
+  are stored hashed (sha256 of a random 32-byte token, base64url-encoded),
+  expire in 14 days, and accept via `/share/accept?token=…`. New
+  `note_invites` table.
+- **Global search**: `searchNotes` server action wired into the command
+  palette (⌘K). Trigram GIN index over `title` + `plaintext`, ranked with
+  similarity × 3 on title + recency boost. Highlighted snippets in the UI.
+- **Trash + auto-purge**: notes are now soft-deleted (`deleted_at`),
+  `/app/trash` lets the user restore or empty, and a daily Vercel cron
+  (`/api/cron/purge-trash`) hard-deletes anything older than 30 days.
+- **Onboarding**: first sign-in seeds 4 starter notes (welcome, capture,
+  today, draw-here) via the `events.createUser` callback in `auth.ts`.
+- **Asset uploads**: drag-drop / picker → presigned PUT to any S3-compatible
+  bucket (R2, GCS, S3) via a hand-rolled SigV4 client (no AWS SDK).
+  See `docs/storage.md`. Editor inserts an `<img>` on success.
+- **Sentry + PostHog**: opt-in observability across web + realtime server.
+  See `docs/observability.md`.
+
+#### Phase 1 — power-user feel
+
+- **Tags**: chip input next to the title, with `attachTag` / `detachTag`
+  server actions. Tag names are normalized to lowercase + hyphens.
+- **Backlinks**: `[[` autocomplete in the editor (TipTap mention suggestion
+  driven by `searchBacklinkCandidates`), and a "Linked from" panel below
+  each note.
+- **Quick capture (desktop)**: `Ctrl/Cmd+Shift+N` global hotkey + tray menu
+  open a borderless sticky window pointed at `/app/quick-capture`, which
+  creates a fresh note server-side and redirects.
+- **Web clipper extension**: MV3 extension at `apps/extension/` with
+  popup, context menu, and keyboard shortcut. Uses Personal Access Tokens
+  (`personal_access_tokens` table) hashed at rest. New `/api/clipper`
+  POST and `/api/clipper/whoami` GET routes.
+- **Integrations page**: `/app/settings/integrations` shows MCP setup info
+  for Claude / ChatGPT and lets the user manage clipper PATs.
+
+#### Phase 2 — AI-native, but private
+
+- **Pro tier (Stripe)**: Checkout + Customer Portal flow.
+  `/api/stripe/webhook` is signature-verified and idempotent through
+  `billing_events`. New `subscriptions` table mirrors plan + status.
+  See `docs/billing.md`.
+- **"Ask my notes" (RAG)**: pgvector `vector(1536)` column on `notes` plus
+  HNSW `vector_cosine_ops` index. Embeddings refresh in the background via
+  `/api/cron/embed-notes` (every 15 minutes). The streaming `/api/ask`
+  endpoint returns NDJSON events (`hits`, `delta`, `error`); `AskDialog`
+  renders the answer with cited sources.
+- **Voice → text**: `MediaRecorder` → multipart upload → OpenAI Whisper.
+  Transcript is inserted at the cursor.
+- **Per-note AI menu**: summary, action-items extraction, and
+  rewrite-for-clarity. Each renders into a dialog with a "Insert into note"
+  button.
+- **Version history**: realtime server snapshots Y.Doc state every 25
+  edits or 5 minutes into `note_versions`. The Version History dialog
+  lists snapshots, previews them, and restores via `restoreVersion`.
+
+#### Phase 3 — distribution
+
+- **Templates gallery**: `/app/templates` with 7 official templates
+  (daily plan, weekly review, meeting notes, reading log, project brief,
+  3-things gratitude, idea capture). Seeded by `pnpm --filter @notai/db
+  seed:templates`.
+- **Microsoft Store**: submission checklist at
+  `apps/desktop/store/microsoft/SUBMISSION.md`.
+- **Mac App Store**: setup guide at `docs/mac-store-setup.md` covering
+  the cert flow, entitlements, and GitHub Actions secrets.
+- **Mobile (PWA + Tauri)**: enriched manifest with shortcuts + screenshots,
+  share-target, and `web+notai://` protocol handler. Native iOS/Android
+  via `pnpm tauri ios|android dev` is in preview. See `docs/mobile.md`.
+
+### Database
+
+Single migration `0002_phase0_to_3.sql` adds, in one transaction:
+
+- `vector` extension + `notes.embedding vector(1536)` + HNSW index
+- `notes.deleted_at`, `notes.embedding_model`, `notes.embedding_updated_at`
+- `note_invites`, `subscriptions`, `billing_events`, `note_versions`,
+  `templates`, `personal_access_tokens` tables
+- enums: `plan_tier`, `sub_status`
+
+Apply with `pnpm db:migrate (local)` or `pnpm db:migrate (production)`.
+
 ### Security
+
 
 - **Auth.js**: disabled `allowDangerousEmailAccountLinking` (Google provider)
   to prevent account takeover via attacker-controlled accounts that share an

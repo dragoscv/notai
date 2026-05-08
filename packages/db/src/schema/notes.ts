@@ -106,6 +106,36 @@ export const notes = pgTable(
     isArchived: boolean('is_archived').notNull().default(false),
     isFavorite: boolean('is_favorite').notNull().default(false),
 
+    /**
+     * Soft delete. Set when the user moves a note to Trash; a daily cron
+     * permanently purges rows where `deletedAt` is older than 30 days.
+     * Notes with this set never appear in normal queries.
+     */
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+
+    /**
+     * Pre-computed embedding of `plaintext` (OpenAI text-embedding-3-small,
+     * 1536 dims). Stored as `vector` via pgvector. Recomputed by a worker
+     * when plaintext changes.
+     */
+    embedding: customType<{ data: number[]; driverData: string }>({
+      dataType() {
+        return 'vector(1536)';
+      },
+      toDriver(value) {
+        return `[${value.join(',')}]`;
+      },
+      fromDriver(value) {
+        const s = value as unknown as string;
+        return s
+          .replace(/[\[\]]/g, '')
+          .split(',')
+          .map(Number);
+      },
+    })('embedding'),
+    embeddingModel: text('embedding_model'),
+    embeddingUpdatedAt: timestamp('embedding_updated_at', { withTimezone: true }),
+
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     lastOpenedAt: timestamp('last_opened_at', { withTimezone: true }),
@@ -115,6 +145,7 @@ export const notes = pgTable(
     index('notes_owner_pinned_idx').on(t.ownerId, t.isPinned, t.updatedAt.desc()),
     index('notes_owner_folder_pos_idx').on(t.ownerId, t.folderId, t.position),
     index('notes_plaintext_trgm_idx').using('gin', sql`${t.plaintext} gin_trgm_ops`),
+    index('notes_owner_deleted_idx').on(t.ownerId, t.deletedAt),
   ],
 );
 

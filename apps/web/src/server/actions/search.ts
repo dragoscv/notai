@@ -1,0 +1,82 @@
+'use server';
+
+import { z } from 'zod';
+import { auth } from '@/auth';
+import { db, notes, noteCollaborators, eq, and, or, sql, isNull } from '@notai/db';
+
+const querySchema = z.string().trim().min(1).max(200);
+
+export interface SearchHit {
+  id: string;
+  title: string;
+  icon: string | null;
+  snippet: string;
+  isPinned: boolean;
+  rank: number;
+}
+
+/**
+ * Server-side search across the user's owned + shared notes. Uses the
+ * GIN trigram index on `notes.plaintext` plus a similarity score on the
+ * title for a cheap, accurate ranking. Excludes soft-deleted rows.
+ */
+export async function searchNotes(rawQuery: string): Promise<SearchHit[]> {
+  const session = await auth();
+  if (!session?.user?.id) return [];
+  const userId = session.user.id;
+  const parsed = querySchema.safeParse(rawQuery);
+  if (!parsed.success) return [];
+  const q = parsed.data;
+  const like = `%${q.replace(/[%_]/g, (m) => `\\${m}`)}%`;
+
+  // We rank with: title similarity (heaviest) + plaintext similarity +
+  // a small recency boost. ts_rank would be richer but we'd need a
+  // tsvector column — trgm `similarity()` keeps the schema lean.
+  const rows = await db
+    .select({
+      id: notes.id,
+      title: notes.title,
+      icon: notes.icon,
+      isPinned: notes.isPinned,
+      plaintext: notes.plaintext,
+      rank: sql<number>`
+        (similarity(${notes.title}, ${q}) * 3.0)
+        + similarity(left(${notes.plaintext}, 4000), ${q})
+        + (1.0 / (1 + extract(epoch from now() - ${notes.updatedAt}) / 86400.0)) * 0.2
+      `.as('rank'),
+    })
+    .from(notes)
+    .leftJoin(
+      noteCollaborators,
+      and(eq(noteCollaborators.noteId, notes.id), eq(noteCollaborators.userId, userId)),
+    )
+    .where(
+      and(
+        isNull(notes.deletedAt),
+        or(eq(notes.ownerId, userId), eq(noteCollaborators.userId, userId)),
+        or(sql`${notes.title} ILIKE ${like}`, sql`${notes.plaintext} ILIKE ${like}`),
+      ),
+    )
+    .orderBy(sql`rank DESC`)
+    .limit(20);
+
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    icon: r.icon,
+    isPinned: r.isPinned,
+    rank: Number(r.rank),
+    snippet: makeSnippet(r.plaintext, q),
+  }));
+}
+
+/** Returns ~140 chars around the first match, ellipsised. */
+function makeSnippet(text: string, q: string): string {
+  if (!text) return '';
+  const lower = text.toLowerCase();
+  const idx = lower.indexOf(q.toLowerCase());
+  if (idx < 0) return text.slice(0, 140) + (text.length > 140 ? '…' : '');
+  const start = Math.max(0, idx - 50);
+  const end = Math.min(text.length, idx + q.length + 90);
+  return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+}

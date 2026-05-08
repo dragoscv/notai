@@ -14,6 +14,7 @@
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio",
     "seed": "tsx src/seed.ts",
+    "seed:templates": "tsx src/seed-templates.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist .turbo"
   },

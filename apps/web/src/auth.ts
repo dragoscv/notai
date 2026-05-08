@@ -3,6 +3,7 @@ import Google from 'next-auth/providers/google';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { db } from '@notai/db/client';
 import { users, accounts, sessions, verificationTokens } from '@notai/db/schema';
+import { seedOnboarding } from '@/server/onboarding';
 
 const SEVEN_DAYS = 60 * 60 * 24 * 7;
 const isProd = process.env.NODE_ENV === 'production';
@@ -48,6 +49,19 @@ export const authConfig = {
     async session({ session, user }) {
       if (session.user) session.user.id = user.id;
       return session;
+    },
+  },
+  events: {
+    async createUser({ user }) {
+      // Brand-new account: seed a couple of welcome notes so the workspace
+      // doesn't look empty. Idempotent — re-runs are no-ops.
+      if (user.id) {
+        try {
+          await seedOnboarding(user.id);
+        } catch (err) {
+          console.error('[onboarding] seed failed', err);
+        }
+      }
     },
   },
   trustHost: true,

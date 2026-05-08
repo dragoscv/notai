@@ -17,6 +17,7 @@
     "@hocuspocus/server": "catalog:",
     "@notai/db": "workspace:*",
     "@notai/lib": "workspace:*",
+    "@sentry/node": "catalog:",
     "yjs": "catalog:"
   },
   "devDependencies": {

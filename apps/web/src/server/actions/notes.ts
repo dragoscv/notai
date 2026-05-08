@@ -3,7 +3,20 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { auth } from '@/auth';
-import { db, notes, eq, and, desc, asc, or, noteCollaborators, folders, isNull } from '@notai/db';
+import {
+  db,
+  notes,
+  eq,
+  and,
+  desc,
+  asc,
+  or,
+  noteCollaborators,
+  folders,
+  isNull,
+  isNotNull,
+  lt,
+} from '@notai/db';
 
 /** Position gap between siblings so reorders don't have to renumber neighbours. */
 const POSITION_STEP = 1000;
@@ -22,6 +35,7 @@ export async function listNotes(filter?: { archived?: boolean; favorite?: boolea
     .where(
       and(
         or(eq(notes.ownerId, user.id)),
+        isNull(notes.deletedAt),
         eq(notes.isArchived, filter?.archived ?? false),
         ...(filter?.favorite ? [eq(notes.isFavorite, true)] : []),
       ),
@@ -61,7 +75,11 @@ export async function getNote(id: string) {
       and(eq(noteCollaborators.noteId, notes.id), eq(noteCollaborators.userId, user.id)),
     )
     .where(
-      and(eq(notes.id, id), or(eq(notes.ownerId, user.id), eq(noteCollaborators.userId, user.id))),
+      and(
+        eq(notes.id, id),
+        isNull(notes.deletedAt),
+        or(eq(notes.ownerId, user.id), eq(noteCollaborators.userId, user.id)),
+      ),
     )
     .limit(1);
   return note?.notes ?? null;
@@ -131,10 +149,71 @@ export async function updateNote(input: z.input<typeof updateSchema>) {
   revalidatePath(`/app/n/${id}`);
 }
 
+/**
+ * Soft delete: stamp `deletedAt` so the row disappears from normal
+ * queries but stays recoverable for 30 days. The cron purger does the
+ * actual DROP. Only owners can delete.
+ */
 export async function deleteNote(id: string) {
   const user = await requireUser();
-  await db.delete(notes).where(and(eq(notes.id, id), eq(notes.ownerId, user.id)));
+  await db
+    .update(notes)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(notes.id, id), eq(notes.ownerId, user.id), isNull(notes.deletedAt)));
   revalidatePath('/app');
+  revalidatePath('/app/trash');
+}
+
+/** Move a soft-deleted note back to the active workspace. */
+export async function restoreNote(id: string) {
+  const user = await requireUser();
+  await db
+    .update(notes)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(notes.id, id), eq(notes.ownerId, user.id), isNotNull(notes.deletedAt)));
+  revalidatePath('/app');
+  revalidatePath('/app/trash');
+}
+
+/** Permanently delete a single trashed note. Triggers Y.Doc cascade. */
+export async function purgeNote(id: string) {
+  const user = await requireUser();
+  await db
+    .delete(notes)
+    .where(and(eq(notes.id, id), eq(notes.ownerId, user.id), isNotNull(notes.deletedAt)));
+  revalidatePath('/app/trash');
+}
+
+/** Permanently empty the user's trash (irreversible). */
+export async function emptyTrash() {
+  const user = await requireUser();
+  await db
+    .delete(notes)
+    .where(and(eq(notes.ownerId, user.id), isNotNull(notes.deletedAt)));
+  revalidatePath('/app/trash');
+}
+
+/** List the signed-in user's trashed notes. */
+export async function listTrash() {
+  const user = await requireUser();
+  return db
+    .select()
+    .from(notes)
+    .where(and(eq(notes.ownerId, user.id), isNotNull(notes.deletedAt)))
+    .orderBy(desc(notes.deletedAt));
+}
+
+/**
+ * Cron-callable global purge: hard-deletes any note soft-deleted more than
+ * 30 days ago, regardless of owner. Returns the count for logs.
+ */
+export async function purgeExpiredTrash(): Promise<{ purged: number }> {
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const rows = await db
+    .delete(notes)
+    .where(and(isNotNull(notes.deletedAt), lt(notes.deletedAt, cutoff)))
+    .returning({ id: notes.id });
+  return { purged: rows.length };
 }
 
 /**

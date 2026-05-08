@@ -13,6 +13,8 @@ catalog:
   '@hookform/resolvers': ^3.10.0
   '@neondatabase/serverless': ^0.10.4
   '@playwright/test': ^1.49.1
+  '@sentry/nextjs': ^8.45.1
+  '@sentry/node': ^8.45.1
   '@radix-ui/react-avatar': ^1.1.2
   '@radix-ui/react-context-menu': ^2.2.4
   '@radix-ui/react-dialog': ^1.1.4
@@ -37,7 +39,9 @@ catalog:
   '@tiptap/extension-color': ^2.10.4
   '@tiptap/extension-font-family': ^2.10.4
   '@tiptap/extension-highlight': ^2.10.4
+  '@tiptap/extension-image': ^2.10.4
   '@tiptap/extension-link': ^2.10.4
+  '@tiptap/extension-mention': ^2.10.4
   '@tiptap/extension-placeholder': ^2.10.4
   '@tiptap/extension-subscript': ^2.10.4
   '@tiptap/extension-superscript': ^2.10.4
@@ -47,8 +51,10 @@ catalog:
   '@tiptap/extension-text-style': ^2.10.4
   '@tiptap/extension-typography': ^2.10.4
   '@tiptap/extension-underline': ^2.10.4
+  '@tiptap/pm': ^2.10.4
   '@tiptap/react': ^2.10.4
   '@tiptap/starter-kit': ^2.10.4
+  '@tiptap/suggestion': ^2.10.4
   '@tldraw/sync': ^3.6.0
   '@types/node': ^22.10.5
   '@types/react': ^19.2.0
@@ -73,6 +79,8 @@ catalog:
   pdfjs-dist: ^4.10.38
   perfect-freehand: ^1.2.2
   playwright: ^1.49.1
+  posthog-js: ^1.205.0
+  posthog-node: ^4.4.0
   postgres: 3.4.9
   prettier: ^3.4.2
   react: ^19.2.0
@@ -80,6 +88,7 @@ catalog:
   react-hook-form: ^7.54.2
   serwist: ^9.0.11
   sonner: ^1.7.1
+  stripe: ^17.5.0
   tailwind-merge: ^2.6.0
   tailwindcss: ^4.0.0
   tldraw: ^3.6.0

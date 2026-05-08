@@ -23,16 +23,22 @@ Command.displayName = CommandPrimitive.displayName;
 export function CommandDialog({
   children,
   className,
+  shouldFilter,
   ...props
 }: React.ComponentProps<typeof Dialog> & {
   children: React.ReactNode;
   /** Optional className passed through to the underlying DialogContent. */
   className?: string;
+  /** Forwarded to the cmdk root — disable to take full control of filtering. */
+  shouldFilter?: boolean;
 }) {
   return (
     <Dialog {...props}>
       <DialogContent className={cn('overflow-hidden p-0 shadow-lg', className)}>
-        <Command className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-input-wrapper]_svg]:size-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:size-5">
+        <Command
+          shouldFilter={shouldFilter}
+          className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-input-wrapper]_svg]:size-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:size-5"
+        >
           {children}
         </Command>
       </DialogContent>

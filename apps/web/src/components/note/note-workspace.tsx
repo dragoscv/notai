@@ -20,6 +20,15 @@ import { toast } from 'sonner';
 import { SurfaceSwitcher, useSurface } from './surface-switcher';
 import { OpenStickiesButton } from './open-stickies-button';
 import { isTauri, invoke } from '@/lib/tauri';
+import { ShareDialog } from './share-dialog';
+import { AssetUploader } from './asset-uploader';
+import { BacklinksPanel } from './backlinks-panel';
+import { TagChips } from './tag-chips';
+import { VoiceRecorder } from './voice-recorder';
+import { NoteAiMenu } from './note-ai-menu';
+import { VersionHistory } from './version-history';
+import { searchBacklinkCandidates } from '@/server/actions/backlinks';
+import { useRouter } from 'next/navigation';
 
 // Drawing canvas uses browser-only APIs (tldraw). Load lazily on the client.
 const DrawingCanvas = dynamic(
@@ -56,6 +65,7 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
     url: realtimeUrl,
     token,
   });
+  const router = useRouter();
 
   const [title, setTitle] = useSharedTitle(doc, note.title);
   const [editor, setEditor] = React.useState<Editor | null>(null);
@@ -144,6 +154,30 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
 
           <OpenStickiesButton />
 
+          <ShareDialog noteId={note.id} ownerId={note.ownerId} currentUserId={user.id} />
+          <AssetUploader
+            noteId={note.id}
+            onUploaded={({ url, mime }) => {
+              if (mime.startsWith('image/') && editor) {
+                editor.chain().focus().setImage({ src: url }).run();
+              }
+            }}
+          />
+          <VoiceRecorder
+            onTranscribed={(text) => {
+              if (!editor) return;
+              editor.chain().focus().insertContent(`\n\n${text}\n\n`).run();
+              toast.success('Transcribed');
+            }}
+          />
+          <NoteAiMenu
+            noteId={note.id}
+            onInsert={(md) => {
+              editor?.chain().focus().insertContent(md).run();
+            }}
+          />
+          <VersionHistory noteId={note.id} />
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="icon-sm" variant="ghost">
@@ -201,6 +235,9 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                   placeholder="Untitled"
                   className="placeholder:text-muted-foreground w-full bg-transparent font-serif text-4xl font-semibold tracking-tight outline-none"
                 />
+                <div className="mt-3">
+                  <TagChips noteId={note.id} />
+                </div>
               </div>
 
               <div
@@ -214,13 +251,24 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                   data-surface={fullBg ? undefined : surfaceDataAttr}
                   style={fullBg ? undefined : surfaceStyle}
                   className="flex-1"
+                  onClickCapture={(e) => {
+                    // Intercept clicks on [[backlink]] anchors so we client-route.
+                    const target = (e.target as HTMLElement).closest('a[data-backlink]');
+                    if (!target) return;
+                    const id = target.getAttribute('data-backlink');
+                    if (!id) return;
+                    e.preventDefault();
+                    router.push(`/app/n/${id}`);
+                  }}
                 >
                   <NoteEditor
                     doc={doc}
                     provider={provider}
                     user={{ name: user.name, color: colorFor(user.id) }}
                     onReady={setEditor}
+                    searchBacklinks={searchBacklinkCandidates}
                   />
+                  <BacklinksPanel noteId={note.id} />
                 </div>
               </div>
             </div>

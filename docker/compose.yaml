@@ -2,7 +2,10 @@ name: notai
 
 services:
   postgres:
-    image: postgres:17-alpine
+    # pgvector/pgvector image is Postgres 17 with the pgvector extension
+    # pre-installed. Same major version as postgres:17-alpine so the
+    # existing notai-pgdata volume continues to work after switching.
+    image: pgvector/pgvector:pg17
     container_name: notai-postgres
     restart: unless-stopped
     environment:

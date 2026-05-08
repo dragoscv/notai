@@ -16,9 +16,10 @@ if (!url) throw new Error('DATABASE_URL is required');
  * Next.js / Turbopack HMR module reloads don't keep creating fresh pools,
  * which quickly exhausts Postgres's `max_connections` in dev.
  */
-type DbInstance =
-  | ReturnType<typeof drizzlePg<typeof schema>>
-  | ReturnType<typeof drizzleNeon<typeof schema>>;
+// Both drivers share the same API surface for our use cases; we type as the
+// postgres-js variant because its `.returning(selection)` overloads are the
+// superset and a union here narrows return types to 0-arg in TS.
+type DbInstance = ReturnType<typeof drizzlePg<typeof schema>>;
 
 const globalForDb = globalThis as unknown as {
   __notaiSql?: ReturnType<typeof postgres>;
@@ -29,7 +30,7 @@ function createDb(): DbInstance {
   const isNeon = /neon\.tech|neon\.build/.test(url!);
   if (isNeon) {
     const client = neon(url!);
-    return drizzleNeon({ client, schema, casing: 'snake_case' });
+    return drizzleNeon({ client, schema, casing: 'snake_case' }) as unknown as DbInstance;
   }
   const sql =
     globalForDb.__notaiSql ??

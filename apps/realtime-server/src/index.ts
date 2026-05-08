@@ -2,12 +2,30 @@ import { Hocuspocus } from '@hocuspocus/server';
 import { Logger } from '@hocuspocus/extension-logger';
 import { Database } from '@hocuspocus/extension-database';
 import * as Y from 'yjs';
-import { db, notes, eq, noteCollaborators, and } from '@notai/db';
+import * as Sentry from '@sentry/node';
+import { db, notes, eq, noteCollaborators, and, noteVersions } from '@notai/db';
 import { verifyRealtimeToken } from '@notai/lib/jwt';
 
 const PORT = Number(process.env.HOCUSPOCUS_PORT ?? 15601);
 const JWT_SECRET = process.env.HOCUSPOCUS_JWT_SECRET;
 if (!JWT_SECRET) throw new Error('HOCUSPOCUS_JWT_SECRET is required');
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV ?? 'development',
+    tracesSampleRate: 0.05,
+  });
+}
+
+/**
+ * In-memory throttle for snapshotting Y.Doc state. We snapshot when:
+ *   - the doc has been edited at least N times since the last snapshot, AND
+ *   - the last snapshot is older than M minutes.
+ */
+const SNAPSHOT_EDITS = 25;
+const SNAPSHOT_MS = 5 * 60 * 1000;
+const editCounts = new Map<string, { edits: number; lastAt: number }>();
 
 /**
  * Hocuspocus realtime server
@@ -46,6 +64,26 @@ const server = new Hocuspocus({
             updatedAt: new Date(),
           })
           .where(eq(notes.id, documentName));
+
+        // Snapshot occasionally so users can roll back.
+        const now = Date.now();
+        const c = editCounts.get(documentName) ?? { edits: 0, lastAt: 0 };
+        c.edits += 1;
+        if (c.edits >= SNAPSHOT_EDITS && now - c.lastAt > SNAPSHOT_MS) {
+          c.edits = 0;
+          c.lastAt = now;
+          try {
+            await db.insert(noteVersions).values({
+              noteId: documentName,
+              plaintext: plaintext.slice(0, 100_000),
+              yjsState: state,
+              sizeBytes: state.byteLength,
+            });
+          } catch (err) {
+            Sentry.captureException(err);
+          }
+        }
+        editCounts.set(documentName, c);
       },
     }),
   ],
