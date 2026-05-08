@@ -306,6 +306,7 @@ pub fn run() {
             )?;
 
             TrayIconBuilder::with_id("main")
+                .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 // Let right-click open the menu (default) and handle
                 // left-click ourselves to show the main window.

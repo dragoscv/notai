@@ -101,6 +101,19 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.15] - 2026-05-09
+
+### Fixed
+
+- **Two duplicate tray icons in the Windows system tray.** One was
+  auto-created by Tauri from `app.trayIcon` in `tauri.conf.json`, the
+  other was created by `TrayIconBuilder::with_id("main")` in `lib.rs`.
+  Only the runtime one had a menu and click handlers, so the static one
+  appeared as a non-interactive ghost. Removed the static `trayIcon`
+  config; the runtime builder now also sets the icon via
+  `app.default_window_icon().unwrap().clone()` so the single tray icon
+  renders correctly.
+
 ## [@notai/desktop 0.1.14] - 2026-05-09
 
 ### Fixed
