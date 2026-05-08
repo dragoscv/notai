@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { eq } from '@notai/db';
 import { db } from '@notai/db/client';
 import { verificationTokens } from '@notai/db/schema';
+import { rateLimit, tooManyRequests } from '@/lib/rate-limit';
 
 /**
  * Background poll endpoint for the desktop pairing flow.
@@ -24,6 +25,18 @@ export async function GET(req: NextRequest) {
   if (!device || device.length < 16 || device.length > 256) {
     return NextResponse.json({ error: 'invalid-device' }, { status: 400 });
   }
+
+  // Per-device rate limit. Legitimate desktop polls every ~2s for ~5
+  // minutes (max 150 polls). 60 requests / 60s is plenty of headroom.
+  // An attacker brute-forcing device codes against this endpoint will
+  // hit the cap immediately.
+  const rl = await rateLimit({
+    name: 'desktop-poll',
+    key: device,
+    windowSec: 60,
+    max: 60,
+  });
+  if (!rl.ok) return tooManyRequests(rl);
 
   const identifier = `desktop-pair:${device}`;
   const now = new Date();

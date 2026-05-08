@@ -25,6 +25,7 @@
 import { z } from 'zod';
 import { db, eq, users } from '@notai/db';
 import { requireBearer } from '@/server/oauth-store';
+import { getClientIp, rateLimit, tooManyRequestsResponse } from '@/lib/rate-limit';
 import {
   apiArchiveNote,
   apiCreateFolder,
@@ -311,6 +312,17 @@ export async function POST(req: Request) {
   const auth = await requireBearer(req);
   if (!auth.ok) return auth.response;
 
+  // Rate limit per token (effectively per user/agent). 120 calls / 60s
+  // is generous for tool-calling LLMs but stops a runaway loop or
+  // compromised token from hammering the DB.
+  const rl = await rateLimit({
+    name: 'mcp',
+    key: auth.token.id || getClientIp(req),
+    windowSec: 60,
+    max: 120,
+  });
+  if (!rl.ok) return tooManyRequestsResponse(rl);
+
   switch (method) {
     case 'tools/list': {
       return jsonRpcOk(id, {
@@ -352,7 +364,15 @@ export async function POST(req: Request) {
         });
       } catch (err) {
         const code = (err as McpError).mcpCode ?? -32603;
-        const message = err instanceof Error ? err.message : 'Tool execution failed.';
+        const isMcp = (err as McpError).mcpCode != null;
+        // Only return raw error text for explicit mcpError() throws.
+        // Anything else is an unexpected internal failure: log it server
+        // side and return a generic message so we don't leak stack traces
+        // or DB shape to a third-party MCP client.
+        if (!isMcp) {
+          console.error('[mcp] tool execution failed', err);
+        }
+        const message = isMcp ? (err as Error).message : 'Tool execution failed.';
         return jsonRpcOk(id, {
           isError: true,
           content: [{ type: 'text', text: message }],

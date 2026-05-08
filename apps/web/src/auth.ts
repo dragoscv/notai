@@ -4,6 +4,9 @@ import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { db } from '@notai/db/client';
 import { users, accounts, sessions, verificationTokens } from '@notai/db/schema';
 
+const SEVEN_DAYS = 60 * 60 * 24 * 7;
+const isProd = process.env.NODE_ENV === 'production';
+
 export const authConfig = {
   adapter: DrizzleAdapter(db, {
     usersTable: users,
@@ -11,12 +14,31 @@ export const authConfig = {
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens,
   }),
-  session: { strategy: 'database' },
+  session: {
+    strategy: 'database',
+    maxAge: SEVEN_DAYS,
+    updateAge: 60 * 60 * 24,
+  },
+  cookies: {
+    sessionToken: {
+      name: isProd ? '__Secure-authjs.session-token' : 'authjs.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: isProd,
+      },
+    },
+  },
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
-      allowDangerousEmailAccountLinking: true,
+      // SECURITY: must be false. Linking by raw email lets an attacker who
+      // controls a Google account with a victim's email take over the
+      // account. Auth.js requires the Google `email_verified` claim to be
+      // true before linking when this is off (its default).
+      allowDangerousEmailAccountLinking: false,
     }),
   ],
   pages: {

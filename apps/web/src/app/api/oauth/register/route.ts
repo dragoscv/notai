@@ -27,6 +27,7 @@ import {
   DEFAULT_SCOPES,
 } from '@notai/lib/oauth';
 import { oauthError } from '@/server/oauth-store';
+import { getClientIp, rateLimit, tooManyRequestsResponse } from '@/lib/rate-limit';
 
 const REGISTRATION_ALLOWED_SCOPES =
   'openid profile email offline_access notes:read notes:write notes:delete folders:read folders:write mcp';
@@ -47,6 +48,17 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request) {
+  // Anonymous endpoint — IP-throttle to prevent registration spam.
+  // 10 registrations / hour / IP is far more than any human or legit
+  // MCP client needs. Behind a proxy, x-forwarded-for is honoured.
+  const rl = await rateLimit({
+    name: 'oauth-register',
+    key: getClientIp(req),
+    windowSec: 3600,
+    max: 10,
+  });
+  if (!rl.ok) return tooManyRequestsResponse(rl);
+
   let json: unknown;
   try {
     json = await req.json();

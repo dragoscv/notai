@@ -1,6 +1,8 @@
 'use server';
 
 import { z } from 'zod';
+import { headers } from 'next/headers';
+import { rateLimit } from '@/lib/rate-limit';
 
 const ContactSchema = z.object({
   name: z.string().min(1, 'Please enter your name.').max(120),
@@ -24,6 +26,24 @@ export async function sendContactMessage(
   _prev: ContactState,
   formData: FormData,
 ): Promise<ContactState> {
+  // Public, unauthenticated server action that sends email — perfect
+  // spam target. Throttle by IP: 5 messages / 10 minutes is enough for
+  // a real human, painful for a bot.
+  const h = await headers();
+  const ip = h.get('x-forwarded-for')?.split(',')[0]?.trim() ?? h.get('x-real-ip') ?? 'unknown';
+  const rl = await rateLimit({
+    name: 'contact',
+    key: ip,
+    windowSec: 600,
+    max: 5,
+  });
+  if (!rl.ok) {
+    return {
+      status: 'error',
+      message: 'Too many messages from your network. Please try again later.',
+    };
+  }
+
   const parsed = ContactSchema.safeParse({
     name: formData.get('name'),
     email: formData.get('email'),
@@ -54,11 +74,19 @@ export async function sendContactMessage(
     const from = process.env.CONTACT_FROM ?? 'Notai <noreply@notai.ro>';
 
     if (!apiKey) {
-      // Dev fallback: log to server console so the form is still useful locally.
+      // Dev fallback: acknowledge enough that someone running locally can
+      // see the form path works, without dumping PII (name / email /
+      // message body) into server logs.
+      if (process.env.NODE_ENV === 'production') {
+        return {
+          status: 'error',
+          message: 'Email service unavailable. Please try again later.',
+        };
+      }
       console.warn(
-        '[contact] RESEND_API_KEY not set — message would be sent to %s:\n%o',
+        '[contact] RESEND_API_KEY not set — would deliver message from <%s> to %s',
+        parsed.data.email.replace(/^([^@]).*(@.*)$/, '$1…$2'),
         to,
-        parsed.data,
       );
       return { status: 'success' };
     }

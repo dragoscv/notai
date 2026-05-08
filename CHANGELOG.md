@@ -14,6 +14,34 @@ Each app in this monorepo is versioned independently:
 
 ## [Unreleased]
 
+### Security
+
+- **Auth.js**: disabled `allowDangerousEmailAccountLinking` (Google provider)
+  to prevent account takeover via attacker-controlled accounts that share an
+  email with a victim's verified account.
+- **Sessions**: shortened TTL from 30 days to 7 days; explicit cookie config
+  (`__Secure-` prefix in production, `httpOnly`, `sameSite=lax`, `secure`).
+- **Headers**: added Content-Security-Policy, Cross-Origin-Opener-Policy,
+  Cross-Origin-Resource-Policy, Origin-Agent-Cluster, X-DNS-Prefetch-Control;
+  expanded Permissions-Policy denylist (payment, usb, interest-cohort).
+- **Rate limiting**: in-memory per-process limiter with standard 429
+  responses applied to:
+  - `/api/oauth/token` — 20 req/60s per client_id
+  - `/api/oauth/register` — 10 req/hour per IP
+  - `/api/mcp` — 120 req/60s per token
+  - `/api/desktop-auth/poll` — 60 req/60s per device code
+  - `/api/desktop-auth/issue` — 10 req/60s per user
+  - `sendContactMessage` server action — 5 req/10min per IP
+- **MCP**: error responses no longer leak raw exception messages — only
+  explicit `mcpError()` throws return their text; unexpected errors return
+  a generic message and are logged server-side.
+- **Contact form**: removed PII (name, email body) from dev-fallback log;
+  fails closed in production when `RESEND_API_KEY` is missing instead of
+  silently pretending the email was sent.
+- **Env validation**: extended `@notai/lib/env` schema with
+  `RESEND_API_KEY`, `CONTACT_INBOX`, `CONTACT_FROM`, `UPSTASH_REDIS_REST_URL`,
+  `UPSTASH_REDIS_REST_TOKEN` (all optional).
+
 ### Added
 
 - Pre-commit and pre-push hooks (Husky + lint-staged) enforcing format, lint,

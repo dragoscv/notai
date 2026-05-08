@@ -15,6 +15,7 @@ import {
   oauthError,
   revokeTokenFamily,
 } from '@/server/oauth-store';
+import { getClientIp, rateLimit, tooManyRequestsResponse } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
   const ctype = req.headers.get('content-type') ?? '';
@@ -28,6 +29,19 @@ export async function POST(req: Request) {
   if (!auth.clientId) {
     return oauthError('invalid_client', 'Missing client_id.', 401);
   }
+
+  // Rate-limit per client_id (or IP fallback) to slow down secret /
+  // PKCE / refresh-token brute force. 20 req / 60s is generous for a
+  // legitimate desktop client refreshing tokens; abusive clients hit
+  // 429 quickly.
+  const rl = await rateLimit({
+    name: 'oauth-token',
+    key: auth.clientId || getClientIp(req),
+    windowSec: 60,
+    max: 20,
+  });
+  if (!rl.ok) return tooManyRequestsResponse(rl);
+
   const client = await findActiveClientByClientId(auth.clientId);
   if (!client) return oauthError('invalid_client', 'Unknown client.', 401);
 

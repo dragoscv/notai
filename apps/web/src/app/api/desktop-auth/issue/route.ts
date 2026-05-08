@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { auth } from '@/auth';
 import { db } from '@notai/db/client';
 import { verificationTokens } from '@notai/db/schema';
+import { rateLimit, tooManyRequests } from '@/lib/rate-limit';
 
 /**
  * Issues a short-lived handoff token for the Tauri desktop app.
@@ -33,6 +34,17 @@ export async function GET(req: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.redirect(new URL('/signin', baseUrl(req)));
   }
+
+  // Cap how many handoff tokens a single user can mint. Real pairing
+  // happens once per fresh install; this just keeps a buggy or
+  // compromised browser from hammering verificationTokens.
+  const rl = await rateLimit({
+    name: 'desktop-issue',
+    key: session.user.id,
+    windowSec: 60,
+    max: 10,
+  });
+  if (!rl.ok) return tooManyRequests(rl);
 
   const device = req.nextUrl.searchParams.get('device');
   const handoff = randomBytes(32).toString('base64url');

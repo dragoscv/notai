@@ -13,6 +13,14 @@ export const env = createEnv({
     AUTH_GOOGLE_ID: z.string().min(1),
     AUTH_GOOGLE_SECRET: z.string().min(1),
     HOCUSPOCUS_JWT_SECRET: z.string().min(32),
+    // Optional transactional email — required in production for the
+    // contact form to actually send. Missing in dev = log + succeed.
+    RESEND_API_KEY: z.string().min(1).optional(),
+    CONTACT_INBOX: z.string().email().optional(),
+    CONTACT_FROM: z.string().min(1).optional(),
+    // Optional rate-limit backend. If unset we fall back to in-memory.
+    UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+    UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url(),
