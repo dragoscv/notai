@@ -208,7 +208,7 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
         elements: getElementsFromDoc(doc) as OrderedExcalidrawElement[],
         appState: {
           viewBackgroundColor: 'transparent',
-          ...(persistedViewport
+          ...(persistedViewport && !stickyMode
             ? {
                 scrollX: persistedViewport.scrollX,
                 scrollY: persistedViewport.scrollY,
@@ -216,7 +216,7 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
               }
             : {}),
         },
-        scrollToContent: stickyMode && !persistedViewport,
+        scrollToContent: false,
       }) as ExcalidrawInitialDataState,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -294,19 +294,58 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
   React.useEffect(() => {
     if (!api || !stickyMode || !host) return;
     if (typeof ResizeObserver === 'undefined') return;
+
+    let raf = 0;
+    const fit = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        api.refresh();
+        // Read live elements + DOM-measured block heights and centre them.
+        const els = api.getSceneElementsIncludingDeleted();
+        fitStickyViewport(api, host, els);
+      });
+    };
+
+    // Initial fit — sticky mode always re-centres on open. The persisted
+    // viewport (if any) is only useful for the editable main view.
+    fit();
+
     const ro = new ResizeObserver(() => {
-      if (viewportDirtyRef.current) {
+      // In sticky mode we always refit on resize; in editable mode we
+      // respect the user's pan/zoom once they've touched the viewport.
+      if (!stickyMode && viewportDirtyRef.current) {
         api.refresh();
         return;
       }
-      api.refresh();
-      requestAnimationFrame(() =>
-        api.scrollToContent(undefined, { fitToContent: true, animate: false }),
-      );
+      fit();
     });
     ro.observe(host);
-    return () => ro.disconnect();
+
+    // Re-fit a couple of times during the first second — Excalidraw + the
+    // blocks layer mount in stages, and Y.Doc content may arrive over the
+    // wire after the initial mount.
+    const t1 = setTimeout(fit, 80);
+    const t2 = setTimeout(fit, 350);
+    const t3 = setTimeout(fit, 900);
+
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [api, stickyMode, host]);
+
+  /* ---------- Sticky: refit when block list changes (e.g. realtime) ---------- */
+  React.useEffect(() => {
+    if (!api || !stickyMode || !host) return;
+    const id = requestAnimationFrame(() => {
+      const els = api.getSceneElementsIncludingDeleted();
+      fitStickyViewport(api, host, els);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [api, stickyMode, host, blocks]);
 
   /* ---------- Focused editor tracking ---------- */
   const focusedRef = React.useRef<Editor | null>(null);
@@ -645,6 +684,77 @@ interface PersistedViewport {
   scrollX: number;
   scrollY: number;
   activeTool: string;
+}
+
+/**
+ * Centre + scale Excalidraw's viewport so the union of (1) every text
+ * block (measured from the DOM, since their height auto-fits content)
+ * and (2) every Excalidraw element fits inside the host with a small
+ * margin. Used in sticky/read-only mode.
+ */
+function fitStickyViewport(
+  api: ExcalidrawImperativeAPI,
+  host: HTMLElement,
+  elements: readonly AnyElement[],
+): void {
+  const padding = 16;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  const blockEls = host.querySelectorAll<HTMLElement>('[data-block-id]');
+  for (const el of Array.from(blockEls)) {
+    const x = parseFloat(el.style.left);
+    const y = parseFloat(el.style.top);
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    if (!Number.isFinite(x) || !Number.isFinite(y) || w <= 0 || h <= 0) continue;
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x + w > maxX) maxX = x + w;
+    if (y + h > maxY) maxY = y + h;
+  }
+
+  for (const e of elements) {
+    const ee = e as {
+      isDeleted?: boolean;
+      x?: number;
+      y?: number;
+      width?: number;
+      height?: number;
+    };
+    if (ee.isDeleted) continue;
+    if (typeof ee.x !== 'number' || typeof ee.y !== 'number') continue;
+    const w = ee.width ?? 0;
+    const h = ee.height ?? 0;
+    if (ee.x < minX) minX = ee.x;
+    if (ee.y < minY) minY = ee.y;
+    if (ee.x + w > maxX) maxX = ee.x + w;
+    if (ee.y + h > maxY) maxY = ee.y + h;
+  }
+
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return;
+
+  const bboxW = Math.max(1, maxX - minX);
+  const bboxH = Math.max(1, maxY - minY);
+  const rect = host.getBoundingClientRect();
+  const availW = Math.max(1, rect.width - padding * 2);
+  const availH = Math.max(1, rect.height - padding * 2);
+  const zoom = Math.max(0.1, Math.min(availW / bboxW, availH / bboxH, 1.5));
+
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  const scrollX = rect.width / (2 * zoom) - cx;
+  const scrollY = rect.height / (2 * zoom) - cy;
+
+  api.updateScene({
+    appState: {
+      scrollX,
+      scrollY,
+      zoom: { value: zoom as unknown as number },
+    },
+  } as Parameters<typeof api.updateScene>[0]);
 }
 
 function readViewport(key: string | undefined): PersistedViewport | null {
