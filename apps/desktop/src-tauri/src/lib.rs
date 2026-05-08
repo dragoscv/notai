@@ -9,10 +9,32 @@ use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut,
 use tauri_plugin_updater::UpdaterExt;
 use tauri_plugin_window_state::StateFlags;
 
-/// Base URL for the Notai web app — reads from env at compile time so
-/// `cargo tauri build` can target prod, while `pnpm tauri dev` uses localhost.
+/// Base URL for the Notai web app.
+///
+/// Resolution order:
+/// 1. `NOTAI_WEB_URL` env var at runtime (debugging / CI overrides).
+/// 2. `NOTAI_WEB_URL` baked in at compile time via `option_env!`.
+/// 3. `https://notai.ro` in release builds, `http://localhost:15600` in debug.
+///
+/// This guarantees release binaries always point at production even when no
+/// env var is set on the user's machine — previously stickies fell back to
+/// localhost and showed "can't reach this page".
 fn app_url() -> String {
-    std::env::var("NOTAI_WEB_URL").unwrap_or_else(|_| "http://localhost:15600".into())
+    if let Ok(v) = std::env::var("NOTAI_WEB_URL") {
+        if !v.is_empty() {
+            return v;
+        }
+    }
+    if let Some(v) = option_env!("NOTAI_WEB_URL") {
+        if !v.is_empty() {
+            return v.to_string();
+        }
+    }
+    if cfg!(debug_assertions) {
+        "http://localhost:15600".to_string()
+    } else {
+        "https://notai.ro".to_string()
+    }
 }
 
 /// Open a sticky-note window — always-on-top, no decorations, no taskbar

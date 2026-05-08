@@ -215,6 +215,18 @@ Apply with `pnpm db:migrate (local)` or `pnpm db:migrate (production)`.
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.16] - 2026-05-08
+
+### Fixed
+
+- **Sticky / settings / quick-capture windows opened `http://localhost:15600`
+  in production**, showing "localhost refused to connect". The Rust
+  `app_url()` helper read `NOTAI_WEB_URL` only at runtime and fell back to
+  localhost when the env var wasn't set on the end-user's machine. It now
+  prefers the runtime env var, then `option_env!("NOTAI_WEB_URL")` baked at
+  compile time, and finally defaults to `https://notai.ro` in release
+  builds (debug builds still default to localhost).
+
 ## [@notai/desktop 0.1.15] - 2026-05-09
 
 ### Fixed
