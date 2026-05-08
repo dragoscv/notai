@@ -4,17 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createHash, randomBytes } from 'node:crypto';
 import { auth } from '@/auth';
-import {
-  db,
-  notes,
-  noteCollaborators,
-  noteInvites,
-  users,
-  eq,
-  and,
-  or,
-  sql,
-} from '@notai/db';
+import { db, notes, noteCollaborators, noteInvites, users, eq, and, or, sql } from '@notai/db';
 import { sendEmail } from '@/server/email';
 
 async function requireUser() {
@@ -63,10 +53,7 @@ export async function listShare(noteId: string): Promise<ShareRow[]> {
       and(eq(noteCollaborators.noteId, notes.id), eq(noteCollaborators.userId, me.id)),
     )
     .where(
-      and(
-        eq(notes.id, noteId),
-        or(eq(notes.ownerId, me.id), eq(noteCollaborators.userId, me.id)),
-      ),
+      and(eq(notes.id, noteId), or(eq(notes.ownerId, me.id), eq(noteCollaborators.userId, me.id))),
     )
     .limit(1);
   if (!note) throw new Error('Note not found');
@@ -132,7 +119,11 @@ export async function listShare(noteId: string): Promise<ShareRow[]> {
 
 const inviteSchema = z.object({
   noteId: z.string().min(1),
-  email: z.string().email().max(254).transform((s) => s.toLowerCase().trim()),
+  email: z
+    .string()
+    .email()
+    .max(254)
+    .transform((s) => s.toLowerCase().trim()),
   role: z.enum(['editor', 'viewer']),
 });
 
@@ -189,7 +180,9 @@ export async function inviteToNote(input: z.input<typeof inviteSchema>) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:15600';
   const acceptUrl = `${appUrl}/share/accept?token=${raw}`;
   const inviterName = me.name || me.email || 'Someone';
-  const noteTitle = (await db.select({ title: notes.title }).from(notes).where(eq(notes.id, noteId)).limit(1))[0]?.title ?? 'a note';
+  const noteTitle =
+    (await db.select({ title: notes.title }).from(notes).where(eq(notes.id, noteId)).limit(1))[0]
+      ?.title ?? 'a note';
 
   await sendEmail({
     to: email,
@@ -253,10 +246,7 @@ export async function removeCollaborator(input: { noteId: string; userId: string
   await db
     .delete(noteCollaborators)
     .where(
-      and(
-        eq(noteCollaborators.noteId, input.noteId),
-        eq(noteCollaborators.userId, input.userId),
-      ),
+      and(eq(noteCollaborators.noteId, input.noteId), eq(noteCollaborators.userId, input.userId)),
     );
   revalidatePath(`/app/n/${input.noteId}`);
 }
@@ -300,10 +290,7 @@ export async function acceptInvite(rawToken: string): Promise<{ noteId: string }
       target: [noteCollaborators.noteId, noteCollaborators.userId],
       set: { role: invite.role },
     });
-  await db
-    .update(noteInvites)
-    .set({ acceptedAt: new Date() })
-    .where(eq(noteInvites.id, invite.id));
+  await db.update(noteInvites).set({ acceptedAt: new Date() }).where(eq(noteInvites.id, invite.id));
   revalidatePath(`/app/n/${invite.noteId}`);
   return { noteId: invite.noteId };
 }

@@ -87,10 +87,7 @@ export async function attachTag(input: z.input<typeof upsertSchema>) {
     .returning();
   if (!tag) throw new Error('Could not create tag');
 
-  await db
-    .insert(noteTags)
-    .values({ noteId, tagId: tag.id })
-    .onConflictDoNothing();
+  await db.insert(noteTags).values({ noteId, tagId: tag.id }).onConflictDoNothing();
   revalidatePath(`/app/n/${noteId}`);
   return tag;
 }

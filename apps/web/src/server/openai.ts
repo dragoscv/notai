@@ -1,9 +1,5 @@
 import 'server-only';
-import {
-  getChatProvider,
-  getEmbeddingProvider,
-  type EmbeddingResult,
-} from '@/server/ai';
+import { getChatProvider, getEmbeddingProvider, type EmbeddingResult } from '@/server/ai';
 
 /**
  * Back-compat facade. Prefer '@/server/ai' for new code — that layer

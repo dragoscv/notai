@@ -48,9 +48,8 @@ function makeSuggestion(): Partial<SuggestionOptions<{ id: string; title: string
     allowSpaces: true,
     startOfLine: false,
     items: async ({ query, editor }) => {
-      const opts = editor.extensionManager.extensions.find(
-        (e) => e.name === 'backlink',
-      )?.options as BacklinkOptions | undefined;
+      const opts = editor.extensionManager.extensions.find((e) => e.name === 'backlink')
+        ?.options as BacklinkOptions | undefined;
       if (!opts?.searchBacklinks) return [];
       const rows = await opts.searchBacklinks(query);
       return rows.slice(0, 8);

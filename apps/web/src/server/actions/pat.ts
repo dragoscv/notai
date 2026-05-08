@@ -55,11 +55,6 @@ export async function revokePersonalAccessToken(id: string) {
   await db
     .update(personalAccessTokens)
     .set({ revokedAt: new Date() })
-    .where(
-      and(
-        eq(personalAccessTokens.id, id),
-        eq(personalAccessTokens.userId, me.id),
-      ),
-    );
+    .where(and(eq(personalAccessTokens.id, id), eq(personalAccessTokens.userId, me.id)));
   revalidatePath('/app/settings/integrations');
 }

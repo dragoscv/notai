@@ -1,17 +1,9 @@
 import 'server-only';
 import { env } from '@notai/lib';
 import { getDecryptedSecret, getUserAiPrefs } from './secrets';
-import {
-  makeOpenAiChat,
-  makeOpenAiEmbed,
-  makeOpenAiTranscribe,
-} from './openai-provider';
+import { makeOpenAiChat, makeOpenAiEmbed, makeOpenAiTranscribe } from './openai-provider';
 import { makeCopilotChat, makeCopilotEmbed } from './copilot-provider';
-import type {
-  ChatProvider,
-  EmbeddingProvider,
-  TranscribeProvider,
-} from './types';
+import type { ChatProvider, EmbeddingProvider, TranscribeProvider } from './types';
 
 /**
  * Resolve a chat provider for the given user, honoring (in order):

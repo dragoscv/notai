@@ -29,7 +29,7 @@ export function BacklinksPanel({ noteId }: { noteId: string }) {
 
   return (
     <details
-      className="border-border/60 mx-auto mt-12 mb-16 w-full max-w-[var(--editor-max-width,720px)] border-t pt-6"
+      className="border-border/60 mx-auto mb-16 mt-12 w-full max-w-[var(--editor-max-width,720px)] border-t pt-6"
       open={open}
       onToggle={(e) => {
         const isOpen = (e.target as HTMLDetailsElement).open;
@@ -37,7 +37,7 @@ export function BacklinksPanel({ noteId }: { noteId: string }) {
         if (isOpen) load();
       }}
     >
-      <summary className="text-muted-foreground hover:text-foreground flex cursor-pointer list-none items-center gap-2 text-xs font-medium tracking-wide uppercase">
+      <summary className="text-muted-foreground hover:text-foreground flex cursor-pointer list-none items-center gap-2 text-xs font-medium uppercase tracking-wide">
         <Link2 className="size-3.5" />
         Backlinks
       </summary>

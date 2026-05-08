@@ -53,12 +53,11 @@ export function BillingPanel({ plan }: { plan: PlanInfo }) {
       <header>
         <h1 className="font-serif text-3xl font-semibold tracking-tight">Billing</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          You're currently on the <strong>{isPro ? 'Pro' : 'Free'}</strong> plan
+          You&apos;re currently on the <strong>{isPro ? 'Pro' : 'Free'}</strong> plan
           {plan.status !== 'active' && plan.status !== 'trialing' ? (
             <span className="text-destructive"> ({plan.status})</span>
           ) : null}
-          .
-          {periodEnd ? <> Renews {periodEnd}.</> : null}
+          .{periodEnd ? <> Renews {periodEnd}.</> : null}
         </p>
       </header>
 
@@ -73,9 +72,7 @@ export function BillingPanel({ plan }: { plan: PlanInfo }) {
               Your subscription is set to cancel at the end of the current period.
             </p>
           ) : (
-            <p className="text-muted-foreground mt-2 text-sm">
-              Thanks for supporting Notai 🙏
-            </p>
+            <p className="text-muted-foreground mt-2 text-sm">Thanks for supporting Notai 🙏</p>
           )}
           <Button onClick={portal} disabled={pending} className="mt-4">
             <ExternalLink className="mr-1 size-4" />
@@ -83,7 +80,7 @@ export function BillingPanel({ plan }: { plan: PlanInfo }) {
           </Button>
         </section>
       ) : (
-        <section className="space-y-4 rounded-2xl border bg-card p-6">
+        <section className="bg-card space-y-4 rounded-2xl border p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Upgrade to Pro</h2>
             <div className="flex gap-1 rounded-full border p-0.5 text-xs">

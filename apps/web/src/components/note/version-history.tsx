@@ -2,17 +2,8 @@
 import * as React from 'react';
 import { History, RefreshCcw, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@notai/ui';
-import {
-  listVersions,
-  restoreVersion,
-  deleteVersion,
-} from '@/server/actions/versions';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
+import { listVersions, restoreVersion, deleteVersion } from '@/server/actions/versions';
 
 interface Version {
   id: string;
@@ -35,7 +26,7 @@ export function VersionHistory({ noteId }: { noteId: string }) {
   const [selected, setSelected] = React.useState<Version | null>(null);
   const [pending, startTransition] = React.useTransition();
 
-  const refresh = async () => {
+  const refresh = React.useCallback(async () => {
     setLoading(true);
     try {
       const v = await listVersions(noteId);
@@ -46,11 +37,11 @@ export function VersionHistory({ noteId }: { noteId: string }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [noteId]);
 
   React.useEffect(() => {
     if (open) void refresh();
-  }, [open, noteId]);
+  }, [open, refresh]);
 
   const restore = (v: Version) =>
     startTransition(async () => {
@@ -87,7 +78,7 @@ export function VersionHistory({ noteId }: { noteId: string }) {
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
-            <ul className="max-h-[60vh] divide-y overflow-y-auto rounded-lg border bg-card text-xs">
+            <ul className="bg-card max-h-[60vh] divide-y overflow-y-auto rounded-lg border text-xs">
               {loading && (
                 <li className="text-muted-foreground p-3 text-center">
                   <Loader2 className="mx-auto size-4 animate-spin" />
@@ -110,9 +101,7 @@ export function VersionHistory({ noteId }: { noteId: string }) {
                     onClick={() => setSelected(v)}
                     className="min-w-0 flex-1 text-left"
                   >
-                    <p className="font-medium">
-                      {new Date(v.createdAt).toLocaleString()}
-                    </p>
+                    <p className="font-medium">{new Date(v.createdAt).toLocaleString()}</p>
                     <p className="text-muted-foreground">
                       {(v.sizeBytes / 1024).toFixed(1)} KB
                       {v.label ? ` · ${v.label}` : ''}
@@ -131,7 +120,7 @@ export function VersionHistory({ noteId }: { noteId: string }) {
               ))}
             </ul>
             <div className="space-y-3">
-              <div className="max-h-[60vh] overflow-y-auto rounded-lg border bg-card p-4 text-sm whitespace-pre-wrap">
+              <div className="bg-card max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-lg border p-4 text-sm">
                 {selected ? selected.preview || '(empty)' : 'Select a snapshot to preview.'}
               </div>
               {selected && (

@@ -2,11 +2,7 @@
 // individual provider files, so call sites stay decoupled from the
 // transport details.
 export * from './types';
-export {
-  getChatProvider,
-  getEmbeddingProvider,
-  getTranscribeProvider,
-} from './dispatch';
+export { getChatProvider, getEmbeddingProvider, getTranscribeProvider } from './dispatch';
 export {
   listUserSecrets,
   getDecryptedSecret,

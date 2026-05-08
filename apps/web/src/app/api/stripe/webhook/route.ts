@@ -33,10 +33,7 @@ export async function POST(req: Request) {
 
   // Idempotency: insert event id; if it already exists we exit cleanly.
   try {
-    await db
-      .insert(billingEvents)
-      .values({ id: event.id, type: event.type })
-      .onConflictDoNothing();
+    await db.insert(billingEvents).values({ id: event.id, type: event.type }).onConflictDoNothing();
   } catch (err) {
     console.error('[stripe] failed to record event', err);
   }
@@ -82,11 +79,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ received: true });
 }
 
-async function upsertSubscription(
-  userId: string,
-  customerId: string,
-  sub: Stripe.Subscription,
-) {
+async function upsertSubscription(userId: string, customerId: string, sub: Stripe.Subscription) {
   const tier: 'free' | 'pro' = sub.status === 'canceled' ? 'free' : 'pro';
   const status = sub.status as
     | 'active'
@@ -97,9 +90,7 @@ async function upsertSubscription(
     | 'incomplete_expired'
     | 'unpaid'
     | 'paused';
-  const periodEnd = sub.current_period_end
-    ? new Date(sub.current_period_end * 1000)
-    : null;
+  const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
   const priceId = sub.items.data[0]?.price.id ?? null;
   const cancelAtPeriodEnd = sub.cancel_at_period_end ? 1 : 0;
 

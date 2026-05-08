@@ -19,9 +19,7 @@ export async function GET(req: Request) {
   const cronHeader = req.headers.get('x-vercel-cron');
   const auth = req.headers.get('authorization');
   const cronSecret = env.CRON_SECRET;
-  const authorized =
-    cronHeader === '1' ||
-    (cronSecret ? auth === `Bearer ${cronSecret}` : false);
+  const authorized = cronHeader === '1' || (cronSecret ? auth === `Bearer ${cronSecret}` : false);
   if (!authorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -43,10 +41,7 @@ export async function GET(req: Request) {
     .where(
       and(
         isNull(notes.deletedAt),
-        or(
-          isNull(notes.embeddingUpdatedAt),
-          lt(notes.embeddingUpdatedAt, notes.updatedAt),
-        ),
+        or(isNull(notes.embeddingUpdatedAt), lt(notes.embeddingUpdatedAt, notes.updatedAt)),
       ),
     )
     .orderBy(asc(notes.updatedAt))

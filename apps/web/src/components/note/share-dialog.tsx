@@ -24,7 +24,11 @@ import {
   type ShareRow,
 } from '@/server/actions/sharing';
 
-export function ShareDialog({ noteId, ownerId, currentUserId }: {
+export function ShareDialog({
+  noteId,
+  ownerId,
+  currentUserId,
+}: {
   noteId: string;
   ownerId: string;
   currentUserId: string;
@@ -47,7 +51,9 @@ export function ShareDialog({ noteId, ownerId, currentUserId }: {
   }, [open, noteId]);
 
   function refresh() {
-    listShare(noteId).then(setRows).catch(() => undefined);
+    listShare(noteId)
+      .then(setRows)
+      .catch(() => undefined);
   }
 
   const onInvite = (e: React.FormEvent) => {
@@ -116,7 +122,7 @@ export function ShareDialog({ noteId, ownerId, currentUserId }: {
         )}
 
         <div className="mt-2">
-          <p className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
+          <p className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wide">
             People with access
           </p>
           {loading ? (

@@ -17,9 +17,7 @@ export interface TranscriptionResult {
  * OpenAI Whisper). Receives multipart form data with the audio Blob in
  * the `audio` field.
  */
-export async function transcribeAudio(
-  form: FormData,
-): Promise<TranscriptionResult> {
+export async function transcribeAudio(form: FormData): Promise<TranscriptionResult> {
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;
   if (!userId) throw new Error('Not signed in');

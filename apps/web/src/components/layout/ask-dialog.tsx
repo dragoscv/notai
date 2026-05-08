@@ -2,12 +2,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Sparkles, Send, Loader2, X } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@notai/ui';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
 
 interface Hit {
   id: string;
@@ -82,8 +77,7 @@ export function AskDialog({
               | { type: 'delta'; text: string }
               | { type: 'error'; message: string };
             if (ev.type === 'hits') setHits(ev.hits);
-            else if (ev.type === 'delta')
-              setAnswer((prev) => prev + ev.text);
+            else if (ev.type === 'delta') setAnswer((prev) => prev + ev.text);
             else if (ev.type === 'error') setError(ev.message);
           } catch {
             // skip
@@ -140,7 +134,7 @@ export function AskDialog({
         )}
 
         {answer && (
-          <div className="rounded-lg border bg-card p-4 text-sm leading-relaxed whitespace-pre-wrap">
+          <div className="bg-card whitespace-pre-wrap rounded-lg border p-4 text-sm leading-relaxed">
             {answer}
           </div>
         )}

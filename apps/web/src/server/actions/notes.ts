@@ -187,9 +187,7 @@ export async function purgeNote(id: string) {
 /** Permanently empty the user's trash (irreversible). */
 export async function emptyTrash() {
   const user = await requireUser();
-  await db
-    .delete(notes)
-    .where(and(eq(notes.ownerId, user.id), isNotNull(notes.deletedAt)));
+  await db.delete(notes).where(and(eq(notes.ownerId, user.id), isNotNull(notes.deletedAt)));
   revalidatePath('/app/trash');
 }
 

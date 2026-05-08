@@ -21,17 +21,15 @@ export default async function TemplatesPage() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-10 px-6 py-10">
       <header>
-        <h1 className="font-serif text-3xl font-semibold tracking-tight">
-          Templates
-        </h1>
+        <h1 className="font-serif text-3xl font-semibold tracking-tight">Templates</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Start a note from a template. Designed for ADHD brains: tiny,
-          forgiving structure that you can rewrite freely.
+          Start a note from a template. Designed for ADHD brains: tiny, forgiving structure that you
+          can rewrite freely.
         </p>
       </header>
 
       {tpls.length === 0 && (
-        <p className="text-muted-foreground rounded-xl border bg-card p-6 text-sm">
+        <p className="text-muted-foreground bg-card rounded-xl border p-6 text-sm">
           No templates yet. Run <code>pnpm --filter @notai/db seed:templates</code>
           to populate the gallery.
         </p>
@@ -39,7 +37,7 @@ export default async function TemplatesPage() {
 
       {[...byCategory.entries()].map(([cat, items]) => (
         <section key={cat} className="space-y-3">
-          <h2 className="text-muted-foreground text-xs font-semibold tracking-[0.14em] uppercase">
+          <h2 className="text-muted-foreground text-xs font-semibold uppercase tracking-[0.14em]">
             {cat}
           </h2>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -49,7 +47,7 @@ export default async function TemplatesPage() {
                   <input type="hidden" name="slug" value={t.slug} />
                   <button
                     type="submit"
-                    className="group hover:border-amber-500/40 hover:bg-amber-500/5 block w-full rounded-2xl border bg-card p-4 text-left transition"
+                    className="bg-card group block w-full rounded-2xl border p-4 text-left transition hover:border-amber-500/40 hover:bg-amber-500/5"
                   >
                     <div className="flex items-start gap-3">
                       <span className="bg-muted/70 grid size-10 shrink-0 place-items-center rounded-lg text-xl">

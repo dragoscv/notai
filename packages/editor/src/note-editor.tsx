@@ -112,9 +112,7 @@ export function NoteEditor({
           HTMLAttributes: { class: 'rounded-md max-w-full my-3' },
           allowBase64: false,
         }),
-        ...(searchBacklinks
-          ? [Backlink.configure({ searchBacklinks })]
-          : []),
+        ...(searchBacklinks ? [Backlink.configure({ searchBacklinks })] : []),
         Collaboration.configure({ document: doc }),
         CollaborationCursor.configure({ provider, user }),
       ],

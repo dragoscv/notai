@@ -3,16 +3,7 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
-import {
-  db,
-  noteVersions,
-  notes,
-  noteCollaborators,
-  eq,
-  and,
-  or,
-  desc,
-} from '@notai/db';
+import { db, noteVersions, notes, noteCollaborators, eq, and, or, desc } from '@notai/db';
 
 async function requireUserAccess(noteId: string) {
   const session = await auth();
@@ -23,16 +14,10 @@ async function requireUserAccess(noteId: string) {
     .from(notes)
     .leftJoin(
       noteCollaborators,
-      and(
-        eq(noteCollaborators.noteId, notes.id),
-        eq(noteCollaborators.userId, me.id),
-      ),
+      and(eq(noteCollaborators.noteId, notes.id), eq(noteCollaborators.userId, me.id)),
     )
     .where(
-      and(
-        eq(notes.id, noteId),
-        or(eq(notes.ownerId, me.id), eq(noteCollaborators.userId, me.id)),
-      ),
+      and(eq(notes.id, noteId), or(eq(notes.ownerId, me.id), eq(noteCollaborators.userId, me.id))),
     )
     .limit(1);
   if (!row) throw new Error('Note not found');
@@ -73,12 +58,7 @@ export async function restoreVersion(input: { noteId: string; versionId: string 
       plaintext: noteVersions.plaintext,
     })
     .from(noteVersions)
-    .where(
-      and(
-        eq(noteVersions.id, input.versionId),
-        eq(noteVersions.noteId, input.noteId),
-      ),
-    )
+    .where(and(eq(noteVersions.id, input.versionId), eq(noteVersions.noteId, input.noteId)))
     .limit(1);
   if (!snap) throw new Error('Version not found');
   await db
@@ -96,11 +76,6 @@ export async function deleteVersion(input: { noteId: string; versionId: string }
   await requireUserAccess(idSchema.parse(input.noteId));
   await db
     .delete(noteVersions)
-    .where(
-      and(
-        eq(noteVersions.id, input.versionId),
-        eq(noteVersions.noteId, input.noteId),
-      ),
-    );
+    .where(and(eq(noteVersions.id, input.versionId), eq(noteVersions.noteId, input.noteId)));
   revalidatePath(`/app/n/${input.noteId}`);
 }

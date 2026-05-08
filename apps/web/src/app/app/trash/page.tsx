@@ -26,13 +26,15 @@ export default async function TrashPage() {
         </div>
         <Trash2 className="text-muted-foreground size-5" />
       </header>
-      <TrashList items={items.map((n) => ({
-        id: n.id,
-        title: n.title,
-        icon: n.icon,
-        deletedAt: n.deletedAt!.toISOString(),
-        plaintext: n.plaintext.slice(0, 200),
-      }))} />
+      <TrashList
+        items={items.map((n) => ({
+          id: n.id,
+          title: n.title,
+          icon: n.icon,
+          deletedAt: n.deletedAt!.toISOString(),
+          plaintext: n.plaintext.slice(0, 200),
+        }))}
+      />
     </div>
   );
 }

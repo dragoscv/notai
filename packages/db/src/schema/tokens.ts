@@ -1,9 +1,4 @@
-import {
-  pgTable,
-  text,
-  timestamp,
-  index,
-} from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, index } from 'drizzle-orm/pg-core';
 import { users } from './auth';
 
 /**
@@ -14,16 +9,16 @@ import { users } from './auth';
 export const personalAccessTokens = pgTable(
   'personal_access_tokens',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     tokenHash: text('token_hash').notNull().unique(),
     scope: text('scope').notNull().default('clipper'),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
   },

@@ -13,9 +13,7 @@ export interface PatPrincipal {
  * compare via the hashed lookup; we mark the token used asynchronously so
  * we don't slow down the hot path.
  */
-export async function authenticatePat(
-  req: Request,
-): Promise<PatPrincipal | NextResponse> {
+export async function authenticatePat(req: Request): Promise<PatPrincipal | NextResponse> {
   const auth = req.headers.get('authorization') ?? req.headers.get('Authorization');
   if (!auth?.toLowerCase().startsWith('bearer ')) {
     return NextResponse.json({ error: 'Missing bearer token' }, { status: 401 });
@@ -34,10 +32,7 @@ export async function authenticatePat(
     .from(personalAccessTokens)
     .innerJoin(users, eq(users.id, personalAccessTokens.userId))
     .where(
-      and(
-        eq(personalAccessTokens.tokenHash, tokenHash),
-        isNull(personalAccessTokens.revokedAt),
-      ),
+      and(eq(personalAccessTokens.tokenHash, tokenHash), isNull(personalAccessTokens.revokedAt)),
     )
     .limit(1);
   if (!row) {

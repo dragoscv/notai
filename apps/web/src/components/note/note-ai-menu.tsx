@@ -2,17 +2,8 @@
 import * as React from 'react';
 import { Sparkles, Loader2, Copy, ListChecks, ScrollText, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@notai/ui';
-import {
-  summarizeNote,
-  extractActionItems,
-  rewriteForClarity,
-} from '@/server/actions/ai-actions';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
+import { summarizeNote, extractActionItems, rewriteForClarity } from '@/server/actions/ai-actions';
 
 type Mode = 'summary' | 'actions' | 'rewrite';
 
@@ -48,11 +39,7 @@ export function NoteAiMenu({
     setLoading(true);
     try {
       const fn =
-        m === 'summary'
-          ? summarizeNote
-          : m === 'actions'
-            ? extractActionItems
-            : rewriteForClarity;
+        m === 'summary' ? summarizeNote : m === 'actions' ? extractActionItems : rewriteForClarity;
       const out = await fn(noteId);
       setResult(out);
     } catch (err) {
@@ -110,7 +97,7 @@ export function NoteAiMenu({
               <Icon className="size-4" /> {META[mode].label}
             </DialogTitle>
           </DialogHeader>
-          <div className="min-h-[140px] rounded-lg border bg-card p-4 text-sm leading-relaxed whitespace-pre-wrap">
+          <div className="bg-card min-h-[140px] whitespace-pre-wrap rounded-lg border p-4 text-sm leading-relaxed">
             {loading ? (
               <span className="text-muted-foreground inline-flex items-center gap-2">
                 <Loader2 className="size-4 animate-spin" /> Thinking…

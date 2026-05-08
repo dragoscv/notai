@@ -49,7 +49,7 @@ const SEED: SeedTemplate[] = [
   {
     slug: 'weekly-review',
     title: 'Weekly Review',
-    description: 'What worked, what didn\'t, what next week needs.',
+    description: "What worked, what didn't, what next week needs.",
     category: 'Planning',
     icon: '🔄',
     body: {
@@ -66,7 +66,7 @@ const SEED: SeedTemplate[] = [
         '## What I learned',
         '- ',
         '',
-        '## Next week\'s focus',
+        "## Next week's focus",
         '- ',
       ].join('\n'),
     },
@@ -216,9 +216,7 @@ async function main() {
       });
   }
   // Print the count to confirm.
-  const rows = await db
-    .select({ count: sql<number>`COUNT(*)` })
-    .from(templates);
+  const rows = await db.select({ count: sql<number>`COUNT(*)` }).from(templates);
   const count = rows[0]?.count ?? 0;
   console.log(`✓ Seeded ${SEED.length} templates (total in DB: ${count}).`);
   process.exit(0);

@@ -15,10 +15,7 @@ export interface StoredSecret {
 
 /** Returns connected providers for a user (no plaintext). */
 export async function listUserSecrets(userId: string): Promise<StoredSecret[]> {
-  const rows = await db
-    .select()
-    .from(userSecrets)
-    .where(eq(userSecrets.userId, userId));
+  const rows = await db.select().from(userSecrets).where(eq(userSecrets.userId, userId));
   return rows.map((r) => ({
     id: r.id,
     provider: r.provider as AiProvider,
@@ -36,9 +33,7 @@ export async function getDecryptedSecret(
   const [row] = await db
     .select()
     .from(userSecrets)
-    .where(
-      and(eq(userSecrets.userId, userId), eq(userSecrets.provider, provider)),
-    )
+    .where(and(eq(userSecrets.userId, userId), eq(userSecrets.provider, provider)))
     .limit(1);
   if (!row) return null;
   try {
@@ -90,20 +85,13 @@ export async function updateSecretMeta(
   await db
     .update(userSecrets)
     .set({ meta })
-    .where(
-      and(eq(userSecrets.userId, userId), eq(userSecrets.provider, provider)),
-    );
+    .where(and(eq(userSecrets.userId, userId), eq(userSecrets.provider, provider)));
 }
 
-export async function deleteUserSecret(
-  userId: string,
-  provider: AiProvider,
-): Promise<void> {
+export async function deleteUserSecret(userId: string, provider: AiProvider): Promise<void> {
   await db
     .delete(userSecrets)
-    .where(
-      and(eq(userSecrets.userId, userId), eq(userSecrets.provider, provider)),
-    );
+    .where(and(eq(userSecrets.userId, userId), eq(userSecrets.provider, provider)));
 }
 
 export interface AiPrefs {
@@ -113,11 +101,7 @@ export interface AiPrefs {
 }
 
 export async function getUserAiPrefs(userId: string): Promise<AiPrefs> {
-  const [row] = await db
-    .select()
-    .from(userAiPrefs)
-    .where(eq(userAiPrefs.userId, userId))
-    .limit(1);
+  const [row] = await db.select().from(userAiPrefs).where(eq(userAiPrefs.userId, userId)).limit(1);
   return {
     chat: {
       provider: (row?.chatProvider as AiProvider | undefined) ?? null,

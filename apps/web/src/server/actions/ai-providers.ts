@@ -45,10 +45,7 @@ export interface ProviderStatus {
 
 export async function getProviderStatus(): Promise<ProviderStatus> {
   const me = await requireUser();
-  const [secrets, prefs] = await Promise.all([
-    listUserSecrets(me.id),
-    getUserAiPrefs(me.id),
-  ]);
+  const [secrets, prefs] = await Promise.all([listUserSecrets(me.id), getUserAiPrefs(me.id)]);
   return {
     connected: secrets.map((s) => ({
       provider: s.provider,
@@ -91,9 +88,7 @@ const providerSchema = z.object({
   provider: z.enum(['openai', 'copilot']),
 });
 
-export async function disconnectProvider(
-  input: z.input<typeof providerSchema>,
-): Promise<void> {
+export async function disconnectProvider(input: z.input<typeof providerSchema>): Promise<void> {
   const me = await requireUser();
   const { provider } = providerSchema.parse(input);
   await deleteUserSecret(me.id, provider);
@@ -146,9 +141,7 @@ const prefSchema = z.object({
   model: z.string().max(100).nullable(),
 });
 
-export async function setModelPreference(
-  input: z.input<typeof prefSchema>,
-): Promise<void> {
+export async function setModelPreference(input: z.input<typeof prefSchema>): Promise<void> {
   const me = await requireUser();
   const { feature, provider, model } = prefSchema.parse(input);
   await setUserAiPref(

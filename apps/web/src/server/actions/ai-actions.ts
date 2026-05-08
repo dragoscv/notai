@@ -14,16 +14,10 @@ async function requireUserAccess(noteId: string) {
     .from(notes)
     .leftJoin(
       noteCollaborators,
-      and(
-        eq(noteCollaborators.noteId, notes.id),
-        eq(noteCollaborators.userId, me.id),
-      ),
+      and(eq(noteCollaborators.noteId, notes.id), eq(noteCollaborators.userId, me.id)),
     )
     .where(
-      and(
-        eq(notes.id, noteId),
-        or(eq(notes.ownerId, me.id), eq(noteCollaborators.userId, me.id)),
-      ),
+      and(eq(notes.id, noteId), or(eq(notes.ownerId, me.id), eq(noteCollaborators.userId, me.id))),
     )
     .limit(1);
   if (!row) throw new Error('Note not found');
@@ -62,7 +56,7 @@ export async function extractActionItems(noteId: string) {
     noteId,
     'You extract concrete next-actions from notes. Output a Markdown checklist.',
     'List the action items / next steps from this note as `- [ ]` items. ' +
-      "If there are none, say \"No action items found.\"",
+      'If there are none, say "No action items found."',
   );
 }
 

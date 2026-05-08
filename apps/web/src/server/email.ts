@@ -12,7 +12,13 @@ interface SendInput {
   replyTo?: string;
 }
 
-export async function sendEmail({ to, subject, text, html, replyTo }: SendInput): Promise<{ ok: boolean }> {
+export async function sendEmail({
+  to,
+  subject,
+  text,
+  html,
+  replyTo,
+}: SendInput): Promise<{ ok: boolean }> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.CONTACT_FROM ?? 'Notai <noreply@notai.ro>';
 

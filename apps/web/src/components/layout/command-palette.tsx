@@ -82,152 +82,152 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
 
   return (
     <>
-    <CommandDialog
-      open={open}
-      onOpenChange={setOpen}
-      className="bg-card/90 shadow-foreground/10 border shadow-2xl backdrop-blur-xl sm:rounded-2xl"
-      shouldFilter={!showServerHits}
-    >
-      <CommandInput
-        placeholder="Search notes or type a command…"
-        value={query}
-        onValueChange={setQuery}
-      />
-      <CommandList className="max-h-[420px] px-1 pb-2">
-        <CommandEmpty>
-          <div className="px-4 py-8 text-center">
-            <p className="font-serif text-base">Nothing matches that yet.</p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              Try a different word, or start a new note.
-            </p>
-          </div>
-        </CommandEmpty>
+      <CommandDialog
+        open={open}
+        onOpenChange={setOpen}
+        className="bg-card/90 shadow-foreground/10 border shadow-2xl backdrop-blur-xl sm:rounded-2xl"
+        shouldFilter={!showServerHits}
+      >
+        <CommandInput
+          placeholder="Search notes or type a command…"
+          value={query}
+          onValueChange={setQuery}
+        />
+        <CommandList className="max-h-[420px] px-1 pb-2">
+          <CommandEmpty>
+            <div className="px-4 py-8 text-center">
+              <p className="font-serif text-base">Nothing matches that yet.</p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                Try a different word, or start a new note.
+              </p>
+            </div>
+          </CommandEmpty>
 
-        <CommandGroup heading="Quick actions" className={groupHeadingClass}>
-          <CommandItem
-            onSelect={async () => {
-              setOpen(false);
-              const n = await createNote();
-              if (n) router.push(`/app/n/${n.id}`);
-            }}
-          >
-            <span className="bg-primary/15 text-primary grid size-7 place-items-center rounded-md">
-              <Plus className="size-3.5" />
-            </span>
-            <span>Create a new note</span>
-            <CommandShortcut>⌘N</CommandShortcut>
-          </CommandItem>
-          <CommandItem
-            onSelect={async () => {
-              setOpen(false);
-              const n = await createNote({ kind: 'sticky' });
-              if (n) router.push(`/app/n/${n.id}?sticky=1`);
-            }}
-          >
-            <span className="bg-sticky-yellow text-foreground/70 grid size-7 place-items-center rounded-md">
-              <Sparkles className="size-3.5" />
-            </span>
-            <span>Create a sticky note</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => {
-              setOpen(false);
-              setAskOpen(true);
-            }}
-          >
-            <span className="bg-amber-500/15 text-amber-600 grid size-7 place-items-center rounded-md">
-              <Sparkles className="size-3.5" />
-            </span>
-            <span>Ask my notes…</span>
-            <CommandShortcut>⌘⇧K</CommandShortcut>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => {
-              setOpen(false);
-              router.push('/app/trash');
-            }}
-          >
-            <span className="bg-muted text-muted-foreground grid size-7 place-items-center rounded-md">
-              <Search className="size-3.5" />
-            </span>
-            <span>Open Trash</span>
-          </CommandItem>
-        </CommandGroup>
-
-        {showServerHits ? (
-          <>
-            <CommandSeparator className="my-1" />
-            <CommandGroup
-              heading={searching ? 'Searching…' : `Results for "${query.trim()}"`}
-              className={groupHeadingClass}
+          <CommandGroup heading="Quick actions" className={groupHeadingClass}>
+            <CommandItem
+              onSelect={async () => {
+                setOpen(false);
+                const n = await createNote();
+                if (n) router.push(`/app/n/${n.id}`);
+              }}
             >
-              {searching && hits.length === 0 && (
-                <div className="text-muted-foreground flex items-center gap-2 px-3 py-2 text-sm">
-                  <Loader2 className="size-3.5 animate-spin" /> Looking through your notes
-                </div>
-              )}
-              {hits.map((h) => (
-                <CommandItem
-                  key={h.id}
-                  value={`${h.id}-${h.title}`}
-                  onSelect={() => {
-                    setOpen(false);
-                    router.push(`/app/n/${h.id}`);
-                  }}
-                >
-                  <span className="bg-muted/70 grid size-7 shrink-0 place-items-center rounded-md text-base">
-                    {h.icon ?? <FileText className="text-muted-foreground size-3.5" />}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-serif">{h.title || 'Untitled'}</p>
-                    {h.snippet && (
-                      <p className="text-muted-foreground truncate text-xs">
-                        <Highlight text={h.snippet} match={query.trim()} />
-                      </p>
-                    )}
-                  </div>
-                  <CornerDownLeft className="text-muted-foreground/60 size-3.5 shrink-0" />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </>
-        ) : (
-          notes.length > 0 && (
+              <span className="bg-primary/15 text-primary grid size-7 place-items-center rounded-md">
+                <Plus className="size-3.5" />
+              </span>
+              <span>Create a new note</span>
+              <CommandShortcut>⌘N</CommandShortcut>
+            </CommandItem>
+            <CommandItem
+              onSelect={async () => {
+                setOpen(false);
+                const n = await createNote({ kind: 'sticky' });
+                if (n) router.push(`/app/n/${n.id}?sticky=1`);
+              }}
+            >
+              <span className="bg-sticky-yellow text-foreground/70 grid size-7 place-items-center rounded-md">
+                <Sparkles className="size-3.5" />
+              </span>
+              <span>Create a sticky note</span>
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                setOpen(false);
+                setAskOpen(true);
+              }}
+            >
+              <span className="grid size-7 place-items-center rounded-md bg-amber-500/15 text-amber-600">
+                <Sparkles className="size-3.5" />
+              </span>
+              <span>Ask my notes…</span>
+              <CommandShortcut>⌘⇧K</CommandShortcut>
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                setOpen(false);
+                router.push('/app/trash');
+              }}
+            >
+              <span className="bg-muted text-muted-foreground grid size-7 place-items-center rounded-md">
+                <Search className="size-3.5" />
+              </span>
+              <span>Open Trash</span>
+            </CommandItem>
+          </CommandGroup>
+
+          {showServerHits ? (
             <>
               <CommandSeparator className="my-1" />
-              <CommandGroup heading="Recent" className={groupHeadingClass}>
-                {notes.slice(0, 12).map((n) => (
+              <CommandGroup
+                heading={searching ? 'Searching…' : `Results for "${query.trim()}"`}
+                className={groupHeadingClass}
+              >
+                {searching && hits.length === 0 && (
+                  <div className="text-muted-foreground flex items-center gap-2 px-3 py-2 text-sm">
+                    <Loader2 className="size-3.5 animate-spin" /> Looking through your notes
+                  </div>
+                )}
+                {hits.map((h) => (
                   <CommandItem
-                    key={n.id}
-                    value={`${n.title} ${n.plaintext}`}
+                    key={h.id}
+                    value={`${h.id}-${h.title}`}
                     onSelect={() => {
                       setOpen(false);
-                      router.push(`/app/n/${n.id}`);
+                      router.push(`/app/n/${h.id}`);
                     }}
                   >
                     <span className="bg-muted/70 grid size-7 shrink-0 place-items-center rounded-md text-base">
-                      {n.icon ?? <FileText className="text-muted-foreground size-3.5" />}
+                      {h.icon ?? <FileText className="text-muted-foreground size-3.5" />}
                     </span>
-                    <span className="min-w-0 flex-1 truncate font-serif">
-                      {n.title || 'Untitled'}
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-serif">{h.title || 'Untitled'}</p>
+                      {h.snippet && (
+                        <p className="text-muted-foreground truncate text-xs">
+                          <Highlight text={h.snippet} match={query.trim()} />
+                        </p>
+                      )}
+                    </div>
+                    <CornerDownLeft className="text-muted-foreground/60 size-3.5 shrink-0" />
                   </CommandItem>
                 ))}
               </CommandGroup>
             </>
-          )
-        )}
-      </CommandList>
+          ) : (
+            notes.length > 0 && (
+              <>
+                <CommandSeparator className="my-1" />
+                <CommandGroup heading="Recent" className={groupHeadingClass}>
+                  {notes.slice(0, 12).map((n) => (
+                    <CommandItem
+                      key={n.id}
+                      value={`${n.title} ${n.plaintext}`}
+                      onSelect={() => {
+                        setOpen(false);
+                        router.push(`/app/n/${n.id}`);
+                      }}
+                    >
+                      <span className="bg-muted/70 grid size-7 shrink-0 place-items-center rounded-md text-base">
+                        {n.icon ?? <FileText className="text-muted-foreground size-3.5" />}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate font-serif">
+                        {n.title || 'Untitled'}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </>
+            )
+          )}
+        </CommandList>
 
-      <div className="bg-background/40 text-muted-foreground flex items-center justify-between gap-2 border-t px-3 py-2 text-[11px]">
-        <div className="flex items-center gap-3">
-          <Hint kbd="↑↓">navigate</Hint>
-          <Hint kbd="↵">open</Hint>
+        <div className="bg-background/40 text-muted-foreground flex items-center justify-between gap-2 border-t px-3 py-2 text-[11px]">
+          <div className="flex items-center gap-3">
+            <Hint kbd="↑↓">navigate</Hint>
+            <Hint kbd="↵">open</Hint>
+          </div>
+          <Hint kbd="esc">close</Hint>
         </div>
-        <Hint kbd="esc">close</Hint>
-      </div>
-    </CommandDialog>
-    <AskDialog open={askOpen} onOpenChange={setAskOpen} />
+      </CommandDialog>
+      <AskDialog open={askOpen} onOpenChange={setAskOpen} />
     </>
   );
 }

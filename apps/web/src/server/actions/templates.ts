@@ -43,15 +43,10 @@ export async function applyTemplate(input: { slug: string } | FormData) {
   const session = await auth();
   if (!session?.user?.id) redirect('/signin?callbackUrl=/app/templates');
   const me = session.user as { id: string };
-  const slugRaw =
-    input instanceof FormData ? String(input.get('slug') ?? '') : input.slug;
+  const slugRaw = input instanceof FormData ? String(input.get('slug') ?? '') : input.slug;
   const { slug } = applySchema.parse({ slug: slugRaw });
 
-  const [tpl] = await db
-    .select()
-    .from(templates)
-    .where(eq(templates.slug, slug))
-    .limit(1);
+  const [tpl] = await db.select().from(templates).where(eq(templates.slug, slug)).limit(1);
   if (!tpl) throw new Error('Template not found');
 
   const body = tpl.body as { plaintext?: string };

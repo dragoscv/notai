@@ -13,9 +13,7 @@ export default async function AcceptInvitePage({ searchParams }: PageProps) {
   if (!token) {
     return (
       <Wrapper title="Invite link is missing a token">
-        <p className="text-muted-foreground">
-          Please ask the sender for the original email link.
-        </p>
+        <p className="text-muted-foreground">Please ask the sender for the original email link.</p>
       </Wrapper>
     );
   }

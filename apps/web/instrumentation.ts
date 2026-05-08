@@ -11,4 +11,6 @@ export async function register() {
   }
 }
 
-export { onRequestError } from '@sentry/nextjs';
+// @sentry/nextjs v8 exports this as `captureRequestError`. Next.js expects
+// the file convention name `onRequestError`, so we re-export under that name.
+export { captureRequestError as onRequestError } from '@sentry/nextjs';

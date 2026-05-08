@@ -59,7 +59,7 @@ export function AssetUploader({
   if (variant === 'dropzone') {
     return (
       <label
-        className={`group bg-card hover:bg-accent/50 relative flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-6 py-10 text-sm transition ${drag ? 'border-primary bg-primary/5' : ''} ${className ?? ''}`}
+        className={`bg-card hover:bg-accent/50 group relative flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-6 py-10 text-sm transition ${drag ? 'border-primary bg-primary/5' : ''} ${className ?? ''}`}
         onDragOver={(e) => {
           e.preventDefault();
           setDrag(true);
@@ -117,7 +117,11 @@ export function AssetUploader({
         onClick={() => inputRef.current?.click()}
         disabled={pending}
       >
-        {pending ? <Loader2 className="size-3.5 animate-spin" /> : <ImagePlus className="size-3.5" />}
+        {pending ? (
+          <Loader2 className="size-3.5 animate-spin" />
+        ) : (
+          <ImagePlus className="size-3.5" />
+        )}
         {pending ? 'Uploading' : 'Attach'}
       </Button>
     </>

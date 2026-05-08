@@ -101,7 +101,10 @@ export function presign({ method, key, expiresInSeconds, contentType }: SignArgs
   const queryKeys = Object.keys(params).sort();
   const canonicalQuery = queryKeys.map((k) => `${rfc3986(k)}=${rfc3986(params[k]!)}`).join('&');
 
-  const canonicalUri = url.pathname.split('/').map((p) => rfc3986(decodeURIComponent(p))).join('/');
+  const canonicalUri = url.pathname
+    .split('/')
+    .map((p) => rfc3986(decodeURIComponent(p)))
+    .join('/');
   const canonicalHeaders = `host:${host}\n`;
   const canonicalRequest = [
     method,

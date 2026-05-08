@@ -1,16 +1,7 @@
 import 'server-only';
-import {
-  getDecryptedSecret,
-  updateSecretMeta,
-  upsertUserSecret,
-} from './secrets';
+import { getDecryptedSecret, updateSecretMeta, upsertUserSecret } from './secrets';
 import { parseSseDeltas } from './openai-provider';
-import type {
-  ChatProvider,
-  EmbeddingProvider,
-  EmbeddingResult,
-  ModelDescriptor,
-} from './types';
+import type { ChatProvider, EmbeddingProvider, EmbeddingResult, ModelDescriptor } from './types';
 
 /**
  * GitHub Copilot integration via OAuth Device Flow + the Copilot API
@@ -168,20 +159,15 @@ interface CopilotSession {
  * Exchange a GitHub OAuth token for a short-lived Copilot session token.
  * Throws if the user doesn't have an active Copilot subscription.
  */
-async function exchangeForCopilotSession(
-  ghToken: string,
-): Promise<CopilotSession> {
-  const res = await fetch(
-    'https://api.github.com/copilot_internal/v2/token',
-    {
-      headers: {
-        Authorization: `token ${ghToken}`,
-        Accept: 'application/json',
-        ...COPILOT_HEADERS,
-      },
-      cache: 'no-store',
+async function exchangeForCopilotSession(ghToken: string): Promise<CopilotSession> {
+  const res = await fetch('https://api.github.com/copilot_internal/v2/token', {
+    headers: {
+      Authorization: `token ${ghToken}`,
+      Accept: 'application/json',
+      ...COPILOT_HEADERS,
     },
-  );
+    cache: 'no-store',
+  });
   if (!res.ok) {
     throw new Error(
       `Copilot subscription check failed (${res.status}). Make sure you have an active GitHub Copilot subscription.`,
@@ -214,9 +200,7 @@ async function getValidCopilotSession(
   return { session: fresh, ghToken };
 }
 
-export async function listCopilotModels(
-  userId: string,
-): Promise<ModelDescriptor[]> {
+export async function listCopilotModels(userId: string): Promise<ModelDescriptor[]> {
   const ctx = await getValidCopilotSession(userId);
   if (!ctx) return [];
   const res = await fetch(`${COPILOT_API_BASE}/models`, {

@@ -1,11 +1,4 @@
-import {
-  pgTable,
-  text,
-  timestamp,
-  jsonb,
-  index,
-  unique,
-} from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, jsonb, index, unique } from 'drizzle-orm/pg-core';
 import { users } from './auth';
 
 /**
@@ -22,7 +15,9 @@ import { users } from './auth';
 export const userSecrets = pgTable(
   'user_secrets',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -31,9 +26,7 @@ export const userSecrets = pgTable(
     ciphertext: text('ciphertext').notNull(),
     meta: jsonb('meta').$type<Record<string, unknown>>().notNull().default({}),
     label: text('label'),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
   },
   (t) => ({
@@ -62,9 +55,7 @@ export const userAiPrefs = pgTable('user_ai_prefs', {
   transcribeProvider: text('transcribe_provider'),
   transcribeModel: text('transcribe_model'),
 
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type UserAiPrefs = typeof userAiPrefs.$inferSelect;

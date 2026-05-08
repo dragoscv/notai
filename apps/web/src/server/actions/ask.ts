@@ -25,9 +25,7 @@ const querySchema = z.object({
 });
 
 /** Vector search → top-K notes related to the question. */
-export async function askMyNotesSearch(
-  input: z.input<typeof querySchema>,
-): Promise<AskHit[]> {
+export async function askMyNotesSearch(input: z.input<typeof querySchema>): Promise<AskHit[]> {
   const me = await requireUser();
   const { question, topK } = querySchema.parse(input);
   const embed = await embedText(question, me.id);
@@ -47,10 +45,7 @@ export async function askMyNotesSearch(
     .from(notes)
     .leftJoin(
       noteCollaborators,
-      and(
-        eq(noteCollaborators.noteId, notes.id),
-        eq(noteCollaborators.userId, me.id),
-      ),
+      and(eq(noteCollaborators.noteId, notes.id), eq(noteCollaborators.userId, me.id)),
     )
     .where(
       and(
@@ -88,31 +83,23 @@ function snippet(text: string | null, q: string) {
 export async function askMyNotesStream(input: { question: string }) {
   const me = await requireUser();
   const hits = await askMyNotesSearch({ question: input.question, topK: 6 });
-  const context = hits
-    .map((h, i) => `[#${i + 1}] ${h.title}\n${h.snippet}`)
-    .join('\n\n');
+  const context = hits.map((h, i) => `[#${i + 1}] ${h.title}\n${h.snippet}`).join('\n\n');
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const encoder = new TextEncoder();
-      controller.enqueue(
-        encoder.encode(JSON.stringify({ type: 'hits', hits }) + '\n'),
-      );
+      controller.enqueue(encoder.encode(JSON.stringify({ type: 'hits', hits }) + '\n'));
       const system =
-        'You are Notai, a friendly assistant for the user\'s personal notes. ' +
+        "You are Notai, a friendly assistant for the user's personal notes. " +
         'Answer using only the context provided; cite sources with [#n] where relevant. ' +
         "If the context doesn't contain the answer, say so honestly.";
       const user = `Context:\n${context || '(no relevant notes found)'}\n\nQuestion: ${input.question}`;
       try {
         for await (const chunk of streamChat({ system, user, userId: me.id })) {
-          controller.enqueue(
-            encoder.encode(JSON.stringify({ type: 'delta', text: chunk }) + '\n'),
-          );
+          controller.enqueue(encoder.encode(JSON.stringify({ type: 'delta', text: chunk }) + '\n'));
         }
       } catch (err) {
         controller.enqueue(
-          encoder.encode(
-            JSON.stringify({ type: 'error', message: String(err) }) + '\n',
-          ),
+          encoder.encode(JSON.stringify({ type: 'error', message: String(err) }) + '\n'),
         );
       } finally {
         controller.close();

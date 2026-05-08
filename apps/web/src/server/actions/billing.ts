@@ -75,7 +75,7 @@ export async function startCheckout(input: { interval: 'monthly' | 'yearly' }) {
     success_url: `${origin}/app/settings/billing?status=success`,
     cancel_url: `${origin}/app/settings/billing?status=cancelled`,
     customer: existing?.stripeCustomerId ?? undefined,
-    customer_email: existing?.stripeCustomerId ? undefined : user?.email ?? undefined,
+    customer_email: existing?.stripeCustomerId ? undefined : (user?.email ?? undefined),
     client_reference_id: me.id,
     allow_promotion_codes: true,
     billing_address_collection: 'auto',

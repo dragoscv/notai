@@ -69,32 +69,27 @@ export function AiProvidersPanel({ initialStatus }: Props) {
   return (
     <div className="mx-auto max-w-3xl space-y-8 p-6">
       <header className="space-y-2">
-        <p className="text-muted-foreground text-xs font-semibold tracking-[0.14em] uppercase">
+        <p className="text-muted-foreground text-xs font-semibold uppercase tracking-[0.14em]">
           Settings · AI providers
         </p>
         <h1 className="font-serif text-3xl">Bring your own keys</h1>
         <p className="text-muted-foreground max-w-prose text-sm">
-          Notai never bills you for AI. Connect your own OpenAI account or
-          your existing GitHub Copilot subscription, then pick which model
-          should power each feature. Credentials are encrypted at rest with
-          AES-256-GCM and only ever decrypted server-side at request time.
+          Notai never bills you for AI. Connect your own OpenAI account or your existing GitHub
+          Copilot subscription, then pick which model should power each feature. Credentials are
+          encrypted at rest with AES-256-GCM and only ever decrypted server-side at request time.
         </p>
       </header>
 
       <OpenAiCard
         connected={isOpenAi}
         onChanged={refresh}
-        meta={
-          status.connected.find((c) => c.provider === 'openai')?.meta ?? {}
-        }
+        meta={status.connected.find((c) => c.provider === 'openai')?.meta ?? {}}
       />
 
       <CopilotCard
         connected={isCopilot}
         onChanged={refresh}
-        meta={
-          status.connected.find((c) => c.provider === 'copilot')?.meta ?? {}
-        }
+        meta={status.connected.find((c) => c.provider === 'copilot')?.meta ?? {}}
       />
 
       <ModelPreferences
@@ -253,9 +248,7 @@ function CopilotCard({
           return;
         }
         const wait =
-          result.status === 'slow_down'
-            ? result.interval * 1000
-            : device.interval * 1000;
+          result.status === 'slow_down' ? result.interval * 1000 : device.interval * 1000;
         setTimeout(tick, wait);
       } catch (err) {
         toast.error((err as Error).message);
@@ -282,17 +275,16 @@ function CopilotCard({
             )}
           </CardTitle>
           <CardDescription>
-            Use your existing GitHub Copilot subscription as the LLM provider.
-            We open <span className="font-mono">github.com/login/device</span>{' '}
-            in your browser — no client secret required.
+            Use your existing GitHub Copilot subscription as the LLM provider. We open{' '}
+            <span className="font-mono">github.com/login/device</span> in your browser — no client
+            secret required.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {connected ? (
             <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
               <span>
-                Signed in as{' '}
-                <span className="font-mono">@{login ?? 'github-user'}</span>
+                Signed in as <span className="font-mono">@{login ?? 'github-user'}</span>
               </span>
               <Button
                 variant="outline"
@@ -342,19 +334,17 @@ function CopilotCard({
           <DialogHeader>
             <DialogTitle>Authorize Notai on GitHub</DialogTitle>
             <DialogDescription>
-              We opened the GitHub authorization page in a new tab. Paste this
-              code there to finish connecting.
+              We opened the GitHub authorization page in a new tab. Paste this code there to finish
+              connecting.
             </DialogDescription>
           </DialogHeader>
           {device && (
             <div className="space-y-4">
-              <div className="rounded-lg border bg-muted/50 px-4 py-6 text-center">
-                <p className="font-mono text-3xl tracking-[0.4em]">
-                  {device.userCode}
-                </p>
+              <div className="bg-muted/50 rounded-lg border px-4 py-6 text-center">
+                <p className="font-mono text-3xl tracking-[0.4em]">{device.userCode}</p>
               </div>
               <p className="text-muted-foreground text-xs">
-                If the tab didn't open,{' '}
+                If the tab didn&apos;t open,{' '}
                 <a
                   href={device.verificationUri}
                   target="_blank"
@@ -365,7 +355,7 @@ function CopilotCard({
                 </a>{' '}
                 to open it manually.
               </p>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="text-muted-foreground flex items-center gap-2 text-xs">
                 {polling && <Spinner className="size-3" />}
                 <span>Waiting for you to authorize…</span>
               </div>
@@ -399,9 +389,7 @@ function ModelPreferences({
       <Card>
         <CardHeader>
           <CardTitle>Model preferences</CardTitle>
-          <CardDescription>
-            Connect at least one provider above to choose models.
-          </CardDescription>
+          <CardDescription>Connect at least one provider above to choose models.</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -412,8 +400,8 @@ function ModelPreferences({
       <CardHeader>
         <CardTitle>Model preferences</CardTitle>
         <CardDescription>
-          Choose which provider + model handles each feature. Leave on Auto to
-          use whatever's connected.
+          Choose which provider + model handles each feature. Leave on Auto to use whatever&apos;s
+          connected.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

@@ -51,7 +51,7 @@ export const BacklinkPopover = React.forwardRef<
   }));
 
   return (
-    <div className="bg-card max-w-xs min-w-[220px] rounded-lg border p-1 text-sm shadow-xl">
+    <div className="bg-card min-w-[220px] max-w-xs rounded-lg border p-1 text-sm shadow-xl">
       {items.length === 0 ? (
         <p className="text-muted-foreground px-3 py-2 text-xs">
           No matching note. Press ↵ to ignore.
