@@ -176,67 +176,6 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.platform.args }}
 
-      # Replace the standard Tauri NSIS setup.exe with a wrapper that
-      # invokes Tauri's installer in passive mode (/P /R) — only the
-      # progress page is shown, previous version is auto-uninstalled, and
-      # the app auto-launches at the end. We then re-sign with the Tauri
-      # updater key so the auto-updater signature still validates.
-      - name: Wrap Windows installer (progress-only, auto-launch)
-        if: matrix.platform.target == 'windows-x86_64'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.detect.outputs.version }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          $bundleDir = (Resolve-Path "apps/desktop/src-tauri/target/release/bundle/nsis").Path
-          $inner = Get-ChildItem -Path $bundleDir -Filter "*-setup.exe" |
-              Where-Object { $_.Name -notlike "*wrapped*" } |
-              Sort-Object LastWriteTime -Descending |
-              Select-Object -First 1
-          if (-not $inner) { throw "No Tauri setup exe found in $bundleDir" }
-          Write-Host "Inner setup: $($inner.FullName)"
-
-          # tauri-action downloads NSIS into %LOCALAPPDATA%\tauri\NSIS\.
-          $makensis = "$env:LOCALAPPDATA\tauri\NSIS\makensis.exe"
-          if (-not (Test-Path $makensis)) {
-              $makensis = Get-ChildItem -Path "$env:LOCALAPPDATA\tauri" `
-                  -Recurse -Filter "makensis.exe" -ErrorAction SilentlyContinue -Depth 5 |
-                  Select-Object -First 1 -ExpandProperty FullName
-          }
-          if (-not $makensis) { throw "makensis.exe not found after tauri build." }
-          Write-Host "Using makensis: $makensis"
-
-          # Build the wrapper into a temp file then overwrite setup.exe.
-          $nsi    = (Resolve-Path "apps/desktop/scripts/installer-wrapper.nsi").Path
-          $icon   = (Resolve-Path "apps/desktop/src-tauri/icons/icon.ico").Path
-          $tmpOut = Join-Path $bundleDir "wrapped-setup.exe"
-          & $makensis `
-              "/DAPP_VERSION=$env:VERSION" `
-              "/DOUT_FILE=$tmpOut" `
-              "/DINNER_SETUP=$($inner.FullName)" `
-              "/DICON_FILE=$icon" `
-              $nsi
-          if ($LASTEXITCODE -ne 0) { throw "makensis failed ($LASTEXITCODE)" }
-
-          # Atomically replace the original setup.exe with the wrapper.
-          Move-Item -Force $tmpOut $inner.FullName
-          Write-Host "Replaced setup.exe with wrapped installer ($((Get-Item $inner.FullName).Length) bytes)"
-
-          # Re-sign the wrapped installer so the .sig matches and the
-          # auto-updater (which downloads this exact .exe) still validates.
-          # `tauri signer sign` reads the key + password from env vars.
-          Write-Host "Re-signing $($inner.Name) with Tauri updater key"
-          pnpm --filter @notai/desktop exec tauri signer sign $($inner.FullName)
-          if ($LASTEXITCODE -ne 0) { throw "tauri signer sign failed ($LASTEXITCODE)" }
-
-          # Upload both the wrapped exe AND the new sig, replacing the
-          # versions tauri-action uploaded.
-          $sig = "$($inner.FullName).sig"
-          gh release upload "desktop-v$env:VERSION" "$($inner.FullName)" "$sig" --clobber
-          Write-Host "Uploaded $($inner.Name) and $(Split-Path $sig -Leaf) to desktop-v$env:VERSION"
-
   publish-release:
     name: Publish release
     needs: [detect, create-release, build-desktop]

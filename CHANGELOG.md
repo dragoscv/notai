@@ -101,6 +101,40 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.13] - 2026-05-09
+
+### Fixed
+
+- **Installer actually runs again.** v0.1.12 wrapped the Tauri `setup.exe`
+  with a fully silent NSIS launcher (`SilentInstall silent`). When anything
+  on that path failed (Defender block, `ExecWait` chain, previous-version
+  uninstall hanging on the upstream PageReinstall flow), the user saw zero
+  UI and zero feedback — "nothing happens" on double-click.
+
+### Changed
+
+- **Replaced the wrapper-around-setup.exe approach with a custom Tauri NSIS
+  template** (`apps/desktop/src-tauri/windows/installer.nsi`, wired via
+  `bundle.windows.nsis.template` in `tauri.conf.json`). The template is a
+  fork of upstream `tauri-bundler` v2.10.0 with two minimal patches:
+  - `.onInit` always sets `$PassiveMode = 1`, so every invocation (GUI
+    double-click, silent install, auto-update) skips the Welcome / License /
+    Reinstall / Directory / StartMenu / Finish pages and renders only the
+    `MUI_PAGE_INSTFILES` progress dialog.
+  - `.onInstSuccess` always launches the app after a passive/silent
+    install — `/R` is no longer required.
+- `setup.exe` is now Tauri's standard, single-stage NSIS installer (no
+  outer wrapper, no double `ExecWait` chain). The auto-updater signature
+  produced by `tauri-action` is still valid, so no re-signing step is
+  needed in CI.
+
+### Removed
+
+- `apps/desktop/scripts/installer-wrapper.nsi`.
+- `apps/desktop/scripts/build-installer.ps1`.
+- The `Wrap Windows installer (progress-only, auto-launch)` step from
+  `.github/workflows/release-desktop.yml`.
+
 ## [@notai/desktop 0.1.12] - 2026-05-08
 
 ### Changed
