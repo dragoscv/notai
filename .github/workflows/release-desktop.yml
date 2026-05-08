@@ -176,23 +176,27 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.platform.args }}
 
-      # Wrap the NSIS setup.exe in a fully-silent launcher so first-time
-      # installs from the GitHub Release don't show ANY UI/prompts. Auto-
-      # updates already use NSIS `/S /R` via `installMode: quiet` in
-      # tauri.conf.json, this covers the manual-install path.
-      - name: Build silent installer wrapper (Windows)
+      # Replace the standard Tauri NSIS setup.exe with a wrapper that
+      # invokes Tauri's installer in passive mode (/P /R) — only the
+      # progress page is shown, previous version is auto-uninstalled, and
+      # the app auto-launches at the end. We then re-sign with the Tauri
+      # updater key so the auto-updater signature still validates.
+      - name: Wrap Windows installer (progress-only, auto-launch)
         if: matrix.platform.target == 'windows-x86_64'
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.detect.outputs.version }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
-          $bundleDir = "apps/desktop/src-tauri/target/release/bundle/nsis"
+          $bundleDir = (Resolve-Path "apps/desktop/src-tauri/target/release/bundle/nsis").Path
           $inner = Get-ChildItem -Path $bundleDir -Filter "*-setup.exe" |
-              Where-Object { $_.Name -notlike "*silent*" } |
+              Where-Object { $_.Name -notlike "*wrapped*" } |
               Sort-Object LastWriteTime -Descending |
               Select-Object -First 1
           if (-not $inner) { throw "No Tauri setup exe found in $bundleDir" }
+          Write-Host "Inner setup: $($inner.FullName)"
 
           # tauri-action downloads NSIS into %LOCALAPPDATA%\tauri\NSIS\.
           $makensis = "$env:LOCALAPPDATA\tauri\NSIS\makensis.exe"
@@ -204,30 +208,34 @@ jobs:
           if (-not $makensis) { throw "makensis.exe not found after tauri build." }
           Write-Host "Using makensis: $makensis"
 
-          # Use absolute paths for /D defines — NSIS resolves Icon and File
-          # relative to the .nsi script's directory, not the cwd.
-          $nsi  = (Resolve-Path "apps/desktop/scripts/silent-wrapper.nsi").Path
-          $icon = (Resolve-Path "apps/desktop/src-tauri/icons/icon.ico").Path
-          $outName = $inner.Name -replace "-setup\.exe$", "-silent-setup.exe"
-          $out = Join-Path (Resolve-Path $bundleDir).Path $outName
-          $innerAbs = $inner.FullName
-
-          Write-Host "nsi:   $nsi"
-          Write-Host "icon:  $icon"
-          Write-Host "inner: $innerAbs"
-          Write-Host "out:   $out"
-
+          # Build the wrapper into a temp file then overwrite setup.exe.
+          $nsi    = (Resolve-Path "apps/desktop/scripts/installer-wrapper.nsi").Path
+          $icon   = (Resolve-Path "apps/desktop/src-tauri/icons/icon.ico").Path
+          $tmpOut = Join-Path $bundleDir "wrapped-setup.exe"
           & $makensis `
               "/DAPP_VERSION=$env:VERSION" `
-              "/DOUT_FILE=$out" `
-              "/DINNER_SETUP=$innerAbs" `
+              "/DOUT_FILE=$tmpOut" `
+              "/DINNER_SETUP=$($inner.FullName)" `
               "/DICON_FILE=$icon" `
               $nsi
           if ($LASTEXITCODE -ne 0) { throw "makensis failed ($LASTEXITCODE)" }
 
-          Write-Host "Built silent installer: $out"
-          gh release upload "desktop-v$env:VERSION" "$out" --clobber
-          Write-Host "Uploaded $outName to release desktop-v$env:VERSION"
+          # Atomically replace the original setup.exe with the wrapper.
+          Move-Item -Force $tmpOut $inner.FullName
+          Write-Host "Replaced setup.exe with wrapped installer ($((Get-Item $inner.FullName).Length) bytes)"
+
+          # Re-sign the wrapped installer so the .sig matches and the
+          # auto-updater (which downloads this exact .exe) still validates.
+          # `tauri signer sign` reads the key + password from env vars.
+          Write-Host "Re-signing $($inner.Name) with Tauri updater key"
+          pnpm --filter @notai/desktop exec tauri signer sign $($inner.FullName)
+          if ($LASTEXITCODE -ne 0) { throw "tauri signer sign failed ($LASTEXITCODE)" }
+
+          # Upload both the wrapped exe AND the new sig, replacing the
+          # versions tauri-action uploaded.
+          $sig = "$($inner.FullName).sig"
+          gh release upload "desktop-v$env:VERSION" "$($inner.FullName)" "$sig" --clobber
+          Write-Host "Uploaded $($inner.Name) and $(Split-Path $sig -Leaf) to desktop-v$env:VERSION"
 
   publish-release:
     name: Publish release
@@ -237,6 +245,41 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v5
+
+      # Rewrite the release body with direct download links to each
+      # platform's primary asset, computed from the version. The asset
+      # names produced by tauri-action are deterministic.
+      - name: Write release notes with direct download links
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          V: ${{ needs.detect.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          BASE="https://github.com/${REPO}/releases/download/desktop-v${V}"
+          notes=$(cat <<EOF
+          See [CHANGELOG.md](./CHANGELOG.md) for what changed.
+
+          ### Direct downloads
+
+          | Platform | File |
+          | --- | --- |
+          | **Windows** (recommended) | [\`Notai_${V}_x64-setup.exe\`](${BASE}/Notai_${V}_x64-setup.exe) |
+          | Windows (MSI) | [\`Notai_${V}_x64_en-US.msi\`](${BASE}/Notai_${V}_x64_en-US.msi) |
+          | **macOS** (universal) | [\`Notai_${V}_universal.dmg\`](${BASE}/Notai_${V}_universal.dmg) |
+          | **Linux** (AppImage) | [\`Notai_${V}_amd64.AppImage\`](${BASE}/Notai_${V}_amd64.AppImage) |
+          | Linux (Debian/Ubuntu) | [\`Notai_${V}_amd64.deb\`](${BASE}/Notai_${V}_amd64.deb) |
+          | Linux (RHEL/Fedora) | [\`Notai-${V}-1.x86_64.rpm\`](${BASE}/Notai-${V}-1.x86_64.rpm) |
+
+          The Windows installer shows only a progress bar — no welcome page,
+          no install location prompt, no finish page. Previous versions are
+          uninstalled automatically and the app launches when install
+          completes. Auto-updates use the same flow.
+
+          See full [CHANGELOG](https://github.com/${REPO}/blob/main/CHANGELOG.md).
+          EOF
+          )
+          gh release edit "desktop-v${V}" --notes "$notes"
+
       - name: Promote draft to published
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

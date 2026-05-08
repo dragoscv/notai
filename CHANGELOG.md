@@ -101,6 +101,44 @@ Each app in this monorepo is versioned independently:
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.12] - 2026-05-08
+
+### Changed
+
+- **Windows installer is now a single file with a single, minimal UI.**
+  - The wrapper that previously shipped as a separate `*-silent-setup.exe`
+    is gone. Instead, the same wrapper now **replaces** the standard
+    `Notai_<v>_x64-setup.exe` in CI, and gets re-signed with the Tauri
+    updater key so the auto-updater signature still validates.
+  - The wrapper invokes Tauri's inner setup with `/P /R`. In Tauri's NSIS
+    template `/P` is "passive mode": it skips the Welcome / License /
+    Components / Reinstall / Install-Location / Start-Menu / Finish pages
+    and shows **only the install progress bar**. Tauri's reinstall flow
+    auto-uninstalls any previous version. `/R` auto-launches the app when
+    install completes.
+  - Users who download `Notai_<v>_x64-setup.exe` and double-click see a
+    single Tauri progress dialog that auto-closes — no welcome screen,
+    no Next button, no install location prompt, no finish page.
+  - Auto-updates use the same wrapper (updater calls it with `/S /R`); the
+    wrapper still hands off to the inner setup with `/P /R`, so updates
+    show the same minimal progress UI.
+- **Release notes now contain direct download links.** The `publish-release`
+  job rewrites the release body with a markdown table mapping each platform
+  to its primary asset (`Notai_<v>_x64-setup.exe`, `Notai_<v>_x64_en-US.msi`,
+  `Notai_<v>_universal.dmg`, `Notai_<v>_amd64.AppImage`,
+  `Notai_<v>_amd64.deb`, `Notai-<v>-1.x86_64.rpm`).
+- Updater `installMode` switched from `quiet` back to `passive` so it
+  matches the wrapper's behavior (`/P /R`) for consistency.
+
+### Removed
+
+- `apps/desktop/scripts/silent-wrapper.nsi` (renamed to
+  `installer-wrapper.nsi`).
+- `apps/desktop/scripts/build-silent.ps1` (renamed to
+  `build-installer.ps1`).
+- `Notai_<v>_x64-silent-setup.exe` is no longer published as a separate
+  release asset.
+
 ## [@notai/desktop 0.1.11] - 2026-05-08
 
 ### Changed
