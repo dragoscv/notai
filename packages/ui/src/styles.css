@@ -604,6 +604,116 @@
         background: transparent !important;
     }
 
+    /* ────────────────────────────────────────────────────────────────
+     * Excalidraw theme integration
+     *
+     * Excalidraw exposes a long list of CSS custom properties for its
+     * toolbar, popovers, controls, and shadows. We remap those onto
+     * the app theme so the canvas chrome matches the rest of the UI
+     * in every theme (paper / sand / midnight / oled / slate / etc.).
+     *
+     * Scoped to `.canvas-note` so we don't accidentally restyle
+     * other Excalidraw instances if any are added later.
+     * ──────────────────────────────────────────────────────────── */
+    .canvas-note .excalidraw,
+    .canvas-note .excalidraw.theme--dark,
+    .canvas-note .excalidraw.theme--light {
+        --color-primary: var(--primary);
+        --color-primary-darker: color-mix(in oklch, var(--primary), black 12%);
+        --color-primary-darkest: color-mix(in oklch, var(--primary), black 22%);
+        --color-primary-light: color-mix(in oklch, var(--primary), white 38%);
+        --color-primary-light-darker: color-mix(in oklch, var(--primary), white 26%);
+        --color-primary-contrast-offset: var(--primary-foreground);
+        --default-bg-color: var(--card);
+        --island-bg-color: var(--card);
+        --default-border-color: var(--border);
+        --default-internal-bg-color: var(--card);
+        --button-bg-color: var(--card);
+        --button-hover-bg: var(--accent);
+        --button-active-bg: var(--accent);
+        --button-active-border: var(--primary);
+        --button-color: var(--foreground);
+        --button-gray-1: var(--muted);
+        --button-gray-2: color-mix(in oklch, var(--muted), var(--foreground) 12%);
+        --button-gray-3: color-mix(in oklch, var(--muted), var(--foreground) 28%);
+        --input-bg-color: var(--card);
+        --input-border-color: var(--border);
+        --input-hover-bg-color: var(--accent);
+        --input-label-color: var(--muted-foreground);
+        --text-primary-color: var(--foreground);
+        --popup-bg-color: var(--popover);
+        --popup-text-color: var(--popover-foreground);
+        --popup-secondary-bg-color: var(--muted);
+        --shadow-island: 0 4px 14px -4px oklch(0 0 0 / 0.08), 0 2px 4px -2px oklch(0 0 0 / 0.04);
+        --select-highlight-color: var(--ring);
+        --link-color: var(--primary);
+        --color-on-surface: var(--foreground);
+        --color-surface-low: var(--muted);
+        --color-surface-mid: var(--card);
+        --color-surface-high: var(--card);
+        --color-surface-lowest: var(--background);
+        --color-surface-primary-container: var(--accent);
+        --color-on-primary-container: var(--accent-foreground);
+        --color-brand-active: var(--primary);
+        --color-brand-hover: color-mix(in oklch, var(--primary), white 12%);
+        --color-text-warning: var(--destructive);
+        color: var(--foreground);
+    }
+
+    /* The Island panels (toolbar, library shelf, properties) are pure
+     * white in Excalidraw's default light theme. Override the panel
+     * surface to follow our card token + a subtle border. */
+    .canvas-note .excalidraw .Island {
+        background-color: var(--card) !important;
+        color: var(--foreground) !important;
+        border: 1px solid var(--border);
+    }
+
+    /* Tool buttons — match our ghost-button hover + active states. */
+    .canvas-note .excalidraw .ToolIcon__icon,
+    .canvas-note .excalidraw .ToolIcon_type_button {
+        color: var(--foreground);
+    }
+    .canvas-note .excalidraw .ToolIcon_type_radio + .ToolIcon__icon:hover,
+    .canvas-note .excalidraw .ToolIcon_type_button:hover .ToolIcon__icon {
+        background-color: var(--accent);
+        color: var(--accent-foreground);
+    }
+    .canvas-note .excalidraw .ToolIcon_type_radio:checked + .ToolIcon__icon {
+        background-color: var(--primary);
+        color: var(--primary-foreground);
+    }
+
+    /* Notes-app trim — hide chrome we don't need on the main canvas:
+     *   - library shelf / sidebar trigger (top-right floating buttons)
+     *   - welcome screen ("draw something" placeholder)
+     *   - help icon (bottom-right '?')
+     *   - main menu hamburger (bottom-left, contains export/save/etc.)
+     *   - "scroll back to content" pill                              */
+    .canvas-note .excalidraw .layer-ui__wrapper__top-right,
+    .canvas-note .excalidraw .App-toolbar__extra-tools-trigger,
+    .canvas-note .excalidraw .welcome-screen-center,
+    .canvas-note .excalidraw .help-icon,
+    .canvas-note .excalidraw .main-menu-trigger,
+    .canvas-note .excalidraw .dropdown-menu-button.main-menu-trigger,
+    .canvas-note .excalidraw .scroll-back-to-content {
+        display: none !important;
+    }
+
+    /* Sticky / read-only mode: nuke everything except the canvas + the
+     * native pinch/ctrl-wheel zoom we rely on. */
+    .canvas-note--sticky .excalidraw .layer-ui__wrapper__top-right,
+    .canvas-note--sticky .excalidraw .welcome-screen-center,
+    .canvas-note--sticky .excalidraw .help-icon,
+    .canvas-note--sticky .excalidraw .main-menu-trigger,
+    .canvas-note--sticky .excalidraw .App-toolbar,
+    .canvas-note--sticky .excalidraw .App-menu,
+    .canvas-note--sticky .excalidraw .HintViewer,
+    .canvas-note--sticky .excalidraw footer,
+    .canvas-note--sticky .excalidraw .layer-ui__wrapper__footer {
+        display: none !important;
+    }
+
     .excalidraw-no-ui .excalidraw .layer-ui__wrapper,
     .excalidraw-no-ui .excalidraw .App-menu,
     .excalidraw-no-ui .excalidraw .App-toolbar,

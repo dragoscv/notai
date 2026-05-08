@@ -355,8 +355,9 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     <div
       ref={setHost}
       className={cn(
-        'relative h-full w-full overflow-hidden',
+        'canvas-note relative h-full w-full overflow-hidden',
         stickyMode && 'canvas-note--sticky',
+        readOnly && 'canvas-note--readonly',
         className,
       )}
       data-surface={surface}
@@ -424,21 +425,20 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
         ))}
       </div>
 
-      {/* Floating "Add text" button (authoring only). */}
+      {/* Floating "Add text block" pill (authoring only). */}
       {!readOnly && !stickyMode && (
-        <div className="pointer-events-none absolute right-4 top-4 z-10">
-          <button
-            type="button"
-            className="bg-card/90 hover:bg-accent pointer-events-auto flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs shadow-sm backdrop-blur transition"
-            onClick={() => {
-              if (!api || !host) return;
-              const center = viewportCenterWorld(api, host);
-              addBlock(doc, { x: center.x - 380, y: center.y - 24 });
-            }}
-          >
-            <Plus className="size-3.5" /> Text block
-          </button>
-        </div>
+        <button
+          type="button"
+          className="bg-card/85 hover:bg-accent text-foreground/80 hover:text-accent-foreground absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium shadow-sm backdrop-blur transition"
+          onClick={() => {
+            if (!api || !host) return;
+            const center = viewportCenterWorld(api, host);
+            addBlock(doc, { x: center.x - 380, y: center.y - 24 });
+          }}
+          title="Add a new text block at the current view"
+        >
+          <Plus className="size-3" /> Text
+        </button>
       )}
     </div>
   );

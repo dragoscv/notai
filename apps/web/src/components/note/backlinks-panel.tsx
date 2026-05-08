@@ -29,7 +29,7 @@ export function BacklinksPanel({ noteId }: { noteId: string }) {
 
   return (
     <details
-      className="border-border/60 mx-auto mb-16 mt-12 w-full max-w-[var(--editor-max-width,720px)] border-t pt-6"
+      className="border-border/60 mx-auto w-full max-w-[var(--editor-max-width,720px)] border-t px-4 py-2"
       open={open}
       onToggle={(e) => {
         const isOpen = (e.target as HTMLDetailsElement).open;

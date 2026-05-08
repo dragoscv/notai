@@ -214,20 +214,22 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
           </div>
         ) : (
           <>
-            <div className="editor-column mx-auto w-full px-8 pt-6">
+            <div className="editor-column mx-auto w-full px-8 pt-4">
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Untitled"
-                className="placeholder:text-muted-foreground w-full bg-transparent font-serif text-4xl font-semibold tracking-tight outline-none"
+                className="placeholder:text-muted-foreground w-full bg-transparent font-serif text-3xl font-semibold tracking-tight outline-none"
               />
-              <div className="mt-3">
+              <div className="mt-2 flex items-center gap-2">
                 <TagChips noteId={note.id} />
               </div>
-              <div className="bg-background/80 sticky top-0 z-10 mt-3 py-2 backdrop-blur">
-                <Toolbar editor={editor} />
-              </div>
+              {editor && (
+                <div className="bg-background/80 sticky top-0 z-10 mt-2 py-1.5 backdrop-blur">
+                  <Toolbar editor={editor} />
+                </div>
+              )}
             </div>
             <div
               className="relative min-h-0 flex-1"
