@@ -110,21 +110,10 @@ jobs:
             DATABASE_URL=DATABASE_URL:latest
             HOCUSPOCUS_JWT_SECRET=HOCUSPOCUS_JWT_SECRET:latest
 
-      - name: Tag release
+      - name: Tag deployment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="realtime-v${{ needs.detect.outputs.version }}"
           git tag "$TAG" "${{ github.sha }}"
           git push origin "$TAG"
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: realtime-v${{ needs.detect.outputs.version }}
-          name: '@notai/realtime-server v${{ needs.detect.outputs.version }}'
-          body: |
-            Cloud Run service: ${{ steps.deploy.outputs.url }}
-
-            See [CHANGELOG.md](./CHANGELOG.md) for details.
-          generate_release_notes: true
