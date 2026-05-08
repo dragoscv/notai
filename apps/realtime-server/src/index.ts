@@ -142,29 +142,64 @@ await server.listen();
 console.log(`✓ Hocuspocus listening on :${PORT}`);
 
 function extractPlaintext(doc: Y.Doc): string {
+  // Canvas-first scene model (v0.2+): blocks live under getMap('scene').get('blocks')
+  // and their TipTap content under getMap('blocks-content').get(id) as Y.XmlFragment.
+  // Legacy block ids point at top-level fragments. We walk all sources and
+  // concatenate so plaintext stays correct across the migration boundary.
   try {
-    // TipTap Collaboration extension stores content under 'default' by
-    // default; older configs used 'prosemirror'. Serialize the fragment
-    // and strip tags. Using string form avoids `instanceof Y.XmlText`
-    // checks which can fail when multiple yjs copies exist in pnpm.
-    for (const name of ['default', 'prosemirror']) {
-      const xml = doc.getXmlFragment(name).toString();
-      if (!xml) continue;
-      const text = xml
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/[ \t]+/g, ' ')
-        .replace(/\s*\n\s*/g, '\n')
-        .trim();
-      if (text.length > 0) return text.slice(0, 100_000);
+    const parts: string[] = [];
+
+    const scene = doc.getMap('scene');
+    const blocks = scene.get('blocks');
+    const blockArr =
+      blocks && typeof (blocks as { toArray?: unknown }).toArray === 'function'
+        ? ((blocks as Y.Array<{ id: string }>).toArray() as Array<{ id: string }>)
+        : [];
+
+    const contentMap = doc.getMap('blocks-content');
+    for (const block of blockArr) {
+      let frag: Y.XmlFragment | null = null;
+      if (block.id === '__legacy__') {
+        const main = doc.getXmlFragment('default');
+        const alt = doc.getXmlFragment('prosemirror');
+        frag = main.length > 0 ? main : alt.length > 0 ? alt : main;
+      } else {
+        const candidate = contentMap.get(block.id);
+        if (candidate && typeof (candidate as { toString?: unknown }).toString === 'function') {
+          frag = candidate as Y.XmlFragment;
+        }
+      }
+      if (frag) {
+        const t = stripXml(frag.toString());
+        if (t) parts.push(t);
+      }
     }
-    return '';
+
+    if (parts.length === 0) {
+      // Unmigrated: read legacy fragments directly.
+      for (const name of ['default', 'prosemirror']) {
+        const t = stripXml(doc.getXmlFragment(name).toString());
+        if (t) parts.push(t);
+      }
+    }
+
+    return parts.join('\n').slice(0, 100_000);
   } catch {
     return '';
   }
+}
+
+function stripXml(xml: string): string {
+  if (!xml) return '';
+  return xml
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\s*\n\s*/g, '\n')
+    .trim();
 }

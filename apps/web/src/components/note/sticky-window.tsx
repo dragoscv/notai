@@ -1,19 +1,13 @@
 'use client';
 import * as React from 'react';
-import dynamic from 'next/dynamic';
 import { X, Pin } from 'lucide-react';
-import { NoteEditor, useNoteDoc, useSharedTitle, useRegisterOpenSticky } from '@notai/editor';
+import { CanvasNote, useNoteDoc, useSharedTitle, useRegisterOpenSticky } from '@notai/editor';
 import { Button } from '@notai/ui/components/button';
 import { cn } from '@notai/lib/utils';
 import type { Note } from '@notai/db/schema';
 import { updateNote } from '@/server/actions/notes';
 import { SurfaceSwitcher, useSurface } from './surface-switcher';
 import { isTauri, invoke } from '@/lib/tauri';
-
-const DrawingCanvas = dynamic(
-  () => import('@notai/editor').then((m) => ({ default: m.DrawingCanvas })),
-  { ssr: false, loading: () => null },
-);
 
 export interface StickyWindowProps {
   note: Note;
@@ -115,27 +109,16 @@ export function StickyWindow({ note, token, realtimeUrl, user }: StickyWindowPro
         style={fullBg ? surfaceStyle : undefined}
       >
         {doc && provider ? (
-          <>
-            <div className="h-full overflow-y-auto px-1 pb-2">
-              <div
-                data-surface={fullBg ? undefined : surfaceDataAttr}
-                style={fullBg ? undefined : surfaceStyle}
-                className="min-h-full"
-              >
-                <NoteEditor
-                  doc={doc}
-                  provider={provider}
-                  user={{ name: user.name, color: '#333' }}
-                  placeholder="Jot it down…"
-                  className="min-h-full px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
-            {/* Drawings overlay — read-only viewer; auto zooms to fit the sticky */}
-            <div className="pointer-events-none absolute inset-0">
-              <DrawingCanvas doc={doc} readOnly interactive={false} hideUi transparent />
-            </div>
-          </>
+          <CanvasNote
+            doc={doc}
+            provider={provider}
+            user={{ name: user.name, color: '#333' }}
+            readOnly
+            stickyMode
+            surface={fullBg ? undefined : surface.surface}
+            surfaceSpacing={surface.spacing}
+            viewportKey={`notai:viewport:sticky:${note.id}`}
+          />
         ) : (
           <div className="p-3 text-xs opacity-60">Connecting…</div>
         )}

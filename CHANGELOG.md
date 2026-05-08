@@ -14,6 +14,48 @@ Each app in this monorepo is versioned independently:
 
 ## [Unreleased]
 
+### Changed — `@notai/editor` 0.2.0 + `@notai/realtime-server` 0.2.0 (canvas-first notes)
+
+The editor was a TipTap text column with an Excalidraw drawing layer
+overlaid on top, sharing only a leaky `width/height/scrollTop` bridge in
+the Y.Doc. Stickies re-rendered text at a different width, drawings (in
+absolute world coordinates) drifted off the lines they were drawn on, and
+ctrl+wheel zoom couldn't work because text and canvas had incompatible
+coordinate systems.
+
+The new model makes Excalidraw the document. Text lives in positioned
+blocks (`getMap('scene').get('blocks')` → ordered list of `{id,x,y,width}`)
+with each block's TipTap content under `getMap('blocks-content').get(id)`
+as a `Y.XmlFragment`. Both layers share Excalidraw's `{scrollX, scrollY,
+zoom}`; the blocks layer applies the same transform via CSS. Stickies are
+read-only viewers of the same scene with auto fit-to-content + native
+ctrl+wheel zoom.
+
+- **New `packages/editor/src/canvas-note.tsx`**: top-level component;
+  Excalidraw + blocks overlay + drag/resize/delete handles + "Add text
+  block" overlay button. Exposes a `CanvasNoteHandle` ref so consumers can
+  insert content into the focused block (AI, voice, asset upload).
+- **New `packages/editor/src/text-block.tsx`**: TipTap micro-editor bound
+  to one `Y.XmlFragment`. Reports focus changes upward.
+- **New `packages/editor/src/migrate-doc.ts`**: lazy migration. On first
+  open of an existing note we materialize one block referencing the legacy
+  `getXmlFragment('default')` (or `'prosemirror'`) via the sentinel id
+  `__legacy__`, preserving all collaborative history.
+- **Removed `note-editor.tsx`, `drawing-canvas.tsx`, `canvas-viewport.ts`**:
+  superseded. Old cross-layer geometry bridge is gone.
+- **`apps/web/src/components/note/note-workspace.tsx`**: no more `Drawing`
+  toggle — Excalidraw's own toolbar picks selection / hand / pen / shape /
+  text / etc. Toolbar follows the focused block.
+- **`apps/web/src/components/note/sticky-window.tsx`**: collapses to a
+  single `<CanvasNote readOnly stickyMode>`; gains ctrl+wheel zoom and
+  pixel-perfect drawing alignment.
+- **`apps/realtime-server/src/index.ts`**: `extractPlaintext` walks the new
+  `blocks-content` map (and the legacy fragment via `__legacy__`) so
+  search, embeddings, and the FTS index keep working through migration.
+
+No DB schema changes. Existing notes keep their `yjsState` blob and migrate
+on first open transparently.
+
 ### Fixed — `@notai/realtime-server` 0.1.7 (Cloud SQL Unix socket)
 
 - **`packages/db/src/client.ts`**: Cloud Run realtime service couldn't start

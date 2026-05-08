@@ -1,9 +1,14 @@
 'use client';
 import * as React from 'react';
-import dynamic from 'next/dynamic';
-import { Pin, Star, MoreHorizontal, PanelRight, PenLine, WifiOff } from 'lucide-react';
+import { Pin, Star, MoreHorizontal, PanelRight, WifiOff } from 'lucide-react';
 import type { Editor } from '@tiptap/react';
-import { NoteEditor, Toolbar, useNoteDoc, useSharedTitle } from '@notai/editor';
+import {
+  CanvasNote,
+  Toolbar,
+  useNoteDoc,
+  useSharedTitle,
+  type CanvasNoteHandle,
+} from '@notai/editor';
 import { Button } from '@notai/ui/components/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@notai/ui/components/avatar';
 import {
@@ -29,12 +34,6 @@ import { NoteAiMenu } from './note-ai-menu';
 import { VersionHistory } from './version-history';
 import { searchBacklinkCandidates } from '@/server/actions/backlinks';
 import { useRouter } from 'next/navigation';
-
-// Drawing canvas uses browser-only APIs (tldraw). Load lazily on the client.
-const DrawingCanvas = dynamic(
-  () => import('@notai/editor').then((m) => ({ default: m.DrawingCanvas })),
-  { ssr: false, loading: () => null },
-);
 
 function colorFor(id: string) {
   const colors = [
@@ -69,8 +68,26 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
 
   const [title, setTitle] = useSharedTitle(doc, note.title);
   const [editor, setEditor] = React.useState<Editor | null>(null);
-  const [drawing, setDrawing] = React.useState(false);
+  const canvasRef = React.useRef<CanvasNoteHandle>(null);
   const [surface, setSurface] = useSurface();
+
+  // Subscribe to focused-block editor changes so the toolbar always targets
+  // the active text block on the canvas.
+  React.useEffect(() => {
+    const handle = canvasRef.current;
+    if (!handle) return;
+    return handle.subscribeFocused(setEditor);
+  }, [doc]);
+
+  const insertContent = React.useCallback((md: string | Record<string, unknown>) => {
+    const handle = canvasRef.current;
+    if (!handle) return;
+    if (!handle.insertContent(md)) {
+      handle.addTextBlock();
+      // After block creation, retry on next tick once it has focus.
+      setTimeout(() => handle.insertContent(md), 50);
+    }
+  }, []);
 
   React.useEffect(() => {
     if (title === note.title) return;
@@ -96,22 +113,6 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
   return (
     <div className="flex h-full flex-col">
       <header className="bg-background/70 flex shrink-0 items-center gap-2 border-b px-4 py-2 backdrop-blur">
-        <Button
-          size="sm"
-          variant={drawing ? 'default' : 'ghost'}
-          className={cn(
-            'h-7 gap-1.5 px-2 text-xs transition-all',
-            drawing && 'shadow-primary/20 shadow-sm',
-          )}
-          onClick={() => setDrawing((v) => !v)}
-          title="Toggle draw mode"
-        >
-          <PenLine className="size-3.5" />
-          {drawing ? 'Drawing' : 'Draw'}
-        </Button>
-
-        <div className="bg-border mx-2 h-5 w-px" />
-
         <ConnectionPill status={status} synced={synced} />
 
         <div className="bg-border mx-2 h-5 w-px" />
@@ -158,24 +159,18 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
           <AssetUploader
             noteId={note.id}
             onUploaded={({ url, mime }) => {
-              if (mime.startsWith('image/') && editor) {
-                editor.chain().focus().setImage({ src: url }).run();
+              if (mime.startsWith('image/')) {
+                insertContent({ type: 'image', attrs: { src: url } });
               }
             }}
           />
           <VoiceRecorder
             onTranscribed={(text) => {
-              if (!editor) return;
-              editor.chain().focus().insertContent(`\n\n${text}\n\n`).run();
+              insertContent(`\n\n${text}\n\n`);
               toast.success('Transcribed');
             }}
           />
-          <NoteAiMenu
-            noteId={note.id}
-            onInsert={(md) => {
-              editor?.chain().focus().insertContent(md).run();
-            }}
-          />
+          <NoteAiMenu noteId={note.id} onInsert={insertContent} />
           <VersionHistory noteId={note.id} />
 
           <DropdownMenu>
@@ -219,66 +214,44 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
           </div>
         ) : (
           <>
-            {/* Text layer — always rendered, becomes inert in draw mode */}
+            <div className="editor-column mx-auto w-full px-8 pt-6">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Untitled"
+                className="placeholder:text-muted-foreground w-full bg-transparent font-serif text-4xl font-semibold tracking-tight outline-none"
+              />
+              <div className="mt-3">
+                <TagChips noteId={note.id} />
+              </div>
+              <div className="bg-background/80 sticky top-0 z-10 mt-3 py-2 backdrop-blur">
+                <Toolbar editor={editor} />
+              </div>
+            </div>
             <div
-              className={cn(
-                'flex min-h-0 flex-1 flex-col',
-                drawing && 'pointer-events-none select-none',
-              )}
-              aria-hidden={drawing}
+              className="relative min-h-0 flex-1"
+              data-surface={fullBg ? undefined : surfaceDataAttr}
+              style={fullBg ? undefined : surfaceStyle}
+              onClickCapture={(e) => {
+                const target = (e.target as HTMLElement).closest('a[data-backlink]');
+                if (!target) return;
+                const id = target.getAttribute('data-backlink');
+                if (!id) return;
+                e.preventDefault();
+                router.push(`/app/n/${id}`);
+              }}
             >
-              <div className="editor-column mx-auto w-full px-8 pt-10">
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Untitled"
-                  className="placeholder:text-muted-foreground w-full bg-transparent font-serif text-4xl font-semibold tracking-tight outline-none"
-                />
-                <div className="mt-3">
-                  <TagChips noteId={note.id} />
-                </div>
-              </div>
-
-              <div
-                className="editor-column mx-auto mt-4 flex w-full flex-1 flex-col overflow-y-auto"
-                style={{ scrollbarGutter: 'stable' }}
-              >
-                <div className="bg-background/80 sticky top-0 z-10 mx-8 py-2 backdrop-blur">
-                  <Toolbar editor={editor} />
-                </div>
-                <div
-                  data-surface={fullBg ? undefined : surfaceDataAttr}
-                  style={fullBg ? undefined : surfaceStyle}
-                  className="flex-1"
-                  onClickCapture={(e) => {
-                    // Intercept clicks on [[backlink]] anchors so we client-route.
-                    const target = (e.target as HTMLElement).closest('a[data-backlink]');
-                    if (!target) return;
-                    const id = target.getAttribute('data-backlink');
-                    if (!id) return;
-                    e.preventDefault();
-                    router.push(`/app/n/${id}`);
-                  }}
-                >
-                  <NoteEditor
-                    doc={doc}
-                    provider={provider}
-                    user={{ name: user.name, color: colorFor(user.id) }}
-                    onReady={setEditor}
-                    searchBacklinks={searchBacklinkCandidates}
-                  />
-                  <BacklinksPanel noteId={note.id} />
-                </div>
-              </div>
+              <CanvasNote
+                ref={canvasRef}
+                doc={doc}
+                provider={provider}
+                user={{ name: user.name, color: colorFor(user.id) }}
+                searchBacklinks={searchBacklinkCandidates}
+                viewportKey={`notai:viewport:${note.id}`}
+              />
             </div>
-
-            {/* Drawing overlay — always visible. When not drawing, it's click-through
-             * so the text editor below stays interactive. When drawing, pointer
-             * events go to the canvas. */}
-            <div className={cn('absolute inset-0', !drawing && 'pointer-events-none')}>
-              <DrawingCanvas doc={doc} interactive={drawing} hideUi={!drawing} transparent />
-            </div>
+            <BacklinksPanel noteId={note.id} />
           </>
         )}
       </div>

@@ -19,14 +19,11 @@ import Image from '@tiptap/extension-image';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import { Extension } from '@tiptap/core';
-import { Backlink } from './backlink-extension';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
 import type * as Y from 'yjs';
+import { Backlink } from './backlink-extension';
 import { cn } from '@notai/lib/utils';
 
-/**
- * FontSize — store font-size on TextStyle marks (tiptap 2.x has no official one).
- */
 const FontSize = Extension.create({
   name: 'fontSize',
   addOptions() {
@@ -49,37 +46,42 @@ const FontSize = Extension.create({
   },
 });
 
-export interface NoteEditorProps {
-  doc: Y.Doc;
+export interface TextBlockProps {
+  fragment: Y.XmlFragment;
   provider: HocuspocusProvider;
   user: { name: string; color: string };
   editable?: boolean;
   placeholder?: string;
   className?: string;
+  onFocusEditor?: (editor: Editor | null) => void;
   onReady?: (editor: Editor) => void;
-  onPlaintextChange?: (text: string) => void;
-  /** Optional handler for [[note]] backlink suggestions. */
-  searchBacklinks?: (query: string) => Promise<Array<{ id: string; title: string }>>;
+  searchBacklinks?: (q: string) => Promise<Array<{ id: string; title: string }>>;
 }
 
-export function NoteEditor({
-  doc,
+/**
+ * A single TipTap micro-editor bound to one Y.XmlFragment. Reused for
+ * every text block on the canvas; the parent decides positioning and
+ * lifecycle. Reports focus changes upward so a shared toolbar can target
+ * the active block.
+ */
+export function TextBlock({
+  fragment,
   provider,
   user,
   editable = true,
-  placeholder = 'Start writing, or press / for commands…',
+  placeholder = 'Type / for commands…',
   className,
+  onFocusEditor,
   onReady,
-  onPlaintextChange,
   searchBacklinks,
-}: NoteEditorProps) {
+}: TextBlockProps) {
   const editor = useEditor(
     {
       editable,
       immediatelyRender: false,
       extensions: [
         StarterKit.configure({
-          history: false, // Yjs handles history
+          history: false,
           bulletList: { HTMLAttributes: { class: 'list-disc pl-6' } },
           orderedList: { HTMLAttributes: { class: 'list-decimal pl-6' } },
           blockquote: {
@@ -113,29 +115,24 @@ export function NoteEditor({
           allowBase64: false,
         }),
         ...(searchBacklinks ? [Backlink.configure({ searchBacklinks })] : []),
-        Collaboration.configure({ document: doc }),
+        Collaboration.configure({ fragment }),
         CollaborationCursor.configure({ provider, user }),
       ],
       editorProps: {
         attributes: {
-          class: cn('focus:outline-none', 'min-h-[60vh] px-8 py-6', className),
-          // S Pen / stylus: treat as regular input (no pan), allow palm rejection via CSS
+          class: cn('focus:outline-none', className),
           'data-touch-action': 'pan-y',
-        },
-        handleDOMEvents: {
-          // Prevent the editor from stealing touch events meant for the drawing layer
-          touchstart: () => false,
         },
       },
       onCreate: ({ editor }) => onReady?.(editor),
-      onUpdate: ({ editor }) => onPlaintextChange?.(editor.getText()),
+      onFocus: ({ editor }) => onFocusEditor?.(editor),
     },
-    [doc, provider, editable],
+    [fragment, provider, editable],
   );
 
   React.useEffect(() => {
     return () => editor?.destroy();
   }, [editor]);
 
-  return <EditorContent editor={editor} className={cn('w-full', className)} />;
+  return <EditorContent editor={editor} />;
 }
