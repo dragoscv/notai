@@ -296,23 +296,22 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     if (typeof ResizeObserver === 'undefined') return;
 
     let raf = 0;
-    const fit = () => {
+    let succeededOnce = false;
+    const fit = (): boolean => {
       cancelAnimationFrame(raf);
+      let ok = false;
       raf = requestAnimationFrame(() => {
         api.refresh();
-        // Read live elements + DOM-measured block heights and centre them.
         const els = api.getSceneElementsIncludingDeleted();
-        fitStickyViewport(api, host, els);
+        ok = fitStickyViewport(api, host, els);
+        if (ok) succeededOnce = true;
       });
+      return ok;
     };
 
-    // Initial fit — sticky mode always re-centres on open. The persisted
-    // viewport (if any) is only useful for the editable main view.
     fit();
 
     const ro = new ResizeObserver(() => {
-      // In sticky mode we always refit on resize; in editable mode we
-      // respect the user's pan/zoom once they've touched the viewport.
       if (!stickyMode && viewportDirtyRef.current) {
         api.refresh();
         return;
@@ -321,19 +320,40 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     });
     ro.observe(host);
 
-    // Re-fit a couple of times during the first second — Excalidraw + the
-    // blocks layer mount in stages, and Y.Doc content may arrive over the
-    // wire after the initial mount.
-    const t1 = setTimeout(fit, 80);
-    const t2 = setTimeout(fit, 350);
-    const t3 = setTimeout(fit, 900);
+    // MutationObserver on the blocks layer: re-fit whenever a text block
+    // mounts or its rendered height changes (e.g. content streams in
+    // from realtime).
+    const blocksLayer = host.querySelector<HTMLElement>('[data-blocks-layer]');
+    const mo = blocksLayer
+      ? new MutationObserver(() => {
+          fit();
+        })
+      : null;
+    mo?.observe(blocksLayer!, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style'],
+      characterData: true,
+    });
+
+    // Polling fallback for the first ~3s in case neither RO nor MO fires
+    // before the host has real dimensions / blocks have rendered.
+    const interval = setInterval(() => {
+      if (succeededOnce) {
+        clearInterval(interval);
+        return;
+      }
+      fit();
+    }, 120);
+    const stopPolling = setTimeout(() => clearInterval(interval), 3000);
 
     return () => {
       ro.disconnect();
+      mo?.disconnect();
       cancelAnimationFrame(raf);
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
+      clearInterval(interval);
+      clearTimeout(stopPolling);
     };
   }, [api, stickyMode, host]);
 
@@ -691,12 +711,19 @@ interface PersistedViewport {
  * block (measured from the DOM, since their height auto-fits content)
  * and (2) every Excalidraw element fits inside the host with a small
  * margin. Used in sticky/read-only mode.
+ *
+ * Returns true when a fit was applied; false when there is nothing to
+ * fit yet (host not laid out, no blocks rendered, etc.) so the caller
+ * can retry.
  */
 function fitStickyViewport(
   api: ExcalidrawImperativeAPI,
   host: HTMLElement,
   elements: readonly AnyElement[],
-): void {
+): boolean {
+  const rect = host.getBoundingClientRect();
+  if (rect.width < 8 || rect.height < 8) return false;
+
   const padding = 16;
   let minX = Infinity;
   let minY = Infinity;
@@ -734,14 +761,16 @@ function fitStickyViewport(
     if (ee.y + h > maxY) maxY = ee.y + h;
   }
 
-  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return;
+  // Nothing measurable yet — bail so the caller can retry.
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return false;
+  const bboxW = maxX - minX;
+  const bboxH = maxY - minY;
+  if (bboxW < 1 || bboxH < 1) return false;
 
-  const bboxW = Math.max(1, maxX - minX);
-  const bboxH = Math.max(1, maxY - minY);
-  const rect = host.getBoundingClientRect();
   const availW = Math.max(1, rect.width - padding * 2);
   const availH = Math.max(1, rect.height - padding * 2);
-  const zoom = Math.max(0.1, Math.min(availW / bboxW, availH / bboxH, 1.5));
+  // Cap at 1 — never zoom IN past natural size; can scale down to fit.
+  const zoom = Math.max(0.1, Math.min(availW / bboxW, availH / bboxH, 1));
 
   const cx = (minX + maxX) / 2;
   const cy = (minY + maxY) / 2;
@@ -755,6 +784,7 @@ function fitStickyViewport(
       zoom: { value: zoom as unknown as number },
     },
   } as Parameters<typeof api.updateScene>[0]);
+  return true;
 }
 
 function readViewport(key: string | undefined): PersistedViewport | null {
