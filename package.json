@@ -29,6 +29,7 @@
     "docker:logs": "docker compose -f docker/compose.yaml logs -f",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yaml,yml}\"",
+    "desktop:impact": "node scripts/check-desktop-impact.mjs",
     "prepare": "husky"
   },
   "devDependencies": {

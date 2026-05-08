@@ -35,4 +35,7 @@ export NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:-http://localhost:3000}"
 echo "▶ pnpm build (web + realtime)"
 pnpm build
 
+echo "▶ desktop impact"
+node scripts/check-desktop-impact.mjs || true
+
 echo "✓ All pre-push checks passed."
