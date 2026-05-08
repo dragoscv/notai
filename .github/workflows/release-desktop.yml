@@ -204,15 +204,23 @@ jobs:
           if (-not $makensis) { throw "makensis.exe not found after tauri build." }
           Write-Host "Using makensis: $makensis"
 
-          $nsi  = "apps/desktop/scripts/silent-wrapper.nsi"
-          $icon = "apps/desktop/src-tauri/icons/icon.ico"
+          # Use absolute paths for /D defines — NSIS resolves Icon and File
+          # relative to the .nsi script's directory, not the cwd.
+          $nsi  = (Resolve-Path "apps/desktop/scripts/silent-wrapper.nsi").Path
+          $icon = (Resolve-Path "apps/desktop/src-tauri/icons/icon.ico").Path
           $outName = $inner.Name -replace "-setup\.exe$", "-silent-setup.exe"
-          $out = Join-Path $bundleDir $outName
+          $out = Join-Path (Resolve-Path $bundleDir).Path $outName
+          $innerAbs = $inner.FullName
+
+          Write-Host "nsi:   $nsi"
+          Write-Host "icon:  $icon"
+          Write-Host "inner: $innerAbs"
+          Write-Host "out:   $out"
 
           & $makensis `
               "/DAPP_VERSION=$env:VERSION" `
               "/DOUT_FILE=$out" `
-              "/DINNER_SETUP=$($inner.FullName)" `
+              "/DINNER_SETUP=$innerAbs" `
               "/DICON_FILE=$icon" `
               $nsi
           if ($LASTEXITCODE -ne 0) { throw "makensis failed ($LASTEXITCODE)" }
