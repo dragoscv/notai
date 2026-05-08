@@ -233,8 +233,6 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
             </div>
             <div
               className="relative min-h-0 flex-1"
-              data-surface={fullBg ? undefined : surfaceDataAttr}
-              style={fullBg ? undefined : surfaceStyle}
               onClickCapture={(e) => {
                 const target = (e.target as HTMLElement).closest('a[data-backlink]');
                 if (!target) return;
@@ -244,6 +242,19 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                 router.push(`/app/n/${id}`);
               }}
             >
+              {/* In "page" coverage, the surface is a centred paper sheet
+                  matching the editor column width with the rest of the
+                  canvas left blank. In "full" coverage, the parent above
+                  carries the surface and this inner wrapper is just a
+                  positioning context for CanvasNote. */}
+              {!fullBg && (
+                <div
+                  aria-hidden
+                  className="editor-column pointer-events-none absolute inset-y-0 left-1/2 w-full -translate-x-1/2"
+                  data-surface={surfaceDataAttr}
+                  style={surfaceStyle}
+                />
+              )}
               <CanvasNote
                 ref={canvasRef}
                 doc={doc}

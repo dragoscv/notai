@@ -124,10 +124,43 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
   const [host, setHost] = React.useState<HTMLDivElement | null>(null);
   const resolvedTheme = useResolvedTheme(theme);
 
-  /* ---------- Migration on first mount ---------- */
+  /* ---------- Migration on first mount ----------
+   * IMPORTANT: wait for the Hocuspocus provider to sync remote state
+   * before running migration. Otherwise on a sticky window (or any
+   * fresh client) we'd see an empty doc, create an empty block, and
+   * then merge against the real legacy fragment when it arrives —
+   * leaving a phantom empty block + an unreferenced legacy fragment,
+   * which is exactly the "sticky shows nothing on first open" bug.
+   */
   React.useEffect(() => {
-    migrateLegacyDoc(doc);
-  }, [doc]);
+    let done = false;
+    const run = () => {
+      if (done) return;
+      done = true;
+      migrateLegacyDoc(doc);
+    };
+    // If the provider is already synced (cached doc, second mount, etc.)
+    // run immediately; else wait for the synced event.
+    const p = provider as unknown as {
+      synced?: boolean;
+      isSynced?: boolean;
+      on?: (event: string, cb: () => void) => void;
+      off?: (event: string, cb: () => void) => void;
+    };
+    if (p.synced || p.isSynced) {
+      run();
+      return;
+    }
+    const onSynced = () => run();
+    p.on?.('synced', onSynced);
+    // Safety net: don't wait forever — after 1.5s assume we're offline
+    // and the doc we have IS the truth, so migrate against it.
+    const timer = setTimeout(run, 1500);
+    return () => {
+      clearTimeout(timer);
+      p.off?.('synced', onSynced);
+    };
+  }, [doc, provider]);
 
   /* ---------- Block list (subscribe to Y.Array) ---------- */
   const blocks = useBlocksArray(doc);
