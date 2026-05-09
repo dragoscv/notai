@@ -67,6 +67,13 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
       aria-label="Primary navigation"
       data-focus-hide
       className="bg-card/50 relative flex h-full w-64 flex-col border-r backdrop-blur"
+      onContextMenu={(e) => {
+        // Suppress the native browser menu on sidebar items that don't
+        // have their own ContextMenuTrigger. Radix triggers call
+        // preventDefault first as the event bubbles up, so this only
+        // takes effect on bare nav items / account button / brand area.
+        if (!e.defaultPrevented) e.preventDefault();
+      }}
     >
       {/* Soft warm wash at the top to match the rest of the app */}
       <div
