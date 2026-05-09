@@ -12,6 +12,7 @@ import {
   Home,
   Shield,
   Sparkles,
+  CalendarDays,
 } from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@notai/ui/components/avatar';
@@ -107,6 +108,12 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
       {/* Top nav */}
       <nav className="space-y-0.5 px-2">
         <NavItem href="/app" icon={<Home />} label="Today" active={pathname === '/app'} />
+        <NavItem
+          href="/app/today"
+          icon={<CalendarDays />}
+          label="Daily Note"
+          active={pathname === '/app/today'}
+        />
         <NavItem
           href="/app/ask"
           icon={<Sparkles />}
