@@ -14,6 +14,41 @@ Each app in this monorepo is versioned independently:
 
 ## [Unreleased]
 
+### Added — Web Clipper v2 (P0-5)
+
+P0-5 of the competitive backlog ([docs/competitive-analysis.md](docs/competitive-analysis.md)).
+The browser extension graduates from "save plaintext blob" to a proper
+clipper with Readability article extraction, page screenshots, and
+region screenshots — closing the gap with Evernote / Notion Web Clipper.
+
+- **Server**: new `POST /api/clipper/v2` (PAT-auth, node runtime, 30s
+  max). Pipeline:
+  - `kind=article` — receives full document HTML, runs `linkedom` +
+    `@mozilla/readability`, converts the cleaned content with `turndown`
+    to Markdown. Stores byline / siteName / excerpt / length in the
+    response for the extension to surface.
+  - `kind=selection` — stores the user's text selection verbatim.
+  - `kind=page-screenshot` / `region-screenshot` — accepts base64 PNG
+    (≤ 12 MB), uploads via the existing S3-compatible signer
+    (`server/storage/s3.ts`), records an `assets` row, embeds the image
+    Markdown into the note's plaintext.
+  - All kinds create a single note with a kind-appropriate icon
+    (📰/✂️/🖼️/📸) and return `{ id, url, screenshotUrl, extracted }`.
+  - v1 (`/api/clipper`) remains for back-compat with old extension
+    builds in the wild.
+- **Extension** (`apps/extension`, `0.2.0 → 0.3.0`):
+  - Adds `tabs` permission for `captureVisibleTab`.
+  - Popup: new modes "Article (clean reader view)", "Selection only",
+    "Page screenshot", "Region screenshot…". Auto-selects "selection"
+    when the user has text highlighted.
+  - Region screenshot: in-page overlay with drag-rectangle, ESC to
+    cancel, sub-pixel-accurate cropping in an `OffscreenCanvas` that
+    respects `devicePixelRatio`.
+  - Background SW: context-menu and `Ctrl+Shift+S` now post `kind=article`
+    with the full hydrated HTML to v2.
+- **Deps**: `@mozilla/readability` 0.6, `linkedom` 0.18, `turndown` 7.2,
+  `@types/turndown` 5.0 (web app).
+
 ### Added — `@notai/web`: per-note AI chat panel (P0-4)
 
 P0-4 of the competitive backlog ([docs/competitive-analysis.md](docs/competitive-analysis.md)).

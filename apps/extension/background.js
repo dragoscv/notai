@@ -1,8 +1,8 @@
 /**
- * Extension background (service worker). Handles:
- *   - the toolbar icon → opens the popup (default behaviour)
- *   - keyboard shortcut → captures + sends straight to Notai
- *   - context menu "Clip selection to Notai" → captures the selection
+ * Extension background (service worker) — v2. Routes context-menu and
+ * keyboard-shortcut clips to /api/clipper/v2 with the right shape:
+ *   - "Clip selection" → kind=selection
+ *   - "Clip whole page" / Ctrl+Shift+S → kind=article (server runs Readability)
  */
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -13,7 +13,7 @@ chrome.runtime.onInstalled.addListener(() => {
   });
   chrome.contextMenus.create({
     id: 'notai-clip-page',
-    title: 'Clip whole page to Notai',
+    title: 'Clip article to Notai',
     contexts: ['page'],
   });
 });
@@ -25,7 +25,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       tabId: tab.id,
       url: info.pageUrl ?? tab.url ?? '',
       title: tab.title ?? '',
-      mode: 'selection',
+      kind: 'selection',
       selection: info.selectionText,
     });
   } else if (info.menuItemId === 'notai-clip-page') {
@@ -33,7 +33,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       tabId: tab.id,
       url: info.pageUrl ?? tab.url ?? '',
       title: tab.title ?? '',
-      mode: 'page',
+      kind: 'article',
     });
   }
 });
@@ -42,24 +42,11 @@ chrome.commands.onCommand.addListener(async (cmd) => {
   if (cmd !== 'clip-page') return;
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) return;
-  await clip({
-    tabId: tab.id,
-    url: tab.url ?? '',
-    title: tab.title ?? '',
-    mode: 'page',
-  });
+  await clip({ tabId: tab.id, url: tab.url ?? '', title: tab.title ?? '', kind: 'article' });
 });
 
 async function clip(input) {
-  const { tabId, url, title, mode, selection } = input;
-  const [{ result } = {}] = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: extractContent,
-    args: [mode],
-  });
-  const body = mode === 'selection' && selection ? selection : result?.text ?? '';
-  const headline = result?.title || title || url;
-
+  const { tabId, url, title, kind, selection } = input;
   const apiBase = (await chrome.storage.sync.get(['apiBase'])).apiBase || 'https://notai.ro';
   const token = (await chrome.storage.sync.get(['token'])).token;
   if (!token) {
@@ -67,27 +54,53 @@ async function clip(input) {
     return;
   }
 
+  /** @type {Record<string, unknown>} */
+  const payload = {
+    title: title || url,
+    url,
+    kind,
+    capturedAt: new Date().toISOString(),
+  };
   try {
-    const res = await fetch(`${apiBase}/api/clipper`, {
+    if (kind === 'article') {
+      const [{ result } = {}] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => {
+          const doc = document.cloneNode(true);
+          if (!doc.querySelector('base')) {
+            const base = doc.createElement('base');
+            base.href = location.href;
+            const head = doc.querySelector('head');
+            head?.insertBefore(base, head.firstChild);
+          }
+          return '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+        },
+      });
+      payload.html = result || '';
+      if (!payload.html) throw new Error('Could not read page HTML');
+    } else if (kind === 'selection') {
+      payload.selection = selection ?? '';
+    }
+  } catch (err) {
+    notify('Notai capture failed', String(err.message || err));
+    return;
+  }
+
+  try {
+    const res = await fetch(`${apiBase}/api/clipper/v2`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        title: headline,
-        url,
-        body,
-        capturedAt: new Date().toISOString(),
-        kind: mode,
-      }),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error(`Notai responded ${res.status}`);
     const json = await res.json().catch(() => ({}));
     const noteUrl = json?.url || (json?.id ? `${apiBase}/app/n/${json.id}` : '');
-    notify('✓ Saved to Notai', headline, noteUrl);
+    notify('✓ Saved to Notai', payload.title, noteUrl);
   } catch (err) {
-    notify('Notai clip failed', String(err));
+    notify('Notai clip failed', String(err.message || err));
   }
 }
 
@@ -116,22 +129,3 @@ chrome.notifications?.onClicked.addListener((id) => {
   }
   chrome.notifications.clear(id);
 });
-
-/** Runs in the page; gathers a sensible plaintext snapshot. */
-function extractContent(mode) {
-  if (mode === 'selection') {
-    const sel = window.getSelection?.()?.toString() ?? '';
-    return { title: document.title, text: sel };
-  }
-  // Cheap heuristic: prefer <article>, fall back to <main>, fall back to body.
-  const root =
-    document.querySelector('article') ??
-    document.querySelector('main') ??
-    document.body;
-  const clone = root.cloneNode(true);
-  for (const sel of ['script', 'style', 'noscript', 'nav', 'aside', 'header', 'footer', 'form']) {
-    clone.querySelectorAll(sel).forEach((n) => n.remove());
-  }
-  const text = clone.textContent?.replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim() ?? '';
-  return { title: document.title, text: text.slice(0, 30000) };
-}

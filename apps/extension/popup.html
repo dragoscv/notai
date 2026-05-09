@@ -14,16 +14,17 @@
       </header>
       <div id="status" class="status">Reading page…</div>
       <input id="title" type="text" placeholder="Title" />
-      <textarea id="body" rows="6" placeholder="Notes (optional)"></textarea>
+      <textarea id="body" rows="3" placeholder="Optional notes / annotation"></textarea>
       <div class="row">
         <label class="check">
           <input type="checkbox" id="includeUrl" checked />
           Include URL
         </label>
-        <select id="mode">
-          <option value="page">Whole page</option>
+        <select id="mode" title="Clip mode">
+          <option value="article">Article (clean reader view)</option>
           <option value="selection">Selection only</option>
-          <option value="empty">Empty note</option>
+          <option value="page-screenshot">Page screenshot</option>
+          <option value="region-screenshot">Region screenshot…</option>
         </select>
       </div>
       <div class="row">
