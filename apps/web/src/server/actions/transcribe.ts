@@ -1,7 +1,9 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { auth } from '@/auth';
+import { db, notes } from '@notai/db';
 import { getTranscribeProvider } from '@/server/ai';
 import { incrementAiUsage, requireQuota } from '@/server/plans';
 
@@ -46,4 +48,41 @@ export async function transcribeAudio(form: FormData): Promise<TranscriptionResu
   }
   await incrementAiUsage(userId, 1);
   return { text };
+}
+
+/**
+ * Transcribe audio and immediately create a new note with the transcript
+ * as plaintext. Used by the global voice-capture hotkey (Cmd/Ctrl+Shift+V).
+ */
+export async function createNoteFromVoice(
+  form: FormData,
+): Promise<{ id: string; title: string; text: string }> {
+  const session = await auth();
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+  if (!userId) throw new Error('Not signed in');
+
+  await requireQuota(userId, 'notes');
+
+  const { text } = await transcribeAudio(form);
+  const trimmed = text.trim();
+  if (!trimmed) throw new Error('Empty transcript.');
+
+  const firstLine = trimmed.split(/\n+/, 1)[0]?.slice(0, 80).trim() || 'Voice note';
+  const title =
+    firstLine.length < 4 ? `Voice — ${new Date().toISOString().slice(0, 10)}` : firstLine;
+
+  const [row] = await db
+    .insert(notes)
+    .values({
+      ownerId: userId,
+      title,
+      icon: '🎙️',
+      kind: 'note',
+      plaintext: trimmed,
+    })
+    .returning({ id: notes.id });
+
+  if (!row) throw new Error('Failed to save voice note.');
+  revalidatePath('/app');
+  return { id: row.id, title, text: trimmed };
 }

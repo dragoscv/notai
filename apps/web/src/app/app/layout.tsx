@@ -6,6 +6,7 @@ import { CommandPalette } from '@/components/layout/command-palette';
 import { AppShell } from '@/components/layout/app-shell';
 import { AnalyticsProvider } from '@/components/layout/analytics-provider';
 import { TimezoneSync } from '@/components/layout/timezone-sync';
+import { VoiceCapture } from '@/components/voice/voice-capture';
 import { isAdmin } from '@/server/rbac';
 import { listNotes } from '@/server/actions/notes';
 import { listFolders } from '@/server/actions/folders';
@@ -36,6 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         }}
       >
         <TimezoneSync initialTimezone={me?.timezone ?? null} />
+        <VoiceCapture />
         <AppShell
           sidebar={<Sidebar user={session.user} notes={notes} folders={folders} isAdmin={admin} />}
           commandPalette={<CommandPalette notes={notes} />}
