@@ -1,6 +1,7 @@
 import { Extension, type Editor, type Range } from '@tiptap/core';
 import { ReactRenderer } from '@tiptap/react';
 import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
+import type { SlashAiContext } from './ai-types';
 
 export interface SlashCommand {
   id: string;
@@ -205,15 +206,99 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     group: 'advanced',
     run: (e, r) => e.chain().focus().deleteRange(r).setMermaid('').run(),
   },
+  {
+    id: 'ai',
+    label: 'Ask AI',
+    hint: 'Write, continue, summarize, translate…',
+    keywords: ['ai', 'gpt', 'assistant', 'write', 'continue', 'summarize', 'rewrite', 'translate'],
+    group: 'ai',
+    run: (e, r) => openAiCommandBar(e, r),
+  },
 ];
+
+/* ------------------------------------------------------------------ */
+/* AI command bar — mounted by the `/ai` slash entry                  */
+/* ------------------------------------------------------------------ */
+
+interface AiBarHandle {
+  destroy: () => void;
+}
+
+let activeAiBar: AiBarHandle | null = null;
+
+async function openAiCommandBar(editor: Editor, range: Range) {
+  // Read the AI context from the SlashMenu extension options. If the host
+  // didn't wire a runner, do nothing (the menu entry will still be visible
+  // but inert; the noun of the command makes that obvious to users).
+  const ext = editor.extensionManager.extensions.find((e) => e.name === 'slashMenu');
+  const ctx = (ext?.options as { aiContext?: SlashAiContext } | undefined)?.aiContext;
+  if (!ctx) {
+    // Best-effort: just delete the trigger and close.
+    editor.chain().focus().deleteRange(range).run();
+    return;
+  }
+
+  if (activeAiBar) {
+    activeAiBar.destroy();
+    activeAiBar = null;
+  }
+
+  const { AiCommandBar } = await import('./ai-command-bar');
+  const ReactDom = await import('react-dom/client');
+  const React = await import('react');
+
+  const el = document.createElement('div');
+  el.style.position = 'absolute';
+  el.style.zIndex = '10000';
+  document.body.appendChild(el);
+
+  // Position next to the caret.
+  const coords = editor.view.coordsAtPos(range.from);
+  el.style.left = `${coords.left + window.scrollX}px`;
+  el.style.top = `${coords.bottom + window.scrollY + 6}px`;
+
+  const root = ReactDom.createRoot(el);
+  const close = () => {
+    queueMicrotask(() => {
+      root.unmount();
+      el.remove();
+      if (activeAiBar?.destroy === handle.destroy) activeAiBar = null;
+    });
+  };
+
+  const handle: AiBarHandle = {
+    destroy: () => {
+      root.unmount();
+      el.remove();
+    },
+  };
+  activeAiBar = handle;
+
+  root.render(
+    React.createElement(AiCommandBar, {
+      editor,
+      range,
+      runner: ctx.run,
+      noteId: ctx.noteId,
+      onClose: close,
+    }),
+  );
+}
 
 /**
  * `/`-trigger menu with block-conversion shortcuts. Mirrors the Notion
  * pattern. Items are matched against label + keyword aliases, so typing
  * `/check`, `/todo`, or `/task` all surface the to-do list command.
+ *
+ * Pass `aiContext` via `.configure({ aiContext })` to enable the `/ai`
+ * command bar (write/continue/summarize/etc.); without it the entry is
+ * a no-op.
  */
-export const SlashMenu = Extension.create({
+export const SlashMenu = Extension.create<{ aiContext?: SlashAiContext }>({
   name: 'slashMenu',
+  addOptions() {
+    return { aiContext: undefined };
+  },
   addProseMirrorPlugins() {
     return [
       Suggestion({
@@ -229,10 +314,13 @@ function makeSlashSuggestion(): Partial<SuggestionOptions<SlashCommand>> {
     char: '/',
     startOfLine: false,
     allowSpaces: false,
-    items: ({ query }) => {
+    items: ({ query, editor }) => {
+      const ext = editor.extensionManager.extensions.find((e) => e.name === 'slashMenu');
+      const aiEnabled = !!(ext?.options as { aiContext?: SlashAiContext } | undefined)?.aiContext;
+      const all = aiEnabled ? SLASH_COMMANDS : SLASH_COMMANDS.filter((c) => c.group !== 'ai');
       const q = query.trim().toLowerCase();
-      if (!q) return SLASH_COMMANDS;
-      return SLASH_COMMANDS.filter(
+      if (!q) return all;
+      return all.filter(
         (c) =>
           c.label.toLowerCase().includes(q) || c.keywords.some((k) => k.toLowerCase().includes(q)),
       );

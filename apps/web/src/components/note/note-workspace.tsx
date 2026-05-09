@@ -31,6 +31,7 @@ import { BacklinksPanel } from './backlinks-panel';
 import { RolloverBanner } from './rollover-banner';
 import { TagChips } from './tag-chips';
 import { VoiceRecorder } from './voice-recorder';
+import { runSlashAi } from '@/lib/slash-ai-client';
 import { NoteAiMenu } from './note-ai-menu';
 import { VersionHistory } from './version-history';
 import { searchBacklinkCandidates, createNoteFromBacklink } from '@/server/actions/backlinks';
@@ -269,6 +270,7 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                 user={{ name: user.name, color: colorFor(user.id) }}
                 searchBacklinks={searchBacklinkCandidates}
                 createBacklink={createNoteFromBacklink}
+                aiContext={{ run: runSlashAi, noteId: note.id }}
                 viewportKey={`notai:viewport:${note.id}`}
                 minimap={surface.minimap}
                 onMinimapCornerChange={(corner) =>

@@ -31,6 +31,7 @@ import { ToggleBlock, ToggleSummary, ToggleContent } from './toggle-extension';
 import { MathInline, MathBlock } from './math-extension';
 import { Mermaid } from './mermaid-extension';
 import { SlashMenu } from './slash-menu-extension';
+import type { SlashAiContext } from './ai-types';
 import { cn } from '@notai/lib/utils';
 
 const FontSize = Extension.create({
@@ -66,6 +67,8 @@ export interface TextBlockProps {
   onReady?: (editor: Editor) => void;
   searchBacklinks?: (q: string) => Promise<Array<{ id: string; title: string }>>;
   createBacklink?: (title: string) => Promise<{ id: string; title: string }>;
+  /** Optional AI bridge — enables the `/ai` slash command bar when present. */
+  aiContext?: SlashAiContext;
 }
 
 /**
@@ -85,6 +88,7 @@ export function TextBlock({
   onReady,
   searchBacklinks,
   createBacklink,
+  aiContext,
 }: TextBlockProps) {
   const editor = useEditor(
     {
@@ -143,7 +147,7 @@ export function TextBlock({
         MathBlock,
         Mermaid,
         ...(searchBacklinks ? [Backlink.configure({ searchBacklinks, createBacklink })] : []),
-        SlashMenu,
+        SlashMenu.configure({ aiContext }),
         Collaboration.configure({ fragment }),
         CollaborationCursor.configure({ provider, user }),
       ],

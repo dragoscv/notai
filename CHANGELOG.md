@@ -14,6 +14,36 @@ Each app in this monorepo is versioned independently:
 
 ## [Unreleased]
 
+### Added — `@notai/editor` 0.4.0: inline AI commands (`/ai` slash bar)
+
+P0-3 of the competitive backlog ([docs/competitive-analysis.md](docs/competitive-analysis.md)).
+Brings Notion-AI-style writing to the editor: write, continue, expand,
+summarize, rewrite (with tone), action-items, improve, translate — all
+streaming inline at the cursor and reversible with Discard.
+
+- New `SlashAiContext` bridge (`packages/editor/src/ai-types.ts`) so the
+  editor package stays platform-agnostic; the host app passes a
+  `runner: (req, signal) => AsyncIterable<string>` and an optional
+  `noteId`.
+- `SlashMenu.configure({ aiContext })` registers an `/ai` group entry.
+  Without `aiContext` the entry is hidden, keeping the menu clean for
+  builds without AI configured.
+- `AiCommandBar` (`packages/editor/src/ai-command-bar.tsx`) — multi-phase
+  popover: action grid (keyboard-navigable) → optional configure step
+  (free-form prompt for `write`, language for `translate`, tone chips
+  for `rewrite`) → live streaming with **Stop** → review with **Keep**
+  or **Discard** (rolls back exactly the inserted range).
+- New server route `POST /api/ai/slash` streams NDJSON
+  (`{type:'delta'|'done'|'error'}`) with quota enforcement
+  (`requireQuota(userId, 'ai')`), per-action prompt construction, and
+  optional note-context injection (collaborator-aware via
+  `noteCollaborators`). Errors are emitted **into** the stream so the
+  command bar UI can surface them inline instead of throwing.
+- New client runner (`apps/web/src/lib/slash-ai-client.ts`) wires
+  `runSlashAi` into `<NoteWorkspace />`'s `<CanvasNote aiContext />`.
+- Reuses the existing provider dispatch (`server/ai/dispatch.ts`):
+  Copilot OAuth → user OpenAI BYOK → server env, in that order.
+
 ### Added — `@notai/editor` 0.3.0: tables, callouts, toggles, math, mermaid
 
 P0-1 + P0-2 of the competitive backlog ([docs/competitive-analysis.md](docs/competitive-analysis.md)).

@@ -11,6 +11,7 @@ export * from './toggle-extension';
 export * from './math-extension';
 export * from './mermaid-extension';
 export * from './slash-menu-extension';
+export * from './ai-types';
 export { Minimap, MINIMAP_DEFAULT, type MinimapCorner, type MinimapSettings } from './minimap';
 export {
   migrateLegacyDoc,

@@ -717,6 +717,9 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.14
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.3(@types/react@19.2.14)
       rimraf:
         specifier: ^6.0.1
         version: 6.1.3

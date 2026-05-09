@@ -99,6 +99,8 @@ export interface CanvasNoteProps {
   searchBacklinks?: (q: string) => Promise<Array<{ id: string; title: string }>>;
   /** Optional: create a new note from a `[[…]]` autocomplete “Create” entry. */
   createBacklink?: (title: string) => Promise<{ id: string; title: string }>;
+  /** Optional AI bridge — enables the `/ai` slash command bar inside text blocks. */
+  aiContext?: import('./ai-types').SlashAiContext;
   /** Page-template background drawn behind the (transparent) Excalidraw canvas. */
   surface?: 'plain' | 'ruled' | 'grid' | 'dots' | 'columns';
   surfaceSpacing?: number;
@@ -129,6 +131,7 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     className,
     searchBacklinks,
     createBacklink,
+    aiContext,
     surface,
     surfaceSpacing = 32,
     theme,
@@ -714,6 +717,7 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
             onFocusEditor={handleBlockFocus}
             searchBacklinks={searchBacklinks}
             createBacklink={createBacklink}
+            aiContext={aiContext}
           />
         ))}
       </div>
@@ -750,6 +754,7 @@ interface BlockFrameProps {
   onFocusEditor: (e: Editor | null) => void;
   searchBacklinks?: (q: string) => Promise<Array<{ id: string; title: string }>>;
   createBacklink?: (title: string) => Promise<{ id: string; title: string }>;
+  aiContext?: import('./ai-types').SlashAiContext;
 }
 
 function BlockFrame({
@@ -764,6 +769,7 @@ function BlockFrame({
   onFocusEditor,
   searchBacklinks,
   createBacklink,
+  aiContext,
 }: BlockFrameProps) {
   const fragment = useBlockFragment(doc, block.id);
   const [hovered, setHovered] = React.useState(false);
@@ -842,6 +848,7 @@ function BlockFrame({
           editable={!readOnly}
           searchBacklinks={searchBacklinks}
           createBacklink={createBacklink}
+          aiContext={aiContext}
           onFocusEditor={onFocusEditor}
           className="block-content min-h-[1.5em] px-3 py-2"
         />
