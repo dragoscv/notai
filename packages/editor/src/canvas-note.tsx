@@ -287,7 +287,38 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     lastSigRef.current = sigOf(initialData.elements ?? []);
   }, [initialData, sigOf]);
 
+  /*
+   * Write strategy: THROTTLE, not debounce.
+   *
+   * Excalidraw fires onChange on every pointer move while drawing. With
+   * a debounce-on-change, a continuous stroke kept resetting the timer
+   * forever — no write fired until the user paused. If they refreshed
+   * mid-draw (or right after letting go) the pending timer was killed
+   * and the entire stroke was lost. That's the "I draw, refresh, and
+   * everything disappears" bug.
+   *
+   * Throttle: write at most once per WRITE_THROTTLE_MS while a stream
+   * of changes is in flight. Always flush a trailing write so the very
+   * last frame is captured. Flush again on unmount + beforeunload so
+   * an in-flight write is never lost on tab close.
+   */
+  const WRITE_THROTTLE_MS = 250;
+  const pendingElementsRef = React.useRef<readonly OrderedExcalidrawElement[] | null>(null);
+  const lastWriteAtRef = React.useRef<number>(0);
   const writeTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushExcalidrawWrite = React.useCallback(() => {
+    if (writeTimerRef.current) {
+      clearTimeout(writeTimerRef.current);
+      writeTimerRef.current = null;
+    }
+    const pending = pendingElementsRef.current;
+    if (!pending) return;
+    pendingElementsRef.current = null;
+    lastWriteAtRef.current = Date.now();
+    writeElementsToDoc(doc, pending);
+  }, [doc]);
+
   const handleExcalidrawChange = React.useCallback(
     (elements: readonly OrderedExcalidrawElement[]) => {
       if (readOnly) return;
@@ -299,14 +330,45 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
         return;
       }
       lastSigRef.current = sig;
-      if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
+      pendingElementsRef.current = elements;
+
+      const now = Date.now();
+      const since = now - lastWriteAtRef.current;
+      if (since >= WRITE_THROTTLE_MS) {
+        // Leading edge: write immediately so the first stroke can never
+        // be lost by a fast refresh. This is the "autosave continuously"
+        // guarantee: every stroke makes it to disk within ~one frame.
+        flushExcalidrawWrite();
+        return;
+      }
+      // Trailing edge: a write happened recently; coalesce until the
+      // throttle window expires, then fire.
+      if (writeTimerRef.current) return;
       writeTimerRef.current = setTimeout(() => {
         writeTimerRef.current = null;
-        writeElementsToDoc(doc, elements);
-      }, 60);
+        flushExcalidrawWrite();
+      }, WRITE_THROTTLE_MS - since);
     },
-    [doc, readOnly, sigOf],
+    [readOnly, sigOf, flushExcalidrawWrite],
   );
+
+  // Flush pending writes when the tab/window is about to unload so a
+  // refresh during a stroke doesn't drop the last frame.
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || readOnly) return;
+    const onBeforeUnload = () => flushExcalidrawWrite();
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flushExcalidrawWrite();
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    window.addEventListener('pagehide', onBeforeUnload);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('pagehide', onBeforeUnload);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [readOnly, flushExcalidrawWrite]);
 
   React.useEffect(() => {
     if (!api) return;
@@ -401,9 +463,11 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
 
   React.useEffect(() => {
     return () => {
-      if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
+      // Flush any pending throttled write so an unmount during a stroke
+      // (route change, sticky window close, etc.) doesn't drop frames.
+      flushExcalidrawWrite();
     };
-  }, []);
+  }, [flushExcalidrawWrite]);
 
   /* ---------- Sticky/readOnly auto-fit ----------
    *
