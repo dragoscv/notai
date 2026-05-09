@@ -54,6 +54,26 @@ export function getBlocksArray(doc: Y.Doc): Y.Array<SceneBlock> {
 }
 
 /**
+ * Read-only peek at the blocks array. Returns null when the scene map has
+ * no array yet — DOES NOT create one.
+ *
+ * Why this matters: `getBlocksArray` auto-creates an empty Y.Array and
+ * sets it on the scene map. If a component reads the array *before* the
+ * Hocuspocus provider has synced, the empty array gets installed locally;
+ * when sync arrives, the remote map's array replaces the reference and
+ * any component still subscribed to the local array silently stops
+ * receiving updates ("note shows blank until you switch notes" bug).
+ *
+ * Read paths (subscribers, snapshots) use `peekBlocksArray`; writers
+ * (migration, addBlock, etc.) use `getBlocksArray`.
+ */
+export function peekBlocksArray(doc: Y.Doc): Y.Array<SceneBlock> | null {
+  const scene = doc.getMap(SCENE_MAP);
+  const arr = scene.get(BLOCKS_KEY) as Y.Array<SceneBlock> | undefined;
+  return arr ?? null;
+}
+
+/**
  * Resolve a block id to its TipTap content fragment. Legacy block routes
  * to the unprefixed top-level XmlFragment so existing collaborative
  * history is preserved verbatim.

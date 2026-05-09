@@ -16,10 +16,12 @@ import { cn } from '@notai/lib/utils';
 import { TextBlock } from './text-block';
 import {
   addBlock,
+  BLOCKS_KEY,
   deleteBlockAt,
   getBlockFragment,
-  getBlocksArray,
   migrateLegacyDoc,
+  peekBlocksArray,
+  SCENE_MAP,
   updateBlockAt,
   type SceneBlock,
 } from './migrate-doc';
@@ -312,15 +314,10 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
         elements: reconciled,
         captureUpdate: helpers.CaptureUpdateAction.NEVER,
       });
-      // In sticky mode, drawings often arrive *after* the initial fit
-      // (Hocuspocus syncs text first, then the larger Excalidraw blob).
-      // Refit so the freshly-arrived strokes land inside the viewport
-      // instead of being clipped at the origin.
-      if (stickyMode) refitStickyRef.current?.();
     };
     yMap.observe(onYChange);
     return () => yMap.unobserve(onYChange);
-  }, [api, doc, sigOf, stickyMode]);
+  }, [api, doc, sigOf]);
 
   React.useEffect(() => {
     return () => {
@@ -330,118 +327,77 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
 
   /* ---------- Sticky/readOnly auto-fit ----------
    *
-   * The sticky window is meant to be a zoomed-out, read-only mirror of the
-   * note. Auto-fit is fragile because the things we measure (text blocks
-   * and Excalidraw elements) all arrive asynchronously:
+   * The sticky window is meant to be a zoomed-out, read-only mirror of
+   * the note as it looks when you open it. Auto-fit is fragile because
+   * the things we measure arrive asynchronously:
    *
    *   1. Hocuspocus has to sync the Y.Doc.
    *   2. Migration creates the block array.
-   *   3. Each TipTap editor mounts and renders its fragment — at this point
-   *      the block's `offsetHeight` finally becomes its real height.
+   *   3. Each TipTap editor mounts and renders its fragment — at this
+   *      point the block's `offsetHeight` finally becomes its real
+   *      height.
    *   4. Remote Excalidraw elements may arrive even later via Y observer.
    *
-   * Old behavior fit only on (a) a 40×120ms poll and (b) the `blocks` array
-   * length changing — so it usually ran while blocks still had 0 height
-   * and produced wrong scrollX/scrollY (or returned false and gave up
-   * after 5s). The result was the classic "blank sticky until you pan
-   * Excalidraw, then content shows in the wrong place" bug.
+   * Strategy: poll until we get a measurable bbox, then FIT ONCE and
+   * stop. Subsequent edits/draws don't refit — that was the "sticky
+   * keeps zooming out while I draw" annoyance. The user can still pan
+   * and zoom manually (ctrl+wheel + hand tool) and we don't fight them.
    *
-   * The fix: keep a stable refit callback and trigger it from every
-   * relevant signal — initial poll, host resize, each block element
-   * resize (TipTap content load), block array changes, and remote
-   * Excalidraw element arrivals (see the yMap observer below).
+   * The only exception is host resize: when the user drags the sticky
+   * window itself, refit so content stays centred at the new size.
    */
-  const refitStickyRef = React.useRef<(() => boolean) | null>(null);
   React.useEffect(() => {
-    if (!api || !stickyMode || !host) {
-      refitStickyRef.current = null;
-      return;
-    }
+    if (!api || !stickyMode || !host) return;
+
+    let cancelled = false;
+    let succeededOnce = false;
+    let attempts = 0;
 
     const refit = (): boolean => {
       const els = api.getSceneElementsIncludingDeleted();
       return fitStickyViewport(api, host, els);
     };
-    refitStickyRef.current = refit;
 
-    // Initial poll: keep trying until something measurable shows up.
-    let cancelled = false;
-    let attempts = 0;
     const poll = () => {
-      if (cancelled) return;
+      if (cancelled || succeededOnce) return;
       attempts += 1;
       api.refresh();
-      if (refit()) return;
-      if (attempts < 60) setTimeout(poll, 120);
+      if (refit()) {
+        succeededOnce = true;
+        return;
+      }
+      // Cap polling at ~12s so a doc that's truly empty (no blocks, no
+      // drawings) eventually stops. The sync-then-render path usually
+      // resolves within ~500ms; the cap is just a safety net.
+      if (attempts < 100) setTimeout(poll, 120);
     };
     poll();
 
-    // Refit on host resize (the sticky window itself being dragged).
+    // Refit on host resize ONLY (window dragged/resized). Use rAF to
+    // coalesce continuous resize ticks into a single fit per frame.
+    let raf = 0;
     const hostRO =
       typeof ResizeObserver !== 'undefined'
         ? new ResizeObserver(() => {
-            api.refresh();
-            refit();
+            if (!succeededOnce) {
+              poll();
+              return;
+            }
+            cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(() => {
+              api.refresh();
+              refit();
+            });
           })
         : null;
     hostRO?.observe(host);
 
     return () => {
       cancelled = true;
+      cancelAnimationFrame(raf);
       hostRO?.disconnect();
-      refitStickyRef.current = null;
     };
   }, [api, stickyMode, host]);
-
-  /* ---------- Sticky: refit on block array AND per-block size changes ----------
-   * `blocks` is just an id/position list; it doesn't fire when a block's
-   * rendered height changes as TipTap finishes loading the Y fragment.
-   * Observe each block element directly so we refit the moment content
-   * actually fills in. */
-  React.useEffect(() => {
-    if (!stickyMode || !host || typeof ResizeObserver === 'undefined') return;
-    const refit = refitStickyRef.current;
-    if (!refit) return;
-
-    let raf = 0;
-    const schedule = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => refit());
-    };
-    schedule(); // initial
-
-    const ro = new ResizeObserver(schedule);
-    const blockEls = host.querySelectorAll<HTMLElement>('[data-block-id]');
-    blockEls.forEach((el) => ro.observe(el));
-
-    // Also catch block elements that are added later (rare — usually
-    // covered by the `blocks` dep — but cheap insurance for HMR / edits).
-    const mo = new MutationObserver((records) => {
-      let needsRefit = false;
-      for (const r of records) {
-        for (const node of Array.from(r.addedNodes)) {
-          if (node instanceof HTMLElement) {
-            const newBlocks = node.matches?.('[data-block-id]')
-              ? [node]
-              : Array.from(node.querySelectorAll?.('[data-block-id]') ?? []);
-            for (const b of newBlocks) {
-              if (b instanceof HTMLElement) ro.observe(b);
-              needsRefit = true;
-            }
-          }
-        }
-      }
-      if (needsRefit) schedule();
-    });
-    const blocksLayer = host.querySelector('[data-blocks-layer]');
-    if (blocksLayer) mo.observe(blocksLayer, { childList: true, subtree: true });
-
-    return () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-      mo.disconnect();
-    };
-  }, [stickyMode, host, blocks]);
 
   /* ---------- Focused editor tracking ---------- */
   const focusedRef = React.useRef<Editor | null>(null);
@@ -729,25 +685,55 @@ interface Viewport {
 }
 
 function useBlocksArray(doc: Y.Doc): SceneBlock[] {
-  const arrRef = React.useRef<Y.Array<SceneBlock> | null>(null);
-  if (!arrRef.current) arrRef.current = getBlocksArray(doc);
-
+  /*
+   * Subscribe to BOTH the scene map (for `blocks` key replacement) and
+   * the current blocks Y.Array (for content changes). Why both?
+   *
+   * Hocuspocus sync replaces the local empty Y.Array with the remote
+   * one — `scene.set('blocks', remoteArr)`. If we only observed the
+   * local empty array, our subscription would never fire after sync
+   * and the note would render blank until the user switched notes
+   * (forcing a remount). Observing the scene map lets us detect the
+   * replacement and re-attach to the new array.
+   */
   const subscribe = React.useCallback(
     (cb: () => void) => {
-      const arr = getBlocksArray(doc);
-      arrRef.current = arr;
-      arr.observe(cb);
-      return () => arr.unobserve(cb);
+      const scene = doc.getMap(SCENE_MAP);
+      let observedArr: Y.Array<SceneBlock> | null = null;
+
+      const attach = (next: Y.Array<SceneBlock> | null) => {
+        if (observedArr === next) return;
+        if (observedArr) observedArr.unobserve(cb);
+        observedArr = next;
+        if (next) next.observe(cb);
+      };
+
+      attach(peekBlocksArray(doc));
+
+      const onSceneChange = (ev: Y.YMapEvent<unknown>) => {
+        if (!ev.keysChanged.has(BLOCKS_KEY)) return;
+        attach(peekBlocksArray(doc));
+        cb();
+      };
+      scene.observe(onSceneChange);
+
+      return () => {
+        scene.unobserve(onSceneChange);
+        if (observedArr) observedArr.unobserve(cb);
+      };
     },
     [doc],
   );
+
   const get = React.useCallback(() => {
-    const arr = arrRef.current ?? getBlocksArray(doc);
-    return snapshot(arr);
+    const arr = peekBlocksArray(doc);
+    return arr ? snapshot(arr) : EMPTY_BLOCKS;
   }, [doc]);
 
   return React.useSyncExternalStore(subscribe, get, get);
 }
+
+const EMPTY_BLOCKS: SceneBlock[] = [];
 
 // Snapshot must be referentially stable when contents are unchanged.
 const snapshotCache = new WeakMap<Y.Array<SceneBlock>, { sig: string; data: SceneBlock[] }>();

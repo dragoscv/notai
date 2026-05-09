@@ -606,24 +606,21 @@
 
     /* Keep Excalidraw on its OWN typeface.
      *
-     * The rest of the app uses Geist (loaded via next/font and applied to
-     * <body> through `font-sans`). Without this rule, body inheritance
+     * The rest of the app uses Geist (loaded via next/font and applied
+     * to <body> through `font-sans`). Without this rule, body inheritance
      * pulls Geist into Excalidraw's UI chrome (toolbars, side panel,
-     * popovers, font-size labels, "Double-click to edit text" hint) and
-     * — more visibly — into the in-canvas text editor overlay
-     * (`.excalidraw-wysiwyg` / `.excalidraw-textEditorContainer`), which
-     * is what shows while you're typing a text element. Excalidraw ships
-     * its own font stack ("Assistant" for UI, Virgil/Cascadia/Helvetica
-     * for canvas glyphs) and we want that look preserved untouched.
+     * popovers, "Double-click to edit text" hint) — Excalidraw ships its
+     * own "Assistant" UI font and we want that look preserved.
      *
-     * `revert` here drops back to Excalidraw's own stylesheet rules —
-     * cleaner than hard-coding "Assistant, sans-serif" because it stays
-     * correct if Excalidraw retunes its defaults. */
+     * Important: only target the `.excalidraw` ROOT (and the wysiwyg
+     * overlay used while typing canvas text). DO NOT add a `*` selector
+     * here — Excalidraw applies its canvas text fonts via descendant
+     * classes like `.excalidraw .font-family-Virgil`, and a wildcard
+     * rule out-specificities them so the font picker silently dies.
+     * Descendants inherit Excalidraw's chosen font naturally. */
     .excalidraw,
-    .excalidraw *,
     .excalidraw-wysiwyg,
-    .excalidraw-textEditorContainer,
-    .excalidraw-textEditorContainer * {
+    .excalidraw-textEditorContainer {
         font-family: revert;
     }
 
