@@ -10,3 +10,4 @@ export * from './versions';
 export * from './templates';
 export * from './tokens';
 export * from './secrets';
+export * from './support';

@@ -1,151 +1,203 @@
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/layout/legal-page';
+import { LEGAL } from '@/lib/legal-info';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service',
-  description:
-    'The agreement between you and Codai when you use Notai. Plain language, no surprises.',
+  title: 'Terms of service',
+  description: 'The agreement between you and Notai when you use the service.',
   alternates: { canonical: '/terms' },
-  robots: { index: true, follow: true },
 };
 
 export default function TermsPage() {
   return (
     <LegalPage
-      title="Terms of Service"
-      subtitle="The simple ground rules for using Notai."
-      updated="2026-05-07"
+      title="Terms of service"
+      subtitle={`The agreement between you and ${LEGAL.brand} when you use the service.`}
+      updated={LEGAL.lastUpdated}
     >
-      <h2>1. Who you are dealing with</h2>
       <p>
-        Notai is operated by <strong>Codai</strong>, a sole proprietorship established in Romania
-        (&quot;we&quot;, &quot;us&quot;). By creating an account or using Notai (&quot;the
-        Service&quot;), you agree to these Terms. If you do not agree, please do not use the
-        Service.
+        Welcome to {LEGAL.brand}. These Terms (the &ldquo;Terms&rdquo;) form a binding contract
+        between you and the operator described in section&nbsp;1. By creating an account or using
+        the service you agree to be bound by them. If you do not agree, do not use the service.
       </p>
 
-      <h2>2. Your account</h2>
+      <h2>1. Who we are</h2>
       <p>
-        You must be at least 16 years old to create an account. You are responsible for keeping your
-        sign-in credentials safe. Tell us at{' '}
-        <a href="mailto:security@notai.ro">security@notai.ro</a> if you suspect someone else is
-        using your account.
+        The {LEGAL.brand} service is operated by <strong>{LEGAL.operatorLegalName}</strong> (
+        {LEGAL.operatorForm}), established in {LEGAL.countryName}. You can reach us at{' '}
+        <a href={`mailto:${LEGAL.emails.legal}`}>{LEGAL.emails.legal}</a>. References to
+        &ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo; mean the operator. References to
+        &ldquo;you&rdquo; mean the natural or legal person using the service.
       </p>
 
-      <h2>3. License to use Notai</h2>
+      <h2>2. The service</h2>
       <p>
-        We grant you a personal, worldwide, non-exclusive, non-transferable, revocable license to
-        use Notai for your own purposes (personal or business), subject to these Terms. We may
-        update or improve features at any time.
+        {LEGAL.brand} is a local-first notes application with optional cloud sync, sharing,
+        AI-assisted features, and collaboration. Some features are free, others require a paid
+        subscription described on our <a href="/pricing">pricing page</a>.
       </p>
 
-      <h2>4. Your content</h2>
+      <h2>3. Eligibility</h2>
       <p>
-        You keep all rights to the notes, drawings, files, and other content you upload (&quot;Your
-        Content&quot;). You grant us only the technical license we need to host, sync, back up, and
-        display Your Content to you and to people you explicitly share with. We do not claim
-        ownership of Your Content and we do not use it to train AI models.
-      </p>
-      <p>
-        You are responsible for Your Content and for having the right to upload it. Do not upload
-        material that infringes someone else&rsquo;s rights.
+        You must be at least 16 years old, or older if your jurisdiction sets a higher age for
+        digital consent. By using the service you confirm that you meet this requirement.
       </p>
 
-      <h2>5. Acceptable use</h2>
-      <p>You agree not to:</p>
+      <h2>4. Your account</h2>
       <ul>
-        <li>Break the law or use Notai to harm, harass, or impersonate anyone.</li>
+        <li>You are responsible for the activity on your account and for keeping it secure.</li>
+        <li>You must provide accurate information and notify us if it changes materially.</li>
+        <li>You may not share account credentials. Each natural person needs their own account.</li>
         <li>
-          Upload malware, run automated scrapers, or attempt to disrupt or overload the Service.
-        </li>
-        <li>Reverse-engineer, decompile, or rent the Service except where the law allows it.</li>
-        <li>
-          Use Notai to store or distribute content that is illegal in Romania or in your
-          jurisdiction (CSAM, hate speech, terrorism content, etc.).
+          We may suspend or terminate accounts that violate these Terms or the{' '}
+          <a href="/aup">acceptable use policy</a>.
         </li>
       </ul>
+
+      <h2>5. Your content</h2>
       <p>
-        We may suspend or terminate accounts that violate these rules, with or without notice when
-        needed to protect users or the Service.
+        You retain all rights to the notes, attachments, drawings, and other content you create with{' '}
+        {LEGAL.brand} (your &ldquo;Content&rdquo;). You grant us a limited, worldwide, royalty-free
+        licence to host, transmit, back up, and display your Content solely as necessary to provide
+        the service to you and the people you share with. We do not use your Content to train AI
+        models.
+      </p>
+      <p>
+        You are solely responsible for your Content and for ensuring you have the right to upload
+        and share it.
       </p>
 
-      <h2>6. Pricing</h2>
+      <h2>6. Acceptable use</h2>
       <p>
-        Notai is currently free to use. If we introduce paid plans we will give you clear notice and
-        the chance to keep your existing data on a free tier or export it.
+        Use of the service is subject to the <a href="/aup">acceptable use policy</a>, which is
+        incorporated by reference. We may remove Content or suspend access for violations.
       </p>
 
-      <h2>7. Beta features</h2>
+      <h2>7. Subscriptions, payment, and renewal</h2>
+      <ul>
+        <li>
+          Paid subscriptions are billed in advance for the period you choose (monthly or yearly) via
+          Stripe. Prices and currencies are shown at checkout.
+        </li>
+        <li>
+          Subscriptions renew automatically at the end of each period unless you cancel before the
+          renewal date. You can cancel anytime from <em>Settings &rarr; Billing</em>.
+        </li>
+        <li>
+          You authorise us (and Stripe) to charge your payment method for renewals at the
+          then-current price for your plan and currency. We will email you in advance if the price
+          changes.
+        </li>
+        <li>
+          Failed payments may result in your account being downgraded to the Free plan after a grace
+          period.
+        </li>
+      </ul>
+
+      <h2>8. Right of withdrawal &amp; refunds</h2>
       <p>
-        Some features are marked &quot;beta&quot; or &quot;preview&quot;. They are provided as-is
-        and may change or disappear. Avoid relying on them for mission-critical workflows.
+        EU consumers have a {LEGAL.refund.rightOfWithdrawalDays}-day right of withdrawal under
+        Romanian OUG&nbsp;34/2014. Conditions, exceptions for digital services started immediately,
+        and the procedure for requesting a refund are described in detail in our{' '}
+        <a href="/refund">refund &amp; withdrawal policy</a>.
       </p>
 
-      <h2>8. Intellectual property</h2>
+      <h2>9. Privacy</h2>
       <p>
-        The Notai name, logo, source code, and the layout of the Service are owned by Codai or our
-        licensors. Nothing in these Terms transfers any of those rights to you.
+        We process personal data as described in the <a href="/privacy-policy">privacy policy</a>.
+        By using the service you acknowledge that processing.
       </p>
 
-      <h2>9. Third-party services</h2>
+      <h2>10. Intellectual property</h2>
       <p>
-        Notai integrates with third-party services (Google, GitHub, Vercel, Google Cloud, Resend).
-        Their terms and privacy policies apply when you use those integrations.
+        The {LEGAL.brand} brand, software, and design are owned by us and protected by copyright,
+        trademark, and other laws. We grant you a limited, non-exclusive, non-transferable licence
+        to use the service for its intended purpose for the duration of your subscription.
       </p>
 
-      <h2>10. Termination &amp; data export</h2>
+      <h2>11. Beta features</h2>
       <p>
-        You can close your account at any time from the Settings page. We will soft-delete your data
-        for 30 days (in case you change your mind), then erase it. You can export your notes as JSON
-        before closing the account. We may terminate or suspend your account if you materially
-        breach these Terms or if we are required to by law.
+        We may offer experimental or beta features. They are provided &ldquo;as is&rdquo;, may be
+        changed or discontinued without notice, and are excluded from any availability commitment.
       </p>
 
-      <h2>11. Warranties &amp; liability</h2>
+      <h2>12. Service availability</h2>
       <p>
-        Notai is provided &quot;as is&quot; and &quot;as available&quot; without warranties of any
-        kind, except those that cannot be excluded by law. To the maximum extent allowed by Romanian
-        law, our total liability for any claim related to the Service is limited to the amount you
-        paid us in the 12 months before the claim (or, if the Service is free, to{' '}
-        <strong>EUR 50</strong>).
-      </p>
-      <p>
-        Nothing in these Terms limits liability that cannot be limited by law, including intentional
-        misconduct, gross negligence, or harm to life or bodily integrity.
+        We work hard to keep the service available but do not guarantee uninterrupted operation.
+        Planned maintenance is announced in advance where reasonably possible. Status is published
+        at <a href={`${LEGAL.url}`}>{LEGAL.domain}</a>.
       </p>
 
-      <h2>12. Indemnity</h2>
+      <h2>13. Disclaimers</h2>
       <p>
-        You agree to defend and indemnify Codai against claims arising from Your Content or your
-        misuse of the Service, except to the extent caused by our own breach.
+        Except where prohibited by mandatory consumer-protection law, the service is provided
+        &ldquo;as is&rdquo; and &ldquo;as available&rdquo; without warranties of any kind, whether
+        express, implied, or statutory. We do not warrant that the service will be uninterrupted,
+        error-free, or secure, or that it will meet your specific requirements.
       </p>
 
-      <h2>13. Changes to these Terms</h2>
+      <h2>14. Limitation of liability</h2>
       <p>
-        If we make material changes we will email registered users at least 14 days before they take
-        effect. Continuing to use Notai after the effective date means you accept the new Terms.
+        To the maximum extent permitted by applicable law, our aggregate liability arising out of or
+        relating to your use of the service is limited to the greater of (a) the amounts you paid us
+        in the twelve months preceding the event giving rise to the claim, or (b) EUR&nbsp;100. We
+        are not liable for indirect, incidental, special, consequential, or punitive damages, or for
+        loss of data, profits, or business opportunities, even if we have been advised of the
+        possibility of such damages.
+      </p>
+      <p>
+        Nothing in these Terms limits or excludes any liability that cannot be limited or excluded
+        under applicable law &mdash; including liability for fraud, gross negligence, or wilful
+        misconduct.
       </p>
 
-      <h2>14. Governing law &amp; disputes</h2>
+      <h2>15. Indemnification</h2>
       <p>
-        These Terms are governed by Romanian law. Any dispute that cannot be settled amicably will
-        be resolved by the competent courts in Bucharest, Romania, without prejudice to any
-        mandatory consumer-protection rights you have in your country of residence.
+        You agree to defend, indemnify, and hold us harmless from any third-party claims arising
+        from (a) your use of the service in violation of these Terms or applicable law, (b) your
+        Content, or (c) your infringement of any third-party rights.
       </p>
+
+      <h2>16. Termination</h2>
       <p>
-        EU consumers may also use the European Commission&rsquo;s Online Dispute Resolution platform
-        at{' '}
-        <a href="https://ec.europa.eu/consumers/odr" rel="noopener noreferrer" target="_blank">
-          ec.europa.eu/consumers/odr
+        You may stop using the service and delete your account at any time. We may suspend or
+        terminate access for material breach of these Terms, with notice where reasonably possible.
+        Sections that by their nature should survive termination (sections&nbsp;5, 10, 13&ndash;15,
+        17&ndash;19) survive.
+      </p>
+
+      <h2>17. Changes to the service or these Terms</h2>
+      <p>
+        We may update these Terms from time to time. Material changes are announced in-app and by
+        email at least 30 days in advance for paid plans. Continued use of the service after the
+        effective date constitutes acceptance of the updated Terms.
+      </p>
+
+      <h2>18. Governing law &amp; jurisdiction</h2>
+      <p>
+        These Terms are governed by {LEGAL.jurisdiction.law}. The courts of{' '}
+        {LEGAL.jurisdiction.courts} have exclusive jurisdiction, except where mandatory
+        consumer-protection law in your country of residence grants you the right to bring
+        proceedings before your local courts.
+      </p>
+
+      <h2>19. Dispute resolution &amp; consumer rights</h2>
+      <p>
+        EU consumers may use the European Commission&rsquo;s online dispute resolution platform at{' '}
+        <a href={LEGAL.jurisdiction.odrUrl} target="_blank" rel="noopener">
+          {LEGAL.jurisdiction.odrUrl}
+        </a>
+        . Romanian consumers may also contact{' '}
+        <a href={LEGAL.jurisdiction.consumerAuthority.url} target="_blank" rel="noopener">
+          {LEGAL.jurisdiction.consumerAuthority.name}
         </a>
         .
       </p>
 
-      <h2>15. Contact</h2>
+      <h2>20. Contact</h2>
       <p>
-        Codai · Romania
-        <br />
-        <a href="mailto:legal@notai.ro">legal@notai.ro</a>
+        Legal notices: <a href={`mailto:${LEGAL.emails.legal}`}>{LEGAL.emails.legal}</a>. General
+        support: <a href={`mailto:${LEGAL.emails.support}`}>{LEGAL.emails.support}</a>.
       </p>
     </LegalPage>
   );

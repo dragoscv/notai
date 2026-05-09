@@ -1,121 +1,116 @@
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/layout/legal-page';
+import { LEGAL } from '@/lib/legal-info';
 import { CookieSettingsButtonClient } from '@/components/legal/cookie-settings-button';
 
 export const metadata: Metadata = {
-  title: 'Cookie Policy',
+  title: 'Cookie policy',
   description:
-    'The cookies and similar storage Notai uses, why we use them, and how to change your mind.',
+    'What cookies and similar technologies Notai uses, what they do, and how you can control them.',
   alternates: { canonical: '/cookies' },
-  robots: { index: true, follow: true },
 };
 
 export default function CookiesPage() {
   return (
     <LegalPage
-      title="Cookie Policy"
-      subtitle="What we store on your device, why, and how to opt out."
-      updated="2026-05-07"
+      title="Cookie policy"
+      subtitle="What cookies and similar technologies we use, and how you can control them."
+      updated={LEGAL.lastUpdated}
     >
-      <h2>1. The simple version</h2>
-      <p>
-        Notai uses cookies and similar storage (localStorage, sessionStorage, IndexedDB) to sign you
-        in, remember your preferences, and — only if you say yes — gather anonymous usage analytics
-        so we know which features matter.
-      </p>
-      <p>
-        Optional cookies are off by default. You decide on your first visit and can change your mind
-        at any time using the button below.
-      </p>
+      <h2>Summary</h2>
+      <ul>
+        <li>
+          Strictly necessary cookies are always on &mdash; without them you can&rsquo;t sign in.
+        </li>
+        <li>Optional cookies (preferences, analytics, marketing) require your consent.</li>
+        <li>Your choice is saved on this device for 12 months and you can change it anytime.</li>
+      </ul>
+
       <p>
         <CookieSettingsButtonClient />
       </p>
 
-      <h2>2. Categories</h2>
-      <h3>Strictly necessary (always on)</h3>
+      <h2>1. What is a cookie?</h2>
       <p>
-        Required for sign-in, security (CSRF token), and remembering your consent choice. Disabling
-        them would break the app, so they cannot be turned off.
+        A cookie is a small text file stored by your browser when you visit a website. Similar
+        technologies include <code>localStorage</code>, <code>sessionStorage</code>, and the Service
+        Worker cache. Throughout this page &ldquo;cookies&rdquo; refers to all of them.
       </p>
 
-      <h3>Preferences</h3>
+      <h2>2. Cookies we use</h2>
+      <h3>Strictly necessary</h3>
+      <ul>
+        <li>
+          <code>authjs.session-token</code> &mdash; keeps you signed in. First-party, expires when
+          your session ends or after 30 days.
+        </li>
+        <li>
+          <code>authjs.csrf-token</code>, <code>authjs.callback-url</code> &mdash; protect the
+          sign-in flow. First-party, session.
+        </li>
+        <li>
+          <code>{`notai_consent`}</code> &mdash; remembers your cookie choice. First-party, 12
+          months.
+        </li>
+        <li>
+          <code>__Secure-*</code> Stripe checkout cookies &mdash; only set on the Stripe-hosted
+          payment pages.
+        </li>
+      </ul>
+
+      <h3>Preferences (optional)</h3>
+      <ul>
+        <li>
+          <code>theme</code> &mdash; remembers light/dark/system. First-party, 12 months.
+        </li>
+        <li>
+          <code>editor.width</code>, <code>sidebar.collapsed</code> &mdash; layout preferences.
+          First-party, 12 months.
+        </li>
+      </ul>
+
+      <h3>Analytics (optional, only with consent)</h3>
+      <ul>
+        <li>
+          <strong>Google Analytics 4</strong> &mdash; aggregated usage statistics so we know which
+          features matter. IP anonymisation is on; we do not enable Google Signals.
+        </li>
+      </ul>
+
+      <h3>Marketing (optional, only with consent)</h3>
+      <ul>
+        <li>
+          <strong>Meta Pixel</strong> &mdash; conversion measurement for ads. Loaded only if you
+          consent and only on the marketing pages.
+        </li>
+      </ul>
+
+      <h3>Operational (necessary, no personal data)</h3>
+      <ul>
+        <li>
+          <strong>Sentry</strong> &mdash; client-side error reporting. PII is scrubbed; cookies are
+          first-party and limited to a session ID.
+        </li>
+      </ul>
+
+      <h2>3. Managing your choices</h2>
       <p>
-        Remember your theme (light / dark / system), language, and editor width. These cookies stay
-        on your device — nothing is sent to any third party.
+        Use the consent banner the first time you visit, or open <em>Cookie settings</em> at any
+        time using the button above. You can also clear cookies for {LEGAL.domain} in your browser
+        settings &mdash; that will reset your choice and the banner will appear again.
       </p>
 
-      <h3>Analytics</h3>
+      <h2>4. Do Not Track</h2>
       <p>
-        If enabled, Notai records anonymous, aggregated metrics: which pages are visited, which
-        features are used, performance timings. We never record what you type, the contents of your
-        notes, or other personal data. We do not use Google Analytics or any cross-site tracker.
+        Browsers send a Do-Not-Track signal in different formats and there is no industry consensus
+        on what it means. We treat the Global Privacy Control (GPC) signal as a request to reject
+        optional cookies.
       </p>
 
-      <h3>Marketing</h3>
+      <h2>5. Contact</h2>
       <p>
-        Currently unused. Notai has no advertising and no third-party marketing pixels. We reserve
-        the category for the future (for example, a referral program). It is off by default.
-      </p>
-
-      <h2>3. Inventory</h2>
-      <div className="not-prose border-border/60 overflow-x-auto rounded-xl border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-left">
-            <tr>
-              <th className="px-4 py-2 font-medium">Name</th>
-              <th className="px-4 py-2 font-medium">Category</th>
-              <th className="px-4 py-2 font-medium">Purpose</th>
-              <th className="px-4 py-2 font-medium">Lifetime</th>
-            </tr>
-          </thead>
-          <tbody className="divide-border/60 divide-y">
-            <tr>
-              <td className="px-4 py-2 font-mono text-xs">authjs.session-token</td>
-              <td className="px-4 py-2">Necessary</td>
-              <td className="px-4 py-2">Keeps you signed in.</td>
-              <td className="px-4 py-2">30 days</td>
-            </tr>
-            <tr>
-              <td className="px-4 py-2 font-mono text-xs">authjs.csrf-token</td>
-              <td className="px-4 py-2">Necessary</td>
-              <td className="px-4 py-2">CSRF protection on auth endpoints.</td>
-              <td className="px-4 py-2">Session</td>
-            </tr>
-            <tr>
-              <td className="px-4 py-2 font-mono text-xs">notai_consent</td>
-              <td className="px-4 py-2">Necessary</td>
-              <td className="px-4 py-2">Remembers your consent choice.</td>
-              <td className="px-4 py-2">12 months</td>
-            </tr>
-            <tr>
-              <td className="px-4 py-2 font-mono text-xs">notai_theme</td>
-              <td className="px-4 py-2">Preferences</td>
-              <td className="px-4 py-2">Stores light / dark / system theme.</td>
-              <td className="px-4 py-2">12 months</td>
-            </tr>
-            <tr>
-              <td className="px-4 py-2 font-mono text-xs">notai_editor_width</td>
-              <td className="px-4 py-2">Preferences</td>
-              <td className="px-4 py-2">Editor reading width.</td>
-              <td className="px-4 py-2">12 months</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p className="text-muted-foreground mt-3 text-xs">
-        We do not list third-party advertising or tracking cookies because Notai does not use any.
-      </p>
-
-      <h2>4. How to manage cookies</h2>
-      <p>
-        Use the button at the top of this page to open the consent panel any time. You can also
-        clear cookies and site data from your browser settings — the next visit will start fresh.
-      </p>
-
-      <h2>5. Changes</h2>
-      <p>
-        If we add new cookies (for example, when a paid plan launches) we will update this page and
-        re-prompt for consent before activating them.
+        Cookie or privacy questions:{' '}
+        <a href={`mailto:${LEGAL.emails.privacy}`}>{LEGAL.emails.privacy}</a>.
       </p>
     </LegalPage>
   );

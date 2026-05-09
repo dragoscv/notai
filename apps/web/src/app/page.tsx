@@ -706,45 +706,76 @@ function FinalCta({
 /* ─────────────────────── Footer ─────────────────────── */
 
 function SiteFooter() {
+  const year = new Date().getFullYear();
   return (
     <footer className="relative mx-auto max-w-6xl px-6 pb-10">
-      <div className="text-muted-foreground flex flex-col items-center justify-between gap-6 border-t pt-8 text-xs sm:flex-row sm:items-start">
-        <div className="flex items-center gap-2">
-          <span
-            aria-hidden
-            className="bg-primary/15 text-primary grid size-5 place-items-center rounded-md"
-          >
-            <PenLine className="size-3" />
-          </span>
-          <span>© {new Date().getFullYear()} Codai · Made with care in Romania.</span>
+      <div className="grid gap-8 border-t pt-10 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="lg:col-span-2">
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="bg-primary/15 text-primary grid size-6 place-items-center rounded-md"
+            >
+              <PenLine className="size-3.5" />
+            </span>
+            <span className="font-semibold tracking-tight">Notai</span>
+          </div>
+          <p className="text-muted-foreground mt-3 max-w-xs text-sm leading-relaxed">
+            A calm, local-first notes app with sticky windows, drawings, and optional cloud sync.
+            Made with care in Romania.
+          </p>
+          <p className="text-muted-foreground/80 mt-4 text-xs">
+            © {year} Notai · Operated by Vlăduțescu Dragoș Cătălin (PFA), Romania.
+          </p>
         </div>
-        <nav aria-label="Footer" className="grid grid-cols-2 gap-x-8 gap-y-2 sm:grid-cols-3">
-          <Link href="/signin" className="hover:text-foreground">
-            Sign in
-          </Link>
-          <a href="#features" className="hover:text-foreground">
-            Features
-          </a>
-          <a href="#start" className="hover:text-foreground">
-            Get started
-          </a>
-          <Link href="/privacy-policy" className="hover:text-foreground">
-            Privacy
-          </Link>
-          <Link href="/terms" className="hover:text-foreground">
-            Terms
-          </Link>
-          <Link href="/cookies" className="hover:text-foreground">
-            Cookies
-          </Link>
-          <Link href="/accessibility" className="hover:text-foreground">
-            Accessibility
-          </Link>
-          <Link href="/contact" className="hover:text-foreground">
-            Contact
-          </Link>
-        </nav>
+
+        <FooterCol
+          title="Product"
+          links={[
+            { href: '/', label: 'Home' },
+            { href: '/#features', label: 'Features' },
+            { href: '/pricing', label: 'Pricing' },
+            { href: '/signin', label: 'Sign in' },
+          ]}
+        />
+        <FooterCol
+          title="Help"
+          links={[
+            { href: '/faq', label: 'FAQ' },
+            { href: '/support', label: 'My tickets' },
+            { href: '/support/new', label: 'Open a ticket' },
+            { href: '/contact', label: 'Contact' },
+          ]}
+        />
+        <FooterCol
+          title="Legal"
+          links={[
+            { href: '/terms', label: 'Terms' },
+            { href: '/privacy-policy', label: 'Privacy' },
+            { href: '/refund', label: 'Refund' },
+            { href: '/aup', label: 'Acceptable use' },
+            { href: '/cookies', label: 'Cookies' },
+            { href: '/accessibility', label: 'Accessibility' },
+          ]}
+        />
       </div>
     </footer>
+  );
+}
+
+function FooterCol({ title, links }: { title: string; links: { href: string; label: string }[] }) {
+  return (
+    <div>
+      <h4 className="text-foreground text-xs font-semibold uppercase tracking-wider">{title}</h4>
+      <ul className="mt-3 space-y-2 text-sm">
+        {links.map((l) => (
+          <li key={l.href}>
+            <Link href={l.href} className="text-muted-foreground hover:text-foreground transition">
+              {l.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

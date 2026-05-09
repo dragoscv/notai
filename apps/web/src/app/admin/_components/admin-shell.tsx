@@ -16,6 +16,7 @@ import {
   Activity,
   Ticket,
   ToggleRight,
+  LifeBuoy,
   ArrowLeft,
 } from 'lucide-react';
 import { cn } from '@notai/lib/utils';
@@ -36,6 +37,7 @@ const NAV: NavItem[] = [
   { href: '/admin/coupons', label: 'Coupons', icon: Ticket },
   { href: '/admin/feature-flags', label: 'Feature flags', icon: ToggleRight },
   { href: '/admin/broadcasts', label: 'Broadcasts', icon: Megaphone },
+  { href: '/admin/support', label: 'Support', icon: LifeBuoy },
   { href: '/admin/audit-log', label: 'Audit log', icon: ScrollText },
   { href: '/admin/health', label: 'Health', icon: Activity },
 ];

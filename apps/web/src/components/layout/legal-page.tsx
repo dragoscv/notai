@@ -75,13 +75,25 @@ export function LegalPage({ title, subtitle, updated, children }: LegalPageProps
 
       <footer className="border-border/60 border-t">
         <div className="text-muted-foreground mx-auto flex max-w-3xl flex-col gap-3 px-6 py-8 text-sm sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} Codai · Made in Romania.</p>
+          <p>© {new Date().getFullYear()} Notai · Made in Romania.</p>
           <nav aria-label="Legal navigation" className="flex flex-wrap gap-x-5 gap-y-2">
+            <Link className="hover:text-foreground" href="/faq">
+              FAQ
+            </Link>
+            <Link className="hover:text-foreground" href="/support">
+              Support
+            </Link>
             <Link className="hover:text-foreground" href="/privacy-policy">
               Privacy
             </Link>
             <Link className="hover:text-foreground" href="/terms">
               Terms
+            </Link>
+            <Link className="hover:text-foreground" href="/refund">
+              Refund
+            </Link>
+            <Link className="hover:text-foreground" href="/aup">
+              Acceptable use
             </Link>
             <Link className="hover:text-foreground" href="/cookies">
               Cookies

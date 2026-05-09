@@ -41,6 +41,11 @@ export const PERMISSIONS = {
   'platform:broadcasts': 'Create and send email broadcasts',
   'platform:health': 'View system health and operational metrics',
   'platform:coupons': 'Manage Stripe coupons',
+
+  // Support tickets
+  'support:read': 'View support tickets',
+  'support:reply': 'Reply to support tickets',
+  'support:manage': 'Assign, prioritize, and close support tickets',
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
@@ -71,6 +76,9 @@ export const ROLES = {
       'platform:broadcasts',
       'platform:health',
       'platform:coupons',
+      'support:read',
+      'support:reply',
+      'support:manage',
     ] satisfies PermissionKey[],
   },
   support: {
@@ -82,6 +90,9 @@ export const ROLES = {
       'plans:read',
       'platform:audit_log',
       'platform:health',
+      'support:read',
+      'support:reply',
+      'support:manage',
     ] satisfies PermissionKey[],
   },
   user: {

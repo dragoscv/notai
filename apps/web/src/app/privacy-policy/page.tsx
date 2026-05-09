@@ -1,193 +1,199 @@
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/layout/legal-page';
+import { LEGAL } from '@/lib/legal-info';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy',
+  title: 'Privacy policy',
   description:
-    'How Codai collects, uses, and protects personal data when you use Notai — written in plain language and aligned with the GDPR.',
+    'How Notai collects, processes, and protects your personal data — written for humans first, lawyers second.',
   alternates: { canonical: '/privacy-policy' },
-  robots: { index: true, follow: true },
 };
 
 export default function PrivacyPolicyPage() {
   return (
     <LegalPage
-      title="Privacy Policy"
-      subtitle="What data Notai collects, why, and the rights you have over it."
-      updated="2026-05-07"
+      title="Privacy policy"
+      subtitle="How we collect, process, and protect your personal data — under the EU General Data Protection Regulation (GDPR)."
+      updated={LEGAL.lastUpdated}
     >
-      <h2>1. Who we are</h2>
-      <p>
-        <strong>Notai</strong> (&quot;the Service&quot;) is operated by <strong>Codai</strong>{' '}
-        (&quot;we&quot;, &quot;us&quot;), a sole-proprietorship established in Romania. We are the
-        &quot;data controller&quot; for the personal data described in this policy under Regulation
-        (EU) 2016/679 (&quot;GDPR&quot;) and Romanian Law no. 190/2018.
-      </p>
-      <p>
-        Reach us about anything privacy-related at{' '}
-        <a href="mailto:privacy@notai.ro">privacy@notai.ro</a>. For general support, use{' '}
-        <a href="mailto:support@notai.ro">support@notai.ro</a>.
-      </p>
-
-      <h2>2. The short version</h2>
+      <h2>Summary</h2>
       <ul>
-        <li>You own your notes. We never sell them or look at them to train models.</li>
         <li>
-          We collect the minimum needed to sign you in, sync your notes, and keep the service safe.
+          {LEGAL.brand} is local-first &mdash; your notes stay on your device unless you sync.
         </li>
+        <li>We do not sell your personal data and do not use your notes to train AI.</li>
         <li>
-          Optional analytics and preferences cookies are off by default. You decide on your first
-          visit and can change your mind anytime from <a href="/cookies">Cookie settings</a>.
+          You can export everything or delete your account anytime from{' '}
+          <em>Settings &rarr; Account</em>.
         </li>
-        <li>Notes are stored on servers in the European Union (Google Cloud, europe-west1).</li>
+        <li>Data is hosted in the European Union. Sub-processors are listed below.</li>
       </ul>
 
-      <h2>3. What data we collect</h2>
-      <h3>3.1 Account data</h3>
+      <h2>1. Who is the data controller?</h2>
       <p>
-        When you sign in with Google, GitHub, or another OAuth provider, we receive your name, email
-        address, and a profile picture URL. We store these to identify your account and display your
-        avatar.
-      </p>
-      <h3>3.2 Note content</h3>
-      <p>
-        Everything you write, draw, paste, or upload (titles, text, drawings, sticky notes, PDFs you
-        import, file attachments, comments) is saved so you can read it back later and sync it
-        across your devices.
-      </p>
-      <h3>3.3 Technical data</h3>
-      <p>
-        Like every web service, our infrastructure logs each request: IP address, browser
-        user-agent, the URL you accessed, response code, and timestamp. These logs are retained for
-        up to 30 days and used only to debug problems and detect abuse.
-      </p>
-      <h3>3.4 Cookies and similar storage</h3>
-      <p>
-        See our <a href="/cookies">Cookie Policy</a> for the full inventory.
+        The data controller for the personal data described in this policy is{' '}
+        <strong>{LEGAL.operatorLegalName}</strong> ({LEGAL.operatorForm}), {LEGAL.countryName}.
+        Contact: <a href={`mailto:${LEGAL.emails.privacy}`}>{LEGAL.emails.privacy}</a>. For data
+        protection matters specifically:{' '}
+        <a href={`mailto:${LEGAL.emails.dpo}`}>{LEGAL.emails.dpo}</a>.
       </p>
 
-      <h2>4. Why we use it (lawful basis)</h2>
+      <h2>2. What we collect and why</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>What</th>
+            <th>Why (lawful basis)</th>
+            <th>Retention</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Account</td>
+            <td>Email, name, profile picture from Google sign-in.</td>
+            <td>Contract performance (Art. 6(1)(b) GDPR).</td>
+            <td>Until account deletion + 30-day backup retention.</td>
+          </tr>
+          <tr>
+            <td>Notes &amp; attachments</td>
+            <td>Content you sync to the cloud, version history, sticky notes.</td>
+            <td>Contract performance.</td>
+            <td>Until you delete; trash purges after 30 days.</td>
+          </tr>
+          <tr>
+            <td>Billing</td>
+            <td>
+              Stripe customer ID, country, last4 card, subscription status. Card numbers and CVV
+              never reach our servers.
+            </td>
+            <td>Contract performance + legal obligation (tax law).</td>
+            <td>10 years for invoices (Romanian fiscal code).</td>
+          </tr>
+          <tr>
+            <td>Operational logs</td>
+            <td>IP addresses, user agent, request URL, timing, error traces.</td>
+            <td>Legitimate interest (Art. 6(1)(f)) &mdash; security, debugging.</td>
+            <td>30 days, then aggregated.</td>
+          </tr>
+          <tr>
+            <td>Analytics (optional)</td>
+            <td>Page views, anonymous usage stats.</td>
+            <td>Consent (Art. 6(1)(a)).</td>
+            <td>14 months.</td>
+          </tr>
+          <tr>
+            <td>Support tickets</td>
+            <td>Anything you send through the contact / support form.</td>
+            <td>Consent + legitimate interest.</td>
+            <td>3 years from last reply.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>3. Sub-processors</h2>
+      <p>
+        We use the following third parties to deliver the service. Each is bound by a written
+        data-processing agreement (DPA) with appropriate safeguards.
+      </p>
       <ul>
         <li>
-          <strong>Performance of a contract</strong> (Art. 6(1)(b) GDPR) — to provide the Service:
-          account, sync, sticky-note delivery.
+          <strong>Vercel Inc.</strong> &mdash; web hosting (EU/US, EU data residency where
+          configured).
         </li>
         <li>
-          <strong>Legitimate interests</strong> (Art. 6(1)(f) GDPR) — to keep the Service secure,
-          prevent fraud, and operate basic server logs. You can object at any time.
+          <strong>Google Cloud</strong> &mdash; managed PostgreSQL and supporting services
+          (europe-west region).
         </li>
         <li>
-          <strong>Consent</strong> (Art. 6(1)(a) GDPR) — for optional analytics and preferences
-          cookies. You can withdraw consent at any time.
+          <strong>Cloudflare R2</strong> &mdash; object storage for attachments (EU jurisdiction).
         </li>
         <li>
-          <strong>Legal obligation</strong> (Art. 6(1)(c) GDPR) — when we must respond to a binding
-          request from a competent authority.
-        </li>
-      </ul>
-
-      <h2>5. Who we share data with</h2>
-      <p>
-        We use a short list of EU-friendly processors. Each one is bound by a Data Processing
-        Agreement.
-      </p>
-      <ul>
-        <li>
-          <strong>Google Cloud (EU)</strong> — managed PostgreSQL and Cloud Run hosting in
-          europe-west1 (Belgium).
+          <strong>Stripe Payments Europe Ltd.</strong> &mdash; payment processing.
         </li>
         <li>
-          <strong>Vercel Inc.</strong> — front-end hosting and CDN. Configured to serve from EU
-          regions where possible.
+          <strong>Resend</strong> &mdash; transactional email delivery.
         </li>
         <li>
-          <strong>Identity providers</strong> — Google and GitHub, only when you sign in with them.
+          <strong>Sentry</strong> &mdash; error monitoring (PII scrubbed).
         </li>
         <li>
-          <strong>Resend</strong> — transactional email (sign-in links, account notices).
-        </li>
-      </ul>
-      <p>
-        We do not sell or rent your personal data. We do not use your notes to train
-        machine-learning models.
-      </p>
-
-      <h2>6. International transfers</h2>
-      <p>
-        Your data is processed in the European Economic Area. When a processor must transfer data
-        outside the EEA (e.g., a US-based parent company accessing EU infrastructure), the transfer
-        is covered by the EU Standard Contractual Clauses (Decision (EU) 2021/914) and, where
-        applicable, the EU-US Data Privacy Framework.
-      </p>
-
-      <h2>7. How long we keep it</h2>
-      <ul>
-        <li>
-          <strong>Account &amp; notes</strong>: until you delete them or close your account. After
-          account closure we keep a soft-deleted copy for 30 days in case you change your mind, then
-          permanently erase it.
+          <strong>Auth.js + Google</strong> &mdash; authentication.
         </li>
         <li>
-          <strong>Server logs</strong>: 30 days.
-        </li>
-        <li>
-          <strong>Backups</strong>: encrypted database backups are rotated within 35 days.
-        </li>
-        <li>
-          <strong>Billing records</strong> (if you ever subscribe): retained for 10 years per
-          Romanian Accounting Law no. 82/1991.
+          <strong>OpenAI / Anthropic</strong> &mdash; AI features. Prompts are sent on-demand only
+          and are governed by their respective DPAs; no training on your data.
         </li>
       </ul>
 
-      <h2>8. Your rights</h2>
-      <p>Under the GDPR you have the right to:</p>
+      <h2>4. International transfers</h2>
+      <p>
+        Where a sub-processor stores or processes personal data outside the EU/EEA (e.g. some Stripe
+        or AI sub-processing), transfers rely on the European Commission&rsquo;s Standard
+        Contractual Clauses (Decision&nbsp;2021/914) and additional safeguards required by GDPR.
+      </p>
+
+      <h2>5. Your rights</h2>
+      <p>Under GDPR you have the right to:</p>
       <ul>
         <li>Access the personal data we hold about you.</li>
-        <li>Correct inaccurate or incomplete data.</li>
-        <li>Erase your data (&quot;right to be forgotten&quot;).</li>
-        <li>Restrict or object to certain processing.</li>
-        <li>Receive your data in a portable, machine-readable format (data portability).</li>
-        <li>Withdraw consent at any time without affecting the lawfulness of prior processing.</li>
+        <li>Rectify inaccurate data.</li>
+        <li>Erase your data (&ldquo;right to be forgotten&rdquo;).</li>
+        <li>Restrict or object to specific processing.</li>
+        <li>Data portability &mdash; export in a structured, machine-readable format.</li>
+        <li>Withdraw consent at any time, without affecting prior lawful processing.</li>
         <li>
-          Lodge a complaint with the Romanian supervisory authority,{' '}
-          <a href="https://www.dataprotection.ro/" rel="noopener noreferrer" target="_blank">
-            ANSPDCP
-          </a>
-          , or your local supervisory authority in the EU.
+          Lodge a complaint with the Romanian data-protection authority{' '}
+          <a href={LEGAL.jurisdiction.dpa.url} target="_blank" rel="noopener">
+            {LEGAL.jurisdiction.dpa.name}
+          </a>{' '}
+          or your local supervisory authority.
         </li>
       </ul>
       <p>
-        To exercise any of these, email <a href="mailto:privacy@notai.ro">privacy@notai.ro</a>. We
-        respond within 30 days.
+        To exercise any right, email{' '}
+        <a href={`mailto:${LEGAL.emails.privacy}`}>{LEGAL.emails.privacy}</a>. We respond within 30
+        days. We may need to verify your identity to prevent unauthorised disclosure.
       </p>
 
-      <h2>9. Security</h2>
+      <h2>6. Children</h2>
       <p>
-        Notes and credentials travel over TLS 1.3. Passwords are never stored — we use OAuth or
-        one-time email links. The database is encrypted at rest. Access to production systems is
-        limited to the minimum number of operators and requires hardware-backed two-factor
-        authentication.
+        {LEGAL.brand} is not directed at children under 16. We do not knowingly collect personal
+        data from children under that age. If you believe a child has provided us with personal
+        data, contact us and we will delete it.
       </p>
 
-      <h2>10. Children</h2>
+      <h2>7. Cookies</h2>
       <p>
-        Notai is not directed at children under 16. If you believe a child has created an account,
-        please contact us and we will delete it.
+        See our <a href="/cookies">cookie policy</a> for the full list and the consent controls.
       </p>
 
-      <h2>11. Changes to this policy</h2>
+      <h2>8. Security</h2>
       <p>
-        If we make material changes we will email registered users at least 14 days before they take
-        effect, and update the &quot;last updated&quot; date at the top of this page.
+        We use industry-standard measures: TLS 1.2+ for data in transit, encryption at rest for the
+        managed database and object storage, role-based access control for our team, audit logging
+        of admin actions, and regular dependency &amp; vulnerability scanning. No system is
+        absolutely secure &mdash; if you discover a vulnerability, please report it to{' '}
+        <a href={`mailto:${LEGAL.emails.abuse}`}>{LEGAL.emails.abuse}</a>.
       </p>
 
-      <h2>12. Contact</h2>
+      <h2>9. Data breach notification</h2>
       <p>
-        Codai · Romania
-        <br />
-        Email: <a href="mailto:privacy@notai.ro">privacy@notai.ro</a>
-        <br />
-        Support: <a href="mailto:support@notai.ro">support@notai.ro</a>
+        In the event of a personal data breach affecting your rights and freedoms, we will notify
+        the supervisory authority within 72 hours and inform affected users without undue delay when
+        required by GDPR Art.&nbsp;33 &amp; 34.
+      </p>
+
+      <h2>10. Changes</h2>
+      <p>
+        We may update this policy. Material changes are announced in-app and by email. The
+        &ldquo;Last updated&rdquo; date at the top reflects the current version.
+      </p>
+
+      <h2>11. Contact</h2>
+      <p>
+        Privacy questions: <a href={`mailto:${LEGAL.emails.privacy}`}>{LEGAL.emails.privacy}</a>.
+        DPO: <a href={`mailto:${LEGAL.emails.dpo}`}>{LEGAL.emails.dpo}</a>.
       </p>
     </LegalPage>
   );
