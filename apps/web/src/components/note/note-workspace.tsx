@@ -28,6 +28,7 @@ import { isTauri, invoke } from '@/lib/tauri';
 import { ShareDialog } from './share-dialog';
 import { AssetUploader } from './asset-uploader';
 import { BacklinksPanel } from './backlinks-panel';
+import { RolloverBanner } from './rollover-banner';
 import { TagChips } from './tag-chips';
 import { VoiceRecorder } from './voice-recorder';
 import { NoteAiMenu } from './note-ai-menu';
@@ -230,6 +231,7 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
               <div className="mt-2 flex items-center gap-2">
                 <TagChips noteId={note.id} />
               </div>
+              <RolloverBanner noteId={note.id} noteTitle={title} canvasRef={canvasRef} />
               {editor && (
                 <div className="bg-background/80 sticky top-0 z-10 mt-2 py-1.5 backdrop-blur">
                   <Toolbar editor={editor} />
