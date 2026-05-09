@@ -18,6 +18,7 @@ const GROUPS: Group[] = [
       { keys: [MOD, 'Shift', 'K'], label: 'Ask your notes' },
       { keys: [MOD, 'N'], label: 'New note' },
       { keys: [MOD, 'J'], label: "Jump to today's daily note" },
+      { keys: [MOD, '\\'], label: 'Toggle sidebar' },
       { keys: [MOD, ','], label: 'Open settings' },
       { keys: ['?'], label: 'Show this cheatsheet' },
     ],

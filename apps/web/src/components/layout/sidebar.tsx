@@ -32,6 +32,7 @@ import { createNote } from '@/server/actions/notes';
 import type { Note, Folder } from '@notai/db/schema';
 import { OpenStickiesButton } from '@/components/note/open-stickies-button';
 import { SidebarTree } from '@/components/layout/sidebar-tree';
+import { useSidebar } from '@/components/layout/app-shell';
 import { DesktopAppPromo } from '@/components/layout/desktop-app-promo';
 import { SettingsDialog, useSettingsOpenRequests } from '@/components/settings/settings-dialog';
 
@@ -53,6 +54,8 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
   });
   useHotkey('mod+,', () => setSettingsOpen(true));
   useHotkey('mod+j', () => router.push('/app/today'));
+  const { toggleDesktop } = useSidebar();
+  useHotkey('mod+\\', () => toggleDesktop());
   useSettingsOpenRequests(() => setSettingsOpen(true));
   useHotkey('mod+k', () => {
     document.dispatchEvent(new CustomEvent('notai:command-palette'));
