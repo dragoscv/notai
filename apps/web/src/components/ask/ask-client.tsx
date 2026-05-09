@@ -1,7 +1,8 @@
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
-import { Sparkles, Send, Loader2, FileText } from 'lucide-react';
+import { Sparkles, Send, Loader2, FileText, Square, Copy, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@notai/ui/components/button';
 import { Textarea } from '@notai/ui/components/textarea';
 import { cn } from '@notai/lib/utils';
@@ -42,6 +43,7 @@ export function AskClient() {
   const [busy, setBusy] = React.useState(false);
   const scrollerRef = React.useRef<HTMLDivElement | null>(null);
   const taRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const abortRef = React.useRef<AbortController | null>(null);
 
   React.useEffect(() => {
     const el = scrollerRef.current;
@@ -60,11 +62,14 @@ export function AskClient() {
         { id: turnId, question: q, hits: [], answer: '', status: 'streaming' },
       ]);
 
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
       try {
         const res = await fetch('/api/ask', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ question: q }),
+          signal: ctrl.signal,
         });
         if (!res.ok || !res.body) {
           const msg = (await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`;
@@ -114,16 +119,35 @@ export function AskClient() {
           ),
         );
       } catch (err) {
-        setTurns((t) =>
-          t.map((tt) => (tt.id === turnId ? { ...tt, status: 'error', error: String(err) } : tt)),
-        );
+        if ((err as { name?: string }).name === 'AbortError') {
+          setTurns((t) =>
+            t.map((tt) =>
+              tt.id === turnId
+                ? {
+                    ...tt,
+                    status: tt.answer ? 'done' : 'error',
+                    error: tt.answer ? undefined : 'Stopped.',
+                  }
+                : tt,
+            ),
+          );
+        } else {
+          setTurns((t) =>
+            t.map((tt) => (tt.id === turnId ? { ...tt, status: 'error', error: String(err) } : tt)),
+          );
+        }
       } finally {
+        abortRef.current = null;
         setBusy(false);
         taRef.current?.focus();
       }
     },
     [busy],
   );
+
+  const stop = React.useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,14 +183,26 @@ export function AskClient() {
             rows={1}
             className="min-h-[2.25rem] resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
           />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={busy || question.trim().length < 2}
-            aria-label="Ask"
-          >
-            {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-          </Button>
+          {busy ? (
+            <Button
+              type="button"
+              size="icon"
+              variant="destructive"
+              onClick={stop}
+              aria-label="Stop"
+            >
+              <Square className="size-4" fill="currentColor" />
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              size="icon"
+              disabled={question.trim().length < 2}
+              aria-label="Ask"
+            >
+              <Send className="size-4" />
+            </Button>
+          )}
         </div>
         <p className="text-muted-foreground mt-2 text-center text-[11px]">
           Notai cites your notes by number. Click any citation to open the source.
@@ -231,9 +267,41 @@ function Turn({ turn }: { turn: AskTurn }) {
               Something went wrong: {turn.error ?? 'unknown error'}.
             </p>
           )}
+          {turn.status === 'done' && turn.answer && (
+            <div className="mt-3 flex justify-end">
+              <CopyButton text={stripCitations(turn.answer)} />
+            </div>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function stripCitations(text: string): string {
+  return text.replace(/\s*\[#\d+\]/g, '').trim();
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = React.useState(false);
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Couldn't copy to clipboard");
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={onCopy}
+      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] transition-colors"
+    >
+      {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+      {copied ? 'Copied' : 'Copy answer'}
+    </button>
   );
 }
 
