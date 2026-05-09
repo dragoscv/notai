@@ -298,17 +298,17 @@ export function Minimap({ doc, host, api, viewport, corner, onCornerChange }: Mi
   };
 
   const onMapClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!api || !bbox || !host) return;
+    if (!api || !renderBBox || !host) return;
     const svg = e.currentTarget;
     const rect = svg.getBoundingClientRect();
     const px = e.clientX - rect.left;
     const py = e.clientY - rect.top;
-    const scale = Math.min(SIZE / bbox.w, SIZE / bbox.h);
-    const offX = (SIZE - bbox.w * scale) / 2;
-    const offY = (SIZE - bbox.h * scale) / 2;
+    const scale = Math.min(SIZE / renderBBox.w, SIZE / renderBBox.h);
+    const offX = (SIZE - renderBBox.w * scale) / 2;
+    const offY = (SIZE - renderBBox.h * scale) / 2;
     // Click point in WORLD space
-    const worldX = bbox.x + (px - offX) / scale;
-    const worldY = bbox.y + (py - offY) / scale;
+    const worldX = renderBBox.x + (px - offX) / scale;
+    const worldY = renderBBox.y + (py - offY) / scale;
     // Centre that world point in the host viewport
     const hostRect = host.getBoundingClientRect();
     const z = Math.max(0.0001, viewport.zoom);
@@ -322,14 +322,51 @@ export function Minimap({ doc, host, api, viewport, corner, onCornerChange }: Mi
     });
   };
 
-  if (!bbox) {
-    // Nothing to show yet — keep a placeholder so the toggle/drag UI is
-    // still discoverable on a new note.
-  }
+  // Render bbox = union of content bbox and current viewport rect, so the
+  // viewport indicator always fits inside the minimap regardless of how far
+  // the user has panned or zoomed away from the content.
+  const renderBBox: BBox | null = React.useMemo(() => {
+    if (!bbox && !viewportRect) return null;
+    const xs: number[] = [];
+    const ys: number[] = [];
+    if (bbox) {
+      xs.push(bbox.x, bbox.x + bbox.w);
+      ys.push(bbox.y, bbox.y + bbox.h);
+    }
+    if (viewportRect) {
+      xs.push(viewportRect.x, viewportRect.x + viewportRect.w);
+      ys.push(viewportRect.y, viewportRect.y + viewportRect.h);
+    }
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const maxX = Math.max(...xs);
+    const maxY = Math.max(...ys);
+    return {
+      x: minX - PADDING,
+      y: minY - PADDING,
+      w: Math.max(1, maxX - minX + PADDING * 2),
+      h: Math.max(1, maxY - minY + PADDING * 2),
+    };
+  }, [bbox, viewportRect]);
 
-  const scale = bbox ? Math.min(SIZE / bbox.w, SIZE / bbox.h) : 1;
-  const offX = bbox ? (SIZE - bbox.w * scale) / 2 : 0;
-  const offY = bbox ? (SIZE - bbox.h * scale) / 2 : 0;
+  const scale = renderBBox ? Math.min(SIZE / renderBBox.w, SIZE / renderBBox.h) : 1;
+  const offX = renderBBox ? (SIZE - renderBBox.w * scale) / 2 : 0;
+  const offY = renderBBox ? (SIZE - renderBBox.h * scale) / 2 : 0;
+
+  // Clamp a world-space rect to the rendered SVG box so strokes never spill
+  // outside the minimap (defence in depth in case bbox math is off).
+  const projectRect = (rx: number, ry: number, rw: number, rh: number) => {
+    if (!renderBBox) return { x: 0, y: 0, w: 0, h: 0 };
+    const x0 = offX + (rx - renderBBox.x) * scale;
+    const y0 = offY + (ry - renderBBox.y) * scale;
+    const x1 = x0 + rw * scale;
+    const y1 = y0 + rh * scale;
+    const cx0 = Math.max(0, Math.min(SIZE, x0));
+    const cy0 = Math.max(0, Math.min(SIZE, y0));
+    const cx1 = Math.max(0, Math.min(SIZE, x1));
+    const cy1 = Math.max(0, Math.min(SIZE, y1));
+    return { x: cx0, y: cy0, w: Math.max(1, cx1 - cx0), h: Math.max(1, cy1 - cy0) };
+  };
 
   return (
     <div
@@ -361,32 +398,40 @@ export function Minimap({ doc, host, api, viewport, corner, onCornerChange }: Mi
         height={SIZE}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         onClick={onMapClick}
-        className="block cursor-pointer"
+        className="block cursor-pointer overflow-hidden"
         aria-label="Note minimap"
       >
         <rect width={SIZE} height={SIZE} fill="transparent" />
-        {bbox &&
-          shapes.map((s, i) => (
-            <rect
-              key={i}
-              x={offX + (s.x - bbox.x) * scale}
-              y={offY + (s.y - bbox.y) * scale}
-              width={Math.max(1, s.w * scale)}
-              height={Math.max(1, s.h * scale)}
-              className={s.kind === 'block' ? 'fill-foreground/40' : 'fill-foreground/70'}
-            />
-          ))}
-        {bbox && viewportRect && (
-          <rect
-            x={offX + (viewportRect.x - bbox.x) * scale}
-            y={offY + (viewportRect.y - bbox.y) * scale}
-            width={Math.max(2, viewportRect.w * scale)}
-            height={Math.max(2, viewportRect.h * scale)}
-            className="fill-primary/10 stroke-primary"
-            strokeWidth={1.25}
-            pointerEvents="none"
-          />
-        )}
+        {renderBBox &&
+          shapes.map((s, i) => {
+            const r = projectRect(s.x, s.y, s.w, s.h);
+            return (
+              <rect
+                key={i}
+                x={r.x}
+                y={r.y}
+                width={r.w}
+                height={r.h}
+                className={s.kind === 'block' ? 'fill-foreground/40' : 'fill-foreground/70'}
+              />
+            );
+          })}
+        {renderBBox &&
+          viewportRect &&
+          (() => {
+            const r = projectRect(viewportRect.x, viewportRect.y, viewportRect.w, viewportRect.h);
+            return (
+              <rect
+                x={r.x}
+                y={r.y}
+                width={r.w}
+                height={r.h}
+                className="fill-primary/10 stroke-primary"
+                strokeWidth={1.25}
+                pointerEvents="none"
+              />
+            );
+          })()}
       </svg>
     </div>
   );
