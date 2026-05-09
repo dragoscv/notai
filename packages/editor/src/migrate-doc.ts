@@ -96,6 +96,35 @@ export function getBlockFragment(doc: Y.Doc, blockId: string): Y.XmlFragment {
 }
 
 /**
+ * Read-only peek for a block's content fragment. Returns null when the
+ * fragment hasn't materialized in the local doc yet.
+ *
+ * Why a peek variant exists: the eager `getBlockFragment` lazy-creates an
+ * empty Y.XmlFragment and `map.set(id, frag)` it. If a component binds
+ * TipTap to that fragment BEFORE Hocuspocus syncs the real one, the
+ * subsequent `map.set(id, remoteFrag)` from sync replaces the reference
+ * and the binding becomes orphaned ("note shows blank on refresh until I
+ * do something" bug). Render paths use `peekBlockFragment` + observe the
+ * blocks-content map for the key so they can re-bind when the real
+ * fragment arrives. Writers (addBlock, migrateLegacyDoc) still create
+ * intentionally.
+ *
+ * Legacy block always returns its top-level XmlFragment (Yjs merges
+ * top-level fragment edits naturally, so there's no orphan risk).
+ */
+export function peekBlockFragment(doc: Y.Doc, blockId: string): Y.XmlFragment | null {
+  if (blockId === LEGACY_BLOCK_ID) {
+    const main = doc.getXmlFragment(LEGACY_FRAGMENT_KEY);
+    if (main.length > 0) return main;
+    const alt = doc.getXmlFragment(LEGACY_FRAGMENT_KEY_ALT);
+    if (alt.length > 0) return alt;
+    return main;
+  }
+  const map = doc.getMap<Y.XmlFragment>(BLOCKS_CONTENT_MAP);
+  return map.get(blockId) ?? null;
+}
+
+/**
  * One-shot migration. Idempotent: running it again on a doc that already
  * has blocks is a no-op. Safe to call from any client; if multiple
  * clients race, Yjs deduplicates the array push and at most one block

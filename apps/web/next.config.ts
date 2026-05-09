@@ -56,7 +56,12 @@ const nextConfig: NextConfig = {
       "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com",
-      "font-src 'self' data:",
+      // Excalidraw 0.18 fetches its custom canvas fonts (Excalifont, Virgil,
+      // Cascadia, …) from `https://esm.sh` as a runtime fallback when no
+      // `window.EXCALIDRAW_ASSET_PATH` is set. Without esm.sh in font-src the
+      // font picker silently does nothing — every choice falls back to the
+      // browser default. unpkg/jsdelivr are listed for resilience.
+      "font-src 'self' data: https://esm.sh https://unpkg.com https://cdn.jsdelivr.net",
       "connect-src 'self' https: wss:",
       "manifest-src 'self'",
       "worker-src 'self' blob:",

@@ -16,10 +16,12 @@ import { cn } from '@notai/lib/utils';
 import { TextBlock } from './text-block';
 import {
   addBlock,
+  BLOCKS_CONTENT_MAP,
   BLOCKS_KEY,
   deleteBlockAt,
-  getBlockFragment,
+  LEGACY_BLOCK_ID,
   migrateLegacyDoc,
+  peekBlockFragment,
   peekBlocksArray,
   SCENE_MAP,
   updateBlockAt,
@@ -155,9 +157,13 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     }
     const onSynced = () => run();
     p.on?.('synced', onSynced);
-    // Safety net: don't wait forever — after 1.5s assume we're offline
-    // and the doc we have IS the truth, so migrate against it.
-    const timer = setTimeout(run, 1500);
+    // Safety net: 30s is generous on purpose. Notes are server-created so
+    // there is always a remote doc to wait for; migrating prematurely on a
+    // slow connection used to seed a fake UUID block whose local fragment
+    // got orphaned the moment sync arrived ("blank on first refresh until
+    // I do something" bug). 30s is well past any realistic sync window
+    // while still recovering if the websocket truly never connects.
+    const timer = setTimeout(run, 30000);
     return () => {
       clearTimeout(timer);
       p.off?.('synced', onSynced);
@@ -564,7 +570,7 @@ function BlockFrame({
   onFocusEditor,
   searchBacklinks,
 }: BlockFrameProps) {
-  const fragment = React.useMemo(() => getBlockFragment(doc, block.id), [doc, block.id]);
+  const fragment = useBlockFragment(doc, block.id);
   const [hovered, setHovered] = React.useState(false);
 
   const onDragHandle = (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -628,16 +634,31 @@ function BlockFrame({
       }}
       className={cn('group rounded-md', interactive && 'hover:ring-primary/30 hover:ring-1')}
     >
-      <TextBlock
-        fragment={fragment}
-        provider={provider}
-        user={user}
-        editable={!readOnly}
-        searchBacklinks={searchBacklinks}
-        onFocusEditor={onFocusEditor}
-        className="block-content min-h-[1.5em] px-3 py-2"
-      />
-
+      {fragment ? (
+        <TextBlock
+          // Re-mount TipTap whenever the underlying Y.XmlFragment reference
+          // changes — this happens when sync replaces a lazily-bound local
+          // fragment with the real remote one. Without the key, TipTap
+          // stays bound to the orphaned reference and renders blank.
+          key={fragmentKeyOf(fragment)}
+          fragment={fragment}
+          provider={provider}
+          user={user}
+          editable={!readOnly}
+          searchBacklinks={searchBacklinks}
+          onFocusEditor={onFocusEditor}
+          className="block-content min-h-[1.5em] px-3 py-2"
+        />
+      ) : (
+        <div
+          className="text-muted-foreground/50 px-3 py-2 text-xs"
+          aria-hidden
+          // Placeholder while we wait for the remote blocks-content map
+          // to deliver this block's fragment. Nothing to type into yet.
+        >
+          &nbsp;
+        </div>
+      )}
       {/* Hover chrome: drag handle + delete. Hidden in readOnly mode. */}
       {!readOnly && hovered && (
         <>
@@ -734,6 +755,58 @@ function useBlocksArray(doc: Y.Doc): SceneBlock[] {
 }
 
 const EMPTY_BLOCKS: SceneBlock[] = [];
+
+/**
+ * Subscribe to a single block's content fragment. Returns the current
+ * Y.XmlFragment for the block id, or null while we're waiting for the
+ * remote `blocks-content` map to deliver it.
+ *
+ * Why this is a hook rather than a memo: when Hocuspocus syncs the doc,
+ * the remote fragment for this id arrives via `map.set(id, remoteFrag)`.
+ * That REPLACES the reference. Components must observe the map and
+ * re-resolve when the key changes, otherwise they stay bound to a
+ * lazily-created local empty fragment that's no longer reachable from
+ * the doc — that's the "blank on first refresh" bug.
+ *
+ * The legacy block id always resolves immediately (its content lives in
+ * a top-level XmlFragment whose reference Yjs never replaces — peer edits
+ * merge into it directly).
+ */
+function useBlockFragment(doc: Y.Doc, blockId: string): Y.XmlFragment | null {
+  const subscribe = React.useCallback(
+    (cb: () => void) => {
+      // Legacy fragment is stable; no observation needed.
+      if (blockId === LEGACY_BLOCK_ID) return () => {};
+      const map = doc.getMap(BLOCKS_CONTENT_MAP);
+      const onChange = (ev: Y.YMapEvent<unknown>) => {
+        if (ev.keysChanged.has(blockId)) cb();
+      };
+      map.observe(onChange);
+      return () => map.unobserve(onChange);
+    },
+    [doc, blockId],
+  );
+  const get = React.useCallback(() => peekBlockFragment(doc, blockId), [doc, blockId]);
+  return React.useSyncExternalStore(subscribe, get, get);
+}
+
+/**
+ * Stable key for a Y.XmlFragment so React remounts TipTap when the
+ * underlying reference is replaced by sync. Yjs assigns each shared
+ * type a `_item` clock id under the hood; we fall back to object
+ * identity through a WeakMap for fragments that don't expose one.
+ */
+const fragmentKeys = new WeakMap<Y.XmlFragment, string>();
+let fragmentKeyCounter = 0;
+function fragmentKeyOf(frag: Y.XmlFragment): string {
+  let key = fragmentKeys.get(frag);
+  if (!key) {
+    fragmentKeyCounter += 1;
+    key = `f${fragmentKeyCounter}`;
+    fragmentKeys.set(frag, key);
+  }
+  return key;
+}
 
 // Snapshot must be referentially stable when contents are unchanged.
 const snapshotCache = new WeakMap<Y.Array<SceneBlock>, { sig: string; data: SceneBlock[] }>();

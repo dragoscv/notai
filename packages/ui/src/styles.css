@@ -361,10 +361,27 @@
         display: none;
     }
 
-    /* ProseMirror editor baseline */
+    /* ProseMirror editor baseline
+     *
+     * Note CONTENT uses a comfortable reading serif by default while the
+     * rest of the app stays on Geist (loaded via next/font on <body>). The
+     * stack is system-only so we don't pay an extra font-load cost; users
+     * who pick a different font via the toolbar's font-family menu get
+     * inline `font-family` declarations from TipTap's FontFamily extension
+     * which override this base. */
     .ProseMirror {
         @apply outline-none min-h-full;
-        font-family: var(--editor-font-family, inherit);
+        font-family: var(
+            --editor-font-family,
+            'Iowan Old Style',
+            'Charter',
+            'Source Serif 4',
+            'Source Serif Pro',
+            Cambria,
+            Georgia,
+            ui-serif,
+            serif
+        );
         line-height: var(--editor-line-height, 1.75);
     }
 
