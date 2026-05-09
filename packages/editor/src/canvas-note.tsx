@@ -329,6 +329,35 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
         lastSigRef.current = sig;
         return;
       }
+
+      /*
+       * SAFETY GUARD — never wipe a non-empty Y with a stale empty
+       * onChange.
+       *
+       * Excalidraw fires onChange with whatever scene it has just
+       * rendered. On cold mount that includes the empty `initialData`
+       * scene, even when the Y.Doc has been populated by IDB or sync
+       * before our seed could push elements via updateScene. Y.Map.set
+       * is last-writer-wins per key, so writing an empty array here
+       * trumps the server's real array on every other client — the
+       * "I draw, refresh, sticky still shows it but main is blank, and
+       * the next refresh of the sticky also goes blank" bug.
+       *
+       * If the user genuinely cleared the canvas, the next non-empty
+       * stroke they make will write again and Y will catch up. We
+       * deliberately accept that "select-all + delete" no longer
+       * persists as an empty doc; that's a fair trade for never losing
+       * content to a mount race.
+       */
+      if (elements.length === 0) {
+        const yMap = doc.getMap(EXCALIDRAW_MAP);
+        const current = yMap.get(ELEMENTS_FIELD);
+        if (Array.isArray(current) && current.length > 0) {
+          lastSigRef.current = sig;
+          return;
+        }
+      }
+
       lastSigRef.current = sig;
       pendingElementsRef.current = elements;
 
@@ -349,7 +378,7 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
         flushExcalidrawWrite();
       }, WRITE_THROTTLE_MS - since);
     },
-    [readOnly, sigOf, flushExcalidrawWrite],
+    [doc, readOnly, sigOf, flushExcalidrawWrite],
   );
 
   // Flush pending writes when the tab/window is about to unload so a
@@ -388,10 +417,13 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
       if (!Array.isArray(current) || current.length === 0) return;
       const remote = current as OrderedExcalidrawElement[];
       const sig = sigOf(remote);
-      if (sig === lastSigRef.current && api.getSceneElementsIncludingDeleted().length > 0) {
-        writeReadyRef.current = true;
-        return;
-      }
+      // Pre-prime lastSigRef to the live Y signature BEFORE any
+      // updateScene call. If Excalidraw subsequently fires a stale
+      // onChange (e.g. with the empty initial scene from before our
+      // updateScene took effect), the sig won't match the empty-stale
+      // sig either, but the SAFETY GUARD in handleExcalidrawChange
+      // will refuse to wipe Y. Combined, these two layers make the
+      // race truly unhittable.
       lastSigRef.current = sig;
       const helpers = excalidrawHelpers;
       if (!helpers) {
