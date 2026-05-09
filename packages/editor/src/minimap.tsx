@@ -71,88 +71,97 @@ function readBlocks(doc: Y.Doc): SceneBlock[] {
   return arr ? arr.toArray() : [];
 }
 
+function computeShapes(doc: Y.Doc): { shapes: MinimapShape[]; bbox: BBox | null } {
+  const elements = readElements(doc);
+  const blocks = readBlocks(doc);
+  const shapes: MinimapShape[] = [];
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const e of elements) {
+    const w = Math.max(1, e.width || 1);
+    const h = Math.max(1, e.height || 1);
+    shapes.push({ kind: 'element', x: e.x, y: e.y, w, h });
+    if (e.x < minX) minX = e.x;
+    if (e.y < minY) minY = e.y;
+    if (e.x + w > maxX) maxX = e.x + w;
+    if (e.y + h > maxY) maxY = e.y + h;
+  }
+  for (const b of blocks) {
+    const h = 80;
+    shapes.push({ kind: 'block', x: b.x, y: b.y, w: b.width, h });
+    if (b.x < minX) minX = b.x;
+    if (b.y < minY) minY = b.y;
+    if (b.x + b.width > maxX) maxX = b.x + b.width;
+    if (b.y + h > maxY) maxY = b.y + h;
+  }
+
+  if (!Number.isFinite(minX)) return { shapes: [], bbox: null };
+  return {
+    shapes,
+    bbox: {
+      x: minX - PADDING,
+      y: minY - PADDING,
+      w: maxX - minX + PADDING * 2,
+      h: maxY - minY + PADDING * 2,
+    },
+  };
+}
+
 /**
  * Subscribe to both excalidraw elements and the blocks array to recompute
- * shapes whenever either changes.
+ * shapes whenever either changes. We keep the snapshot in component state
+ * (instead of useSyncExternalStore) because the snapshot is a freshly
+ * allocated object each time, which would trip useSyncExternalStore's
+ * referential-equality bailout and cause an infinite render loop.
  */
 function useMinimapShapes(doc: Y.Doc): { shapes: MinimapShape[]; bbox: BBox | null } {
-  const subscribe = React.useCallback(
-    (cb: () => void) => {
-      const yMap = doc.getMap(EXCALIDRAW_MAP);
-      const scene = doc.getMap('scene');
-      let blocksArr: Y.Array<SceneBlock> | null = null;
+  const [snapshot, setSnapshot] = React.useState(() => computeShapes(doc));
 
-      const attachBlocks = (next: Y.Array<SceneBlock> | null) => {
-        if (blocksArr === next) return;
-        if (blocksArr) blocksArr.unobserve(cb);
-        blocksArr = next;
-        if (next) next.observe(cb);
-      };
+  React.useEffect(() => {
+    let scheduled = false;
+    const recompute = () => {
+      if (scheduled) return;
+      scheduled = true;
+      queueMicrotask(() => {
+        scheduled = false;
+        setSnapshot(computeShapes(doc));
+      });
+    };
+
+    const yMap = doc.getMap(EXCALIDRAW_MAP);
+    const scene = doc.getMap('scene');
+    let blocksArr: Y.Array<SceneBlock> | null = null;
+
+    const attachBlocks = (next: Y.Array<SceneBlock> | null) => {
+      if (blocksArr === next) return;
+      if (blocksArr) blocksArr.unobserve(recompute);
+      blocksArr = next;
+      if (next) next.observe(recompute);
+    };
+    attachBlocks(peekBlocksArray(doc));
+
+    const onScene = (ev: Y.YMapEvent<unknown>) => {
+      if (!ev.keysChanged.has('blocks')) return;
       attachBlocks(peekBlocksArray(doc));
+      recompute();
+    };
 
-      const onScene = (ev: Y.YMapEvent<unknown>) => {
-        if (!ev.keysChanged.has('blocks')) return;
-        attachBlocks(peekBlocksArray(doc));
-        cb();
-      };
-      const onElements = () => cb();
+    yMap.observe(recompute);
+    scene.observe(onScene);
+    // Initial sync in case Y data changed between mount snapshot and effect.
+    recompute();
 
-      yMap.observe(onElements);
-      scene.observe(onScene);
-
-      return () => {
-        yMap.unobserve(onElements);
-        scene.unobserve(onScene);
-        if (blocksArr) blocksArr.unobserve(cb);
-      };
-    },
-    [doc],
-  );
-
-  const get = React.useCallback((): { shapes: MinimapShape[]; bbox: BBox | null } => {
-    const elements = readElements(doc);
-    const blocks = readBlocks(doc);
-    const shapes: MinimapShape[] = [];
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-
-    for (const e of elements) {
-      const w = Math.max(1, e.width || 1);
-      const h = Math.max(1, e.height || 1);
-      shapes.push({ kind: 'element', x: e.x, y: e.y, w, h });
-      if (e.x < minX) minX = e.x;
-      if (e.y < minY) minY = e.y;
-      if (e.x + w > maxX) maxX = e.x + w;
-      if (e.y + h > maxY) maxY = e.y + h;
-    }
-    for (const b of blocks) {
-      // Block height auto-fits content; we don't know it from Y. Use a
-      // generous estimate so the block at least appears on the minimap.
-      const h = 80;
-      shapes.push({ kind: 'block', x: b.x, y: b.y, w: b.width, h });
-      if (b.x < minX) minX = b.x;
-      if (b.y < minY) minY = b.y;
-      if (b.x + b.width > maxX) maxX = b.x + b.width;
-      if (b.y + h > maxY) maxY = b.y + h;
-    }
-
-    if (!Number.isFinite(minX)) return { shapes: [], bbox: null };
-    return {
-      shapes,
-      bbox: {
-        x: minX - PADDING,
-        y: minY - PADDING,
-        w: maxX - minX + PADDING * 2,
-        h: maxY - minY + PADDING * 2,
-      },
+    return () => {
+      yMap.unobserve(recompute);
+      scene.unobserve(onScene);
+      if (blocksArr) blocksArr.unobserve(recompute);
     };
   }, [doc]);
 
-  // shapes/bbox identity changes on every call; that's OK because the
-  // outer component memoizes consumers via key positions.
-  return React.useSyncExternalStore(subscribe, get, get);
+  return snapshot;
 }
 
 interface ViewportRect {
