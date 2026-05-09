@@ -475,12 +475,17 @@
     }
 
     /* Paper backgrounds — controlled by [data-surface] on the editor wrapper.
-   * --paper-spacing is the grid size in px (16–64), driven by the header slider.
-   * `background-repeat: round` auto-adjusts tile size to exactly fit the
-   * container width/height, so the rightmost column is never visually clipped
-   * by a fractional tile (scrollbar gutters, non-integer widths, etc). */
+   * --paper-spacing is the grid size in WORLD px (16–64), driven by the header slider.
+   * --paper-scale, --paper-offset-x, --paper-offset-y come from the canvas viewport
+   * so the pattern stays locked to Excalidraw's world coordinates as the user pans
+   * and zooms — drawings never drift relative to the ruled / grid / dots background.
+   */
     [data-surface] {
-        background-position: 0 0;
+        --paper-scale: 1;
+        --paper-offset-x: 0px;
+        --paper-offset-y: 0px;
+        --paper-tile: calc(var(--paper-spacing, 32px) * var(--paper-scale));
+        background-position: var(--paper-offset-x) var(--paper-offset-y);
         background-origin: border-box;
         background-clip: border-box;
     }
@@ -490,8 +495,8 @@
     }
 
     [data-surface='ruled'] {
-        background-image: linear-gradient(to bottom, transparent calc(var(--paper-spacing, 32px) - 1px), color-mix(in oklab, var(--foreground) 12%, transparent) var(--paper-spacing, 32px));
-        background-size: 100% var(--paper-spacing, 32px);
+        background-image: linear-gradient(to bottom, transparent calc(var(--paper-tile) - 1px), color-mix(in oklab, var(--foreground) 12%, transparent) var(--paper-tile));
+        background-size: 100% var(--paper-tile);
         background-repeat: repeat-y;
     }
 
@@ -499,20 +504,20 @@
         background-image:
             linear-gradient(to right, color-mix(in oklab, var(--foreground) 10%, transparent) 1px, transparent 1px),
             linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 10%, transparent) 1px, transparent 1px);
-        background-size: var(--paper-spacing, 32px) var(--paper-spacing, 32px);
-        background-repeat: round;
+        background-size: var(--paper-tile) var(--paper-tile);
+        background-repeat: repeat;
     }
 
     [data-surface='dots'] {
         background-image: radial-gradient(color-mix(in oklab, var(--foreground) 22%, transparent) 1px, transparent 1px);
-        background-size: var(--paper-spacing, 32px) var(--paper-spacing, 32px);
-        background-repeat: round;
+        background-size: var(--paper-tile) var(--paper-tile);
+        background-repeat: repeat;
     }
 
     [data-surface='columns'] {
-        background-image: linear-gradient(to right, transparent calc(var(--paper-spacing, 32px) - 1px), color-mix(in oklab, var(--foreground) 12%, transparent) var(--paper-spacing, 32px));
-        background-size: var(--paper-spacing, 32px) 100%;
-        background-repeat: round;
+        background-image: linear-gradient(to right, transparent calc(var(--paper-tile) - 1px), color-mix(in oklab, var(--foreground) 12%, transparent) var(--paper-tile));
+        background-size: var(--paper-tile) 100%;
+        background-repeat: repeat-x;
     }
 
     .ProseMirror p.is-editor-empty:first-child::before {

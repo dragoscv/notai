@@ -295,6 +295,49 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
   React.useEffect(() => {
     if (!api) return;
     const yMap = doc.getMap(EXCALIDRAW_MAP);
+
+    /*
+     * SEED: when the api is first available, push whatever Excalidraw
+     * elements are currently in the Y.Doc into the scene. This covers
+     * the race where sync delivered `excalidraw.elements` BEFORE the
+     * Excalidraw component finished mounting and called us back with
+     * the api — the observer below would never fire for that change
+     * and the canvas would render empty until the user drew something
+     * (or more commonly, refreshed and saw nothing).
+     */
+    const seed = () => {
+      const current = yMap.get(ELEMENTS_FIELD);
+      if (!Array.isArray(current) || current.length === 0) return;
+      const remote = current as OrderedExcalidrawElement[];
+      const sig = sigOf(remote);
+      if (sig === lastSigRef.current && api.getSceneElementsIncludingDeleted().length > 0) {
+        return;
+      }
+      lastSigRef.current = sig;
+      const helpers = excalidrawHelpers;
+      if (!helpers) {
+        api.updateScene({ elements: remote });
+        return;
+      }
+      const restored = helpers.restoreElements(remote, null);
+      api.updateScene({
+        elements: restored,
+        captureUpdate: helpers.CaptureUpdateAction.NEVER,
+      });
+    };
+    seed();
+    // Belt & suspenders: also re-seed once the provider says it has
+    // finished its initial sync, in case the elements key arrived in
+    // a transaction between the seed() call above and now.
+    const p = provider as unknown as {
+      synced?: boolean;
+      isSynced?: boolean;
+      on?: (event: string, cb: () => void) => void;
+      off?: (event: string, cb: () => void) => void;
+    };
+    const onSynced = () => seed();
+    if (!(p.synced || p.isSynced)) p.on?.('synced', onSynced);
+
     const onYChange = (_ev: unknown, transaction: { origin: unknown }) => {
       if (transaction.origin === 'local-excalidraw') return;
       const next = yMap.get(ELEMENTS_FIELD);
@@ -322,8 +365,11 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
       });
     };
     yMap.observe(onYChange);
-    return () => yMap.unobserve(onYChange);
-  }, [api, doc, sigOf]);
+    return () => {
+      yMap.unobserve(onYChange);
+      p.off?.('synced', onSynced);
+    };
+  }, [api, doc, provider, sigOf]);
 
   React.useEffect(() => {
     return () => {
@@ -459,7 +505,18 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
       )}
       data-surface={surface}
       style={
-        surface ? ({ '--paper-spacing': `${surfaceSpacing}px` } as React.CSSProperties) : undefined
+        surface
+          ? ({
+              // Paper background follows Excalidraw's pan/zoom so ruled
+              // lines / grid / dots / columns stay locked to world
+              // coordinates — drawings never drift relative to the
+              // background as you pan or zoom.
+              '--paper-spacing': `${surfaceSpacing}px`,
+              '--paper-scale': viewport.zoom,
+              '--paper-offset-x': `${viewport.scrollX * viewport.zoom}px`,
+              '--paper-offset-y': `${viewport.scrollY * viewport.zoom}px`,
+            } as React.CSSProperties)
+          : undefined
       }
     >
       {/* Excalidraw owns world coordinates, zoom, pan, and tool state. */}
