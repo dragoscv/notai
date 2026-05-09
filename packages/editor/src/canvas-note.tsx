@@ -11,7 +11,7 @@ import type {
   ExcalidrawElement,
 } from '@excalidraw/excalidraw/element/types';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
-import { GripVertical, Trash2, Plus } from 'lucide-react';
+import { GripVertical, Trash2 } from 'lucide-react';
 import { cn } from '@notai/lib/utils';
 import { TextBlock } from './text-block';
 import { Minimap, type MinimapCorner } from './minimap';
@@ -713,22 +713,6 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
           />
         ))}
       </div>
-
-      {/* Floating "Add text block" pill (authoring only). */}
-      {!readOnly && !stickyMode && (
-        <button
-          type="button"
-          className="bg-card/85 hover:bg-accent text-foreground/80 hover:text-accent-foreground absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium shadow-sm backdrop-blur transition"
-          onClick={() => {
-            if (!api || !host) return;
-            const center = viewportCenterWorld(api, host);
-            addBlock(doc, { x: center.x - 380, y: center.y - 24 });
-          }}
-          title="Add a new text block at the current view"
-        >
-          <Plus className="size-3" /> Text
-        </button>
-      )}
 
       {/* Minimap overlay (authoring only). The corner is parent-controlled
           so it persists across reloads via the parent's settings store. */}
