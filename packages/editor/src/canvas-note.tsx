@@ -272,6 +272,17 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     return `${els.length}:${h}`;
   }, []);
   const lastSigRef = React.useRef<string>('');
+  /*
+   * Gate: do not write local Excalidraw state back to Y until we've had
+   * a chance to seed the scene from Y. Otherwise the FIRST onChange that
+   * Excalidraw fires after mount — with the empty `initialData.elements`
+   * — schedules a 60ms-throttled write of `[]` that races our seed and
+   * wipes the real elements from Y. The user saw a brief flash of
+   * content then a permanently blank canvas. The gate flips true once
+   * we have either populated the scene from Y, or confirmed (via the
+   * provider's `synced` event) that Y is genuinely empty for this note.
+   */
+  const writeReadyRef = React.useRef<boolean>(false);
   React.useEffect(() => {
     lastSigRef.current = sigOf(initialData.elements ?? []);
   }, [initialData, sigOf]);
@@ -282,6 +293,11 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
       if (readOnly) return;
       const sig = sigOf(elements);
       if (sig === lastSigRef.current) return;
+      // Don't echo local-only mount noise back to Y before we've seeded.
+      if (!writeReadyRef.current) {
+        lastSigRef.current = sig;
+        return;
+      }
       lastSigRef.current = sig;
       if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
       writeTimerRef.current = setTimeout(() => {
@@ -311,12 +327,14 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
       const remote = current as OrderedExcalidrawElement[];
       const sig = sigOf(remote);
       if (sig === lastSigRef.current && api.getSceneElementsIncludingDeleted().length > 0) {
+        writeReadyRef.current = true;
         return;
       }
       lastSigRef.current = sig;
       const helpers = excalidrawHelpers;
       if (!helpers) {
         api.updateScene({ elements: remote });
+        writeReadyRef.current = true;
         return;
       }
       const restored = helpers.restoreElements(remote, null);
@@ -324,19 +342,29 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
         elements: restored,
         captureUpdate: helpers.CaptureUpdateAction.NEVER,
       });
+      writeReadyRef.current = true;
     };
     seed();
     // Belt & suspenders: also re-seed once the provider says it has
     // finished its initial sync, in case the elements key arrived in
-    // a transaction between the seed() call above and now.
+    // a transaction between the seed() call above and now. After the
+    // first sync we also unconditionally open the write gate — if Y
+    // really is empty, any user edit from now on is legitimate.
     const p = provider as unknown as {
       synced?: boolean;
       isSynced?: boolean;
       on?: (event: string, cb: () => void) => void;
       off?: (event: string, cb: () => void) => void;
     };
-    const onSynced = () => seed();
-    if (!(p.synced || p.isSynced)) p.on?.('synced', onSynced);
+    const onSynced = () => {
+      seed();
+      writeReadyRef.current = true;
+    };
+    if (p.synced || p.isSynced) {
+      writeReadyRef.current = true;
+    } else {
+      p.on?.('synced', onSynced);
+    }
 
     const onYChange = (_ev: unknown, transaction: { origin: unknown }) => {
       if (transaction.origin === 'local-excalidraw') return;
