@@ -312,10 +312,15 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
         elements: reconciled,
         captureUpdate: helpers.CaptureUpdateAction.NEVER,
       });
+      // In sticky mode, drawings often arrive *after* the initial fit
+      // (Hocuspocus syncs text first, then the larger Excalidraw blob).
+      // Refit so the freshly-arrived strokes land inside the viewport
+      // instead of being clipped at the origin.
+      if (stickyMode) refitStickyRef.current?.();
     };
     yMap.observe(onYChange);
     return () => yMap.unobserve(onYChange);
-  }, [api, doc, sigOf]);
+  }, [api, doc, sigOf, stickyMode]);
 
   React.useEffect(() => {
     return () => {
@@ -323,60 +328,120 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     };
   }, []);
 
-  /* ---------- Sticky/readOnly auto-fit ---------- */
+  /* ---------- Sticky/readOnly auto-fit ----------
+   *
+   * The sticky window is meant to be a zoomed-out, read-only mirror of the
+   * note. Auto-fit is fragile because the things we measure (text blocks
+   * and Excalidraw elements) all arrive asynchronously:
+   *
+   *   1. Hocuspocus has to sync the Y.Doc.
+   *   2. Migration creates the block array.
+   *   3. Each TipTap editor mounts and renders its fragment — at this point
+   *      the block's `offsetHeight` finally becomes its real height.
+   *   4. Remote Excalidraw elements may arrive even later via Y observer.
+   *
+   * Old behavior fit only on (a) a 40×120ms poll and (b) the `blocks` array
+   * length changing — so it usually ran while blocks still had 0 height
+   * and produced wrong scrollX/scrollY (or returned false and gave up
+   * after 5s). The result was the classic "blank sticky until you pan
+   * Excalidraw, then content shows in the wrong place" bug.
+   *
+   * The fix: keep a stable refit callback and trigger it from every
+   * relevant signal — initial poll, host resize, each block element
+   * resize (TipTap content load), block array changes, and remote
+   * Excalidraw element arrivals (see the yMap observer below).
+   */
+  const refitStickyRef = React.useRef<(() => boolean) | null>(null);
   React.useEffect(() => {
-    if (!api || !stickyMode || !host) return;
+    if (!api || !stickyMode || !host) {
+      refitStickyRef.current = null;
+      return;
+    }
 
+    const refit = (): boolean => {
+      const els = api.getSceneElementsIncludingDeleted();
+      return fitStickyViewport(api, host, els);
+    };
+    refitStickyRef.current = refit;
+
+    // Initial poll: keep trying until something measurable shows up.
     let cancelled = false;
-    let succeededOnce = false;
     let attempts = 0;
-
-    const tryFit = () => {
-      if (cancelled || succeededOnce) return;
+    const poll = () => {
+      if (cancelled) return;
       attempts += 1;
       api.refresh();
-      const els = api.getSceneElementsIncludingDeleted();
-      const ok = fitStickyViewport(api, host, els);
-      if (ok) {
-        succeededOnce = true;
-        return;
-      }
-      // Retry until host has dimensions and blocks/elements are mounted.
-      // Cap attempts so a truly empty doc stops polling after ~5s.
-      if (attempts < 40) setTimeout(tryFit, 120);
+      if (refit()) return;
+      if (attempts < 60) setTimeout(poll, 120);
     };
-    tryFit();
+    poll();
 
-    // Refit on host resize.
-    const ro =
+    // Refit on host resize (the sticky window itself being dragged).
+    const hostRO =
       typeof ResizeObserver !== 'undefined'
         ? new ResizeObserver(() => {
-            if (!succeededOnce) {
-              tryFit();
-              return;
-            }
             api.refresh();
-            const els = api.getSceneElementsIncludingDeleted();
-            fitStickyViewport(api, host, els);
+            refit();
           })
         : null;
-    ro?.observe(host);
+    hostRO?.observe(host);
 
     return () => {
       cancelled = true;
-      ro?.disconnect();
+      hostRO?.disconnect();
+      refitStickyRef.current = null;
     };
   }, [api, stickyMode, host]);
 
-  /* ---------- Sticky: refit when block list changes (e.g. realtime) ---------- */
+  /* ---------- Sticky: refit on block array AND per-block size changes ----------
+   * `blocks` is just an id/position list; it doesn't fire when a block's
+   * rendered height changes as TipTap finishes loading the Y fragment.
+   * Observe each block element directly so we refit the moment content
+   * actually fills in. */
   React.useEffect(() => {
-    if (!api || !stickyMode || !host) return;
-    const id = requestAnimationFrame(() => {
-      const els = api.getSceneElementsIncludingDeleted();
-      fitStickyViewport(api, host, els);
+    if (!stickyMode || !host || typeof ResizeObserver === 'undefined') return;
+    const refit = refitStickyRef.current;
+    if (!refit) return;
+
+    let raf = 0;
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => refit());
+    };
+    schedule(); // initial
+
+    const ro = new ResizeObserver(schedule);
+    const blockEls = host.querySelectorAll<HTMLElement>('[data-block-id]');
+    blockEls.forEach((el) => ro.observe(el));
+
+    // Also catch block elements that are added later (rare — usually
+    // covered by the `blocks` dep — but cheap insurance for HMR / edits).
+    const mo = new MutationObserver((records) => {
+      let needsRefit = false;
+      for (const r of records) {
+        for (const node of Array.from(r.addedNodes)) {
+          if (node instanceof HTMLElement) {
+            const newBlocks = node.matches?.('[data-block-id]')
+              ? [node]
+              : Array.from(node.querySelectorAll?.('[data-block-id]') ?? []);
+            for (const b of newBlocks) {
+              if (b instanceof HTMLElement) ro.observe(b);
+              needsRefit = true;
+            }
+          }
+        }
+      }
+      if (needsRefit) schedule();
     });
-    return () => cancelAnimationFrame(id);
-  }, [api, stickyMode, host, blocks]);
+    const blocksLayer = host.querySelector('[data-blocks-layer]');
+    if (blocksLayer) mo.observe(blocksLayer, { childList: true, subtree: true });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      mo.disconnect();
+    };
+  }, [stickyMode, host, blocks]);
 
   /* ---------- Focused editor tracking ---------- */
   const focusedRef = React.useRef<Editor | null>(null);
@@ -720,12 +785,16 @@ interface PersistedViewport {
 /**
  * Centre + scale Excalidraw's viewport so the union of (1) every text
  * block (measured from the DOM, since their height auto-fits content)
- * and (2) every Excalidraw element fits inside the host with a small
- * margin. Used in sticky/read-only mode.
+ * and (2) every Excalidraw element fits inside the host with comfortable
+ * padding. Used in sticky/read-only mode.
+ *
+ * The result is a "mirror" of the note that's slightly zoomed out so the
+ * content has breathing room on every edge — it never zooms IN past the
+ * note's natural 1× scale, only down to make everything fit.
  *
  * Returns true when a fit was applied; false when there is nothing to
- * fit yet (host not laid out, no blocks rendered, etc.) so the caller
- * can retry.
+ * fit yet (host not laid out, no blocks rendered, blocks still 0px tall
+ * because TipTap hasn't mounted, etc.) so the caller can retry.
  */
 function fitStickyViewport(
   api: ExcalidrawImperativeAPI,
@@ -735,25 +804,32 @@ function fitStickyViewport(
   const rect = host.getBoundingClientRect();
   if (rect.width < 8 || rect.height < 8) return false;
 
-  const padding = 16;
+  // Comfortable inset around the bbox so glyphs & ink don't kiss the edges.
+  const padding = 24;
+  // Extra zoom-out on top of the fit ratio so the sticky reads as a
+  // "preview" of the note instead of a tightly-cropped thumbnail.
+  const zoomOutFactor = 0.92;
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
 
   const blockEls = host.querySelectorAll<HTMLElement>('[data-block-id]');
+  let measurableBlocks = 0;
   for (const el of Array.from(blockEls)) {
     const x = parseFloat(el.style.left);
     const y = parseFloat(el.style.top);
     const w = el.offsetWidth;
     const h = el.offsetHeight;
     if (!Number.isFinite(x) || !Number.isFinite(y) || w <= 0 || h <= 0) continue;
+    measurableBlocks += 1;
     if (x < minX) minX = x;
     if (y < minY) minY = y;
     if (x + w > maxX) maxX = x + w;
     if (y + h > maxY) maxY = y + h;
   }
 
+  let measurableEls = 0;
   for (const e of elements) {
     const ee = e as {
       isDeleted?: boolean;
@@ -766,14 +842,19 @@ function fitStickyViewport(
     if (typeof ee.x !== 'number' || typeof ee.y !== 'number') continue;
     const w = ee.width ?? 0;
     const h = ee.height ?? 0;
+    measurableEls += 1;
     if (ee.x < minX) minX = ee.x;
     if (ee.y < minY) minY = ee.y;
     if (ee.x + w > maxX) maxX = ee.x + w;
     if (ee.y + h > maxY) maxY = ee.y + h;
   }
 
-  // Nothing measurable yet — bail so the caller can retry.
+  // If we found block elements in the DOM but none had real dimensions yet
+  // (TipTap still mounting), bail so the ResizeObserver retry hits us as
+  // soon as a block grows. Same if there's truly nothing to show.
+  if (measurableBlocks === 0 && measurableEls === 0) return false;
   if (!Number.isFinite(minX) || !Number.isFinite(minY)) return false;
+
   const bboxW = maxX - minX;
   const bboxH = maxY - minY;
   if (bboxW < 1 || bboxH < 1) return false;
@@ -781,7 +862,9 @@ function fitStickyViewport(
   const availW = Math.max(1, rect.width - padding * 2);
   const availH = Math.max(1, rect.height - padding * 2);
   // Cap at 1 — never zoom IN past natural size; can scale down to fit.
-  const zoom = Math.max(0.1, Math.min(availW / bboxW, availH / bboxH, 1));
+  // Then apply the zoom-out factor for a little breathing room.
+  const fitZoom = Math.min(availW / bboxW, availH / bboxH, 1);
+  const zoom = Math.max(0.1, fitZoom * zoomOutFactor);
 
   const cx = (minX + maxX) / 2;
   const cy = (minY + maxY) / 2;
