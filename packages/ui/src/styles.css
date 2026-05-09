@@ -604,6 +604,29 @@
         background: transparent !important;
     }
 
+    /* Keep Excalidraw on its OWN typeface.
+     *
+     * The rest of the app uses Geist (loaded via next/font and applied to
+     * <body> through `font-sans`). Without this rule, body inheritance
+     * pulls Geist into Excalidraw's UI chrome (toolbars, side panel,
+     * popovers, font-size labels, "Double-click to edit text" hint) and
+     * — more visibly — into the in-canvas text editor overlay
+     * (`.excalidraw-wysiwyg` / `.excalidraw-textEditorContainer`), which
+     * is what shows while you're typing a text element. Excalidraw ships
+     * its own font stack ("Assistant" for UI, Virgil/Cascadia/Helvetica
+     * for canvas glyphs) and we want that look preserved untouched.
+     *
+     * `revert` here drops back to Excalidraw's own stylesheet rules —
+     * cleaner than hard-coding "Assistant, sans-serif" because it stays
+     * correct if Excalidraw retunes its defaults. */
+    .excalidraw,
+    .excalidraw *,
+    .excalidraw-wysiwyg,
+    .excalidraw-textEditorContainer,
+    .excalidraw-textEditorContainer * {
+        font-family: revert;
+    }
+
     /* ────────────────────────────────────────────────────────────────
      * Excalidraw theme integration
      *
