@@ -29,3 +29,6 @@ export {
   notBetween,
   relations,
 } from 'drizzle-orm';
+
+export * from './rbac-config';
+export * from './plans-config';

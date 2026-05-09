@@ -4,6 +4,7 @@ import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { db } from '@notai/db/client';
 import { users, accounts, sessions, verificationTokens } from '@notai/db/schema';
 import { seedOnboarding } from '@/server/onboarding';
+import { bootstrapNewUser } from '@/server/bootstrap-user';
 
 const SEVEN_DAYS = 60 * 60 * 24 * 7;
 const isProd = process.env.NODE_ENV === 'production';
@@ -53,9 +54,14 @@ export const authConfig = {
   },
   events: {
     async createUser({ user }) {
-      // Brand-new account: seed a couple of welcome notes so the workspace
-      // doesn't look empty. Idempotent — re-runs are no-ops.
+      // Brand-new account: assign default role + free subscription, then
+      // seed welcome notes. All idempotent — safe to retry.
       if (user.id) {
+        try {
+          await bootstrapNewUser(user.id);
+        } catch (err) {
+          console.error('[bootstrap] failed', err);
+        }
         try {
           await seedOnboarding(user.id);
         } catch (err) {

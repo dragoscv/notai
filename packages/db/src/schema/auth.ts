@@ -1,10 +1,12 @@
-import { pgTable, text, timestamp, primaryKey, integer } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, primaryKey, integer, pgEnum } from 'drizzle-orm/pg-core';
 import type { AdapterAccountType } from 'next-auth/adapters';
 
 /**
  * Auth.js v5 schema — required tables for the Drizzle adapter.
  * https://authjs.dev/getting-started/adapters/drizzle
  */
+export const userStatus = pgEnum('user_status', ['active', 'suspended', 'deleted']);
+
 export const users = pgTable('user', {
   id: text('id')
     .primaryKey()
@@ -13,6 +15,10 @@ export const users = pgTable('user', {
   email: text('email').notNull().unique(),
   emailVerified: timestamp('email_verified', { mode: 'date', withTimezone: true }),
   image: text('image'),
+  status: userStatus('status').notNull().default('active'),
+  suspendedAt: timestamp('suspended_at', { withTimezone: true }),
+  suspendedReason: text('suspended_reason'),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

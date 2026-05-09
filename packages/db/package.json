@@ -6,7 +6,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./rbac-config": "./src/rbac-config.ts",
+    "./plans-config": "./src/plans-config.ts"
   },
   "scripts": {
     "generate": "drizzle-kit generate",
@@ -15,6 +17,7 @@
     "studio": "drizzle-kit studio",
     "seed": "tsx src/seed.ts",
     "seed:templates": "tsx src/seed-templates.ts",
+    "seed:platform": "tsx src/seed-platform.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist .turbo"
   },
