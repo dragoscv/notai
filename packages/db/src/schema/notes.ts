@@ -252,6 +252,97 @@ export const noteChatMessages = pgTable(
   (t) => [index('note_chat_msgs_idx').on(t.noteId, t.userId, t.createdAt)],
 );
 
+/**
+ * Comments on a note. `anchor` is jsonb so we don't fan out a column per
+ * variant — `{kind:'note'}`, `{kind:'block', blockId}`, or
+ * `{kind:'canvas', x, y}`. Replies are a single level deep: `parentId`
+ * is null for top-level comments.
+ */
+export const noteComments = pgTable(
+  'note_comments',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    noteId: text('note_id')
+      .notNull()
+      .references(() => notes.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    parentId: text('parent_id').references((): AnyPgColumn => noteComments.id, {
+      onDelete: 'cascade',
+    }),
+    body: text('body').notNull(),
+    anchor: jsonb('anchor')
+      .$type<
+        | { kind: 'note' }
+        | { kind: 'block'; blockId: string }
+        | { kind: 'canvas'; x: number; y: number }
+      >()
+      .notNull(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('note_comments_note_idx').on(t.noteId, t.createdAt),
+    index('note_comments_parent_idx').on(t.parentId),
+  ],
+);
+
+/** Mention fan-out: one row per @-user inside a comment. */
+export const noteCommentMentions = pgTable(
+  'note_comment_mentions',
+  {
+    commentId: text('comment_id')
+      .notNull()
+      .references(() => noteComments.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('note_comment_mentions_unq').on(t.commentId, t.userId)],
+);
+
+/**
+ * In-app notifications. Generic — `kind` discriminates the payload.
+ * Comments and invites are the first producers; future kinds can land
+ * without a schema change.
+ */
+export const notificationKind = pgEnum('notification_kind', [
+  'comment_mention',
+  'comment_reply',
+  'invite_received',
+]);
+
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: notificationKind('kind').notNull(),
+    payload: jsonb('payload')
+      .$type<{
+        noteId?: string;
+        noteTitle?: string;
+        commentId?: string;
+        fromUserId?: string;
+        fromUserName?: string;
+        snippet?: string;
+      }>()
+      .notNull(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('notifications_user_idx').on(t.userId, t.readAt, t.createdAt.desc())],
+);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   notes: many(notes),

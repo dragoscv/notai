@@ -1,6 +1,14 @@
 'use client';
 import * as React from 'react';
-import { Pin, Star, MoreHorizontal, PanelRight, WifiOff, MessageSquare } from 'lucide-react';
+import {
+  Pin,
+  Star,
+  MoreHorizontal,
+  PanelRight,
+  WifiOff,
+  MessageSquare,
+  MessageCircle,
+} from 'lucide-react';
 import type { Editor } from '@tiptap/react';
 import {
   CanvasNote,
@@ -33,6 +41,8 @@ import { TagChips } from './tag-chips';
 import { VoiceRecorder } from './voice-recorder';
 import { runSlashAi } from '@/lib/slash-ai-client';
 import { NoteChatPanel } from './note-chat-panel';
+import { NoteCommentsPanel } from './note-comments-panel';
+import type { CommentRow } from '@/server/actions/comments';
 import { NoteAiMenu } from './note-ai-menu';
 import { VersionHistory } from './version-history';
 import { searchBacklinkCandidates, createNoteFromBacklink } from '@/server/actions/backlinks';
@@ -87,6 +97,27 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(chatStorageKey, chatOpen ? '1' : '0');
   }, [chatStorageKey, chatOpen]);
+
+  // Comments panel: same persistence pattern as chat. Mutually exclusive
+  // visually with chat (only one right rail at a time) but tracked
+  // separately so toggling either restores the other later.
+  const commentsStorageKey = `notai:comments-panel-open:${note.id}`;
+  const [commentsOpen, setCommentsOpen] = React.useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(commentsStorageKey) === '1';
+  });
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(commentsStorageKey, commentsOpen ? '1' : '0');
+  }, [commentsStorageKey, commentsOpen]);
+  const [pendingCommentAnchor, setPendingCommentAnchor] = React.useState<
+    CommentRow['anchor'] | null
+  >(null);
+  const onCommentBlock = React.useCallback((blockId: string) => {
+    setPendingCommentAnchor({ kind: 'block', blockId });
+    setCommentsOpen(true);
+    setChatOpen(false);
+  }, []);
 
   // Subscribe to focused-block editor changes so the toolbar always targets
   // the active text block on the canvas.
@@ -194,8 +225,23 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
           <NoteAiMenu noteId={note.id} onInsert={insertContent} />
           <Button
             size="icon-sm"
+            variant={commentsOpen ? 'default' : 'ghost'}
+            onClick={() => {
+              setCommentsOpen((v) => !v);
+              if (!commentsOpen) setChatOpen(false);
+            }}
+            aria-label="Toggle comments"
+            title={commentsOpen ? 'Close comments' : 'Open comments'}
+          >
+            <MessageCircle />
+          </Button>
+          <Button
+            size="icon-sm"
             variant={chatOpen ? 'default' : 'ghost'}
-            onClick={() => setChatOpen((v) => !v)}
+            onClick={() => {
+              setChatOpen((v) => !v);
+              if (!chatOpen) setCommentsOpen(false);
+            }}
             aria-label="Toggle chat"
             title={chatOpen ? 'Close chat' : 'Chat with this note'}
           >
@@ -295,6 +341,7 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                   searchBacklinks={searchBacklinkCandidates}
                   createBacklink={createNoteFromBacklink}
                   aiContext={{ run: runSlashAi, noteId: note.id }}
+                  onCommentBlock={onCommentBlock}
                   viewportKey={`notai:viewport:${note.id}`}
                   minimap={surface.minimap}
                   onMinimapCornerChange={(corner) =>
@@ -307,6 +354,13 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
           )}
         </div>
         <NoteChatPanel noteId={note.id} open={chatOpen} onOpenChange={setChatOpen} />
+        <NoteCommentsPanel
+          noteId={note.id}
+          open={commentsOpen}
+          onOpenChange={setCommentsOpen}
+          pendingAnchor={pendingCommentAnchor}
+          onPendingAnchorClear={() => setPendingCommentAnchor(null)}
+        />
       </div>
     </div>
   );

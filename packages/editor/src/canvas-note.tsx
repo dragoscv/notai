@@ -11,7 +11,7 @@ import type {
   ExcalidrawElement,
 } from '@excalidraw/excalidraw/element/types';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
-import { GripVertical, Trash2 } from 'lucide-react';
+import { GripVertical, MessageCircle, Trash2 } from 'lucide-react';
 import { cn } from '@notai/lib/utils';
 import { TextBlock } from './text-block';
 import { Minimap, type MinimapCorner } from './minimap';
@@ -101,6 +101,8 @@ export interface CanvasNoteProps {
   createBacklink?: (title: string) => Promise<{ id: string; title: string }>;
   /** Optional AI bridge — enables the `/ai` slash command bar inside text blocks. */
   aiContext?: import('./ai-types').SlashAiContext;
+  /** Optional callback: open the comments panel anchored to this block. */
+  onCommentBlock?: (blockId: string) => void;
   /** Page-template background drawn behind the (transparent) Excalidraw canvas. */
   surface?: 'plain' | 'ruled' | 'grid' | 'dots' | 'columns';
   surfaceSpacing?: number;
@@ -132,6 +134,7 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     searchBacklinks,
     createBacklink,
     aiContext,
+    onCommentBlock,
     surface,
     surfaceSpacing = 32,
     theme,
@@ -718,6 +721,7 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
             searchBacklinks={searchBacklinks}
             createBacklink={createBacklink}
             aiContext={aiContext}
+            onCommentBlock={onCommentBlock}
           />
         ))}
       </div>
@@ -755,6 +759,7 @@ interface BlockFrameProps {
   searchBacklinks?: (q: string) => Promise<Array<{ id: string; title: string }>>;
   createBacklink?: (title: string) => Promise<{ id: string; title: string }>;
   aiContext?: import('./ai-types').SlashAiContext;
+  onCommentBlock?: (blockId: string) => void;
 }
 
 function BlockFrame({
@@ -770,6 +775,7 @@ function BlockFrame({
   searchBacklinks,
   createBacklink,
   aiContext,
+  onCommentBlock,
 }: BlockFrameProps) {
   const fragment = useBlockFragment(doc, block.id);
   const [hovered, setHovered] = React.useState(false);
@@ -886,6 +892,20 @@ function BlockFrame({
           >
             <Trash2 className="size-3" />
           </button>
+          {onCommentBlock && (
+            <button
+              type="button"
+              aria-label="Comment on block"
+              title="Comment on this block"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCommentBlock(block.id);
+              }}
+              className="bg-card/90 absolute -right-7 top-9 rounded border px-1 py-1 opacity-80 shadow-sm hover:opacity-100"
+            >
+              <MessageCircle className="size-3" />
+            </button>
+          )}
           <div
             onPointerDown={onResizeHandle}
             title="Resize"

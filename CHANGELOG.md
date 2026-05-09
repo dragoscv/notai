@@ -14,6 +14,62 @@ Each app in this monorepo is versioned independently:
 
 ## [Unreleased]
 
+### Added — Comments + @-mentions + notifications (P0-6)
+
+P0-6 of the competitive backlog. Notai now ships a real collaborative
+discussion surface for notes — closing the gap with Notion / Google Docs
+on team workflows.
+
+- **Schema** (`packages/db/drizzle/0008_comments.sql`):
+  - `note_comments` — id, `note_id` (cascade), `user_id` (cascade),
+    nullable self-referencing `parent_id` for threaded replies, `body`
+    text, `anchor` jsonb (discriminated: `{kind:'note'}` /
+    `{kind:'block', blockId}` / `{kind:'canvas', x, y}`), `resolved_at`,
+    `created_at`, `updated_at`. Indexed on `(note_id, created_at)` and
+    `(parent_id)`.
+  - `note_comment_mentions` — composite primary key
+    `(comment_id, user_id)` for fast mention fan-out.
+  - `notifications` — generic in-app notification log with
+    `notification_kind` enum (`comment_mention`, `comment_reply`,
+    `invite_received`) and a typed jsonb `payload`. Indexed
+    `(user_id, read_at, created_at desc)`.
+- **Server actions** (`apps/web/src/server/actions/comments.ts`,
+  `notifications.ts`):
+  - `searchMentionableUsers(noteId, query)` returns the note's
+    collaborators (owner + share rows) filtered by name/email prefix.
+  - `listComments(noteId)` — flat ordered list with author + mention
+    user IDs.
+  - `addComment({noteId, body, anchor, parentId?, mentionUserIds})` —
+    persists, fans out mentions into `note_comment_mentions`, generates
+    `comment_mention` notifications for each mentioned user (excluding
+    self), and a separate `comment_reply` notification for the parent
+    author when replying (deduplicated against the mention set).
+  - `resolveComment` / `unresolveComment` / `deleteComment` (author or
+    note owner).
+  - Notifications: `listNotifications`, `unreadCount`, `markRead`,
+    `markAllRead`.
+- **UI**:
+  - New right-rail `NoteCommentsPanel` (380px, mutually exclusive with
+    the chat panel). Threaded replies, resolve / reopen / delete
+    affordances, anchor pills (`block` / `pin`), avatars, relative
+    timestamps. Open state persisted per-note in localStorage
+    (`notai:comments-panel-open:{noteId}`).
+  - Inline `@`-mention picker in the composer — searches collaborators
+    on the fly, keyboard-driven (↑/↓/Enter/Tab/Esc), inserts a stable
+    `@Display` token tracked in the draft so the server-side ID list
+    stays in sync with the visible body.
+  - Block hover chrome in `CanvasNote` gains a "Comment on block"
+    button. Clicking it opens the comments panel pre-anchored to that
+    block; the next "Send" submits with `anchor={kind:'block', blockId}`.
+  - Sidebar header gains a `NotificationBell` with unread badge,
+    polling every 60s. Dropdown lists the latest 20 notifications,
+    deep-links to `/app/n/{noteId}?comment={commentId}`, supports
+    "Mark all read" and per-item read-on-click.
+- **Note workspace**: dedicated comments toggle button (MessageCircle)
+  alongside the chat toggle. Opening one closes the other so the right
+  rail stays focused. Block-anchored composer state is kept on the
+  workspace and cleared after submit.
+
 ### Added — Web Clipper v2 (P0-5)
 
 P0-5 of the competitive backlog ([docs/competitive-analysis.md](docs/competitive-analysis.md)).

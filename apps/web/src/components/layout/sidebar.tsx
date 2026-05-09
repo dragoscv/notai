@@ -35,6 +35,7 @@ import { SidebarTree } from '@/components/layout/sidebar-tree';
 import { useSidebar } from '@/components/layout/app-shell';
 import { DesktopAppPromo } from '@/components/layout/desktop-app-promo';
 import { SettingsDialog, useSettingsOpenRequests } from '@/components/settings/settings-dialog';
+import { NotificationBell } from '@/components/layout/notification-bell';
 
 interface SidebarProps {
   user: { id: string; name?: string | null; email?: string | null; image?: string | null };
@@ -89,6 +90,7 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
           <span className="font-serif text-base">Notai</span>
         </Link>
         <div className="flex items-center gap-1">
+          <NotificationBell />
           <OpenStickiesButton variant="icon" />
           <ThemeToggle />
         </div>
