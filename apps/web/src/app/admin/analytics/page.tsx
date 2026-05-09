@@ -6,20 +6,20 @@ export const metadata = { title: 'Admin · Analytics' };
 
 const SQL_TIMESERIES = sql`
   SELECT
-    date_trunc('day', created_at)::date AS day,
+    date_trunc('day', ${users.createdAt})::date AS day,
     COUNT(*)::int AS value
-  FROM users
-  WHERE created_at >= NOW() - INTERVAL '30 days'
+  FROM ${users}
+  WHERE ${users.createdAt} >= NOW() - INTERVAL '30 days'
   GROUP BY 1
   ORDER BY 1
 `;
 
 const SQL_NOTES_BY_DAY = sql`
   SELECT
-    date_trunc('day', created_at)::date AS day,
+    date_trunc('day', ${notes.createdAt})::date AS day,
     COUNT(*)::int AS value
-  FROM notes
-  WHERE deleted_at IS NULL AND created_at >= NOW() - INTERVAL '30 days'
+  FROM ${notes}
+  WHERE ${notes.deletedAt} IS NULL AND ${notes.createdAt} >= NOW() - INTERVAL '30 days'
   GROUP BY 1
   ORDER BY 1
 `;
