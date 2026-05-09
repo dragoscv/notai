@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { auth } from '@/auth';
 import { db, notes, noteCollaborators, eq, and, or } from '@notai/db';
 import { streamChat } from '@/server/openai';
+import { incrementAiUsage, requireQuota } from '@/server/plans';
 
 async function requireUserAccess(noteId: string) {
   const session = await auth();
@@ -29,6 +30,8 @@ const idSchema = z.string().min(1);
 async function runPrompt(noteId: string, system: string, prefix: string) {
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
+  if (!userId) throw new Error('Not signed in');
+  await requireQuota(userId, 'ai');
   const note = await requireUserAccess(idSchema.parse(noteId));
   const text = `${note.title}\n\n${(note.plaintext ?? '').slice(0, 8000)}`;
   let result = '';
@@ -40,6 +43,7 @@ async function runPrompt(noteId: string, system: string, prefix: string) {
   })) {
     result += delta;
   }
+  await incrementAiUsage(userId, 1);
   return result.trim();
 }
 

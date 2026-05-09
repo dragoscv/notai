@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { auth } from '@/auth';
 import { db, assets, notes, noteCollaborators, eq, and, or } from '@notai/db';
 import { buildKey, isAssetsConfigured, presign, publicUrlFor } from '@/server/storage/s3';
+import { requireQuota } from '@/server/plans';
 
 const ALLOWED_MIME = new Set([
   'image/png',
@@ -62,6 +63,8 @@ export async function startAssetUpload(input: z.input<typeof startSchema>) {
   if (!ALLOWED_MIME.has(mime)) {
     throw new Error('That file type is not supported');
   }
+
+  await requireQuota(me.id, 'attachments', sizeBytes);
 
   await requireNoteAccess(noteId, me.id);
   const key = buildKey({ noteId, ownerId: me.id, filename, mime });

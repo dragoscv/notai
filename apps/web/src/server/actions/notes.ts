@@ -17,6 +17,7 @@ import {
   isNotNull,
   lt,
 } from '@notai/db';
+import { requireQuota } from '@/server/plans';
 
 /** Position gap between siblings so reorders don't have to renumber neighbours. */
 const POSITION_STEP = 1000;
@@ -95,6 +96,8 @@ const createSchema = z.object({
 export async function createNote(input: z.input<typeof createSchema> = {}) {
   const user = await requireUser();
   const data = createSchema.parse(input);
+
+  await requireQuota(user.id, 'notes');
 
   // Give the new note a `position` larger than any sibling in the same
   // folder so it lands at the bottom of the list; the sidebar can later

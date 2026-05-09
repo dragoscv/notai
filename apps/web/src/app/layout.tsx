@@ -6,6 +6,7 @@ import { TooltipProvider } from '@notai/ui/components/tooltip';
 import { ConsentProvider } from '@notai/ui/components/consent-provider';
 import { CookieConsent } from '@notai/ui/components/cookie-consent';
 import { PreferencesApplier } from '@/components/settings/preferences-applier';
+import { UpgradeModalProvider } from '@/components/upgrade-modal';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -42,10 +43,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <TooltipProvider delayDuration={200}>
             <ConsentProvider>
-              <PreferencesApplier />
-              {children}
-              <CookieConsent />
-              <Toaster position="bottom-right" richColors />
+              <UpgradeModalProvider>
+                <PreferencesApplier />
+                {children}
+                <CookieConsent />
+                <Toaster position="bottom-right" richColors />
+              </UpgradeModalProvider>
             </ConsentProvider>
           </TooltipProvider>
         </ThemeProvider>

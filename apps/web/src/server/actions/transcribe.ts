@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { auth } from '@/auth';
 import { getTranscribeProvider } from '@/server/ai';
+import { incrementAiUsage, requireQuota } from '@/server/plans';
 
 const schema = z.object({
   filename: z.string().max(120).default('voice.webm'),
@@ -21,6 +22,8 @@ export async function transcribeAudio(form: FormData): Promise<TranscriptionResu
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;
   if (!userId) throw new Error('Not signed in');
+
+  await requireQuota(userId, 'ai');
 
   const audio = form.get('audio');
   if (!(audio instanceof Blob)) throw new Error('Missing audio');
@@ -41,5 +44,6 @@ export async function transcribeAudio(form: FormData): Promise<TranscriptionResu
   if (text == null) {
     throw new Error('Transcription failed.');
   }
+  await incrementAiUsage(userId, 1);
   return { text };
 }

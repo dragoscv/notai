@@ -5,9 +5,11 @@ import {
   eq,
   and,
   count,
+  sum,
   isNull,
   sql,
   notes,
+  assets,
   subscriptions,
   plans,
   usageCounters,
@@ -113,9 +115,13 @@ export async function getQuotaState(userId: string): Promise<QuotaState> {
     .where(and(eq(notes.ownerId, userId), isNull(notes.deletedAt)));
   const notesCount = notesCountRow[0]?.value ?? 0;
 
-  // Storage estimate: today we don't have a per-user attachment registry
-  // wired up, so report 0. The Phase 4 storage gate will populate this.
-  const attachmentsUsed = 0;
+  // Sum bytes of every asset owned by this user. Cheap with the
+  // `assets_note_idx` index + the `owner_id` FK lookup.
+  const attachmentRow = await db
+    .select({ value: sum(assets.sizeBytes) })
+    .from(assets)
+    .where(eq(assets.ownerId, userId));
+  const attachmentsUsed = Number(attachmentRow[0]?.value ?? 0);
 
   const periodStart = startOfMonthUtc();
   const usage = await db.query.usageCounters.findFirst({

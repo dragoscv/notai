@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { auth } from '@/auth';
 import { db, notes, noteCollaborators, eq, and, or, isNull, sql } from '@notai/db';
 import { embedText, streamChat } from '@/server/openai';
+import { incrementAiUsage, requireQuota } from '@/server/plans';
 
 async function requireUser() {
   const session = await auth();
@@ -82,6 +83,7 @@ function snippet(text: string | null, q: string) {
  */
 export async function askMyNotesStream(input: { question: string }) {
   const me = await requireUser();
+  await requireQuota(me.id, 'ai');
   const hits = await askMyNotesSearch({ question: input.question, topK: 6 });
   const context = hits.map((h, i) => `[#${i + 1}] ${h.title}\n${h.snippet}`).join('\n\n');
   const stream = new ReadableStream<Uint8Array>({
@@ -97,6 +99,7 @@ export async function askMyNotesStream(input: { question: string }) {
         for await (const chunk of streamChat({ system, user, userId: me.id })) {
           controller.enqueue(encoder.encode(JSON.stringify({ type: 'delta', text: chunk }) + '\n'));
         }
+        await incrementAiUsage(me.id, 1);
       } catch (err) {
         controller.enqueue(
           encoder.encode(JSON.stringify({ type: 'error', message: String(err) }) + '\n'),
