@@ -110,6 +110,12 @@ export function BillingPanel({ plan }: { plan: PlanInfo }) {
           <Button onClick={upgrade} disabled={pending} className="w-full sm:w-auto">
             {pending ? 'Redirecting…' : `Upgrade — ${interval === 'yearly' ? '$60/yr' : '$6/mo'}`}
           </Button>
+          <a
+            href="/pricing"
+            className="text-muted-foreground hover:text-foreground ml-2 text-xs underline-offset-4 hover:underline"
+          >
+            Compare all plans →
+          </a>
         </section>
       )}
 

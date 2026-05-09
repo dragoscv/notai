@@ -86,6 +86,9 @@ function SiteHeader({ signedIn }: { signedIn: boolean }) {
           <a className="hover:text-foreground" href="#for-you">
             For you
           </a>
+          <Link className="hover:text-foreground" href="/pricing">
+            Pricing
+          </Link>
           <a className="hover:text-foreground" href="#start">
             Get started
           </a>
