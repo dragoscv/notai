@@ -12,6 +12,9 @@ import {
   Quote,
   Code,
   Minus,
+  Image as ImageIcon,
+  Calendar,
+  Clock,
 } from 'lucide-react';
 import type { SlashCommand } from './slash-menu-extension';
 
@@ -28,6 +31,9 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   quote: Quote,
   code: Code,
   divider: Minus,
+  image: ImageIcon,
+  date: Calendar,
+  time: Clock,
 };
 
 const GROUP_LABELS: Record<SlashCommand['group'], string> = {

@@ -92,6 +92,46 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     group: 'blocks',
     run: (e, r) => e.chain().focus().deleteRange(r).setHorizontalRule().run(),
   },
+  {
+    id: 'image',
+    label: 'Image',
+    hint: 'Embed an image by URL',
+    keywords: ['image', 'img', 'picture', 'photo'],
+    group: 'blocks',
+    run: (e, r) => {
+      const url = typeof window === 'undefined' ? null : window.prompt('Image URL (https://…)');
+      const trimmed = url?.trim();
+      if (!trimmed || !/^https?:\/\//i.test(trimmed)) {
+        e.chain().focus().deleteRange(r).run();
+        return;
+      }
+      e.chain().focus().deleteRange(r).setImage({ src: trimmed }).run();
+    },
+  },
+  {
+    id: 'date',
+    label: "Today's date",
+    hint: 'Insert YYYY-MM-DD',
+    keywords: ['date', 'today', 'day'],
+    group: 'basic',
+    run: (e, r) => {
+      const today = new Date().toISOString().slice(0, 10);
+      e.chain().focus().deleteRange(r).insertContent(today).run();
+    },
+  },
+  {
+    id: 'time',
+    label: 'Current time',
+    hint: 'Insert HH:MM',
+    keywords: ['time', 'now', 'clock'],
+    group: 'basic',
+    run: (e, r) => {
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      e.chain().focus().deleteRange(r).insertContent(`${hh}:${mm}`).run();
+    },
+  },
 ];
 
 /**
