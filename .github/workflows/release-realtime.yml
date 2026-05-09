@@ -1,14 +1,33 @@
 name: Release realtime-server (Cloud Run)
 
-# Builds the Hocuspocus image and rolls it out to Cloud Run only when
-# apps/realtime-server/package.json version changes on `main`.
+# Continuous deployment for the Hocuspocus realtime server.
+#
+# Trigger model:
+#   * Any push to `main` that touches the realtime server itself, the
+#     shared packages it depends on (db, lib), or root manifests builds
+#     and rolls out a new revision to Cloud Run. This is what you want
+#     for "I committed a fix to apps/realtime-server, the prod server
+#     should pick it up automatically."
+#   * Image is tagged with the short commit SHA (always) and `latest`.
+#   * If apps/realtime-server/package.json `version` was bumped in the
+#     same push, the image is also tagged `vX.Y.Z` and a matching
+#     `realtime-vX.Y.Z` git tag is pushed for traceability — but the
+#     deploy itself is not gated on that bump.
+#   * Manual `workflow_dispatch` is also available for re-rolls.
 
 on:
   push:
     branches: [main]
     paths:
-      - 'apps/realtime-server/package.json'
+      - 'apps/realtime-server/**'
+      - 'packages/db/**'
+      - 'packages/lib/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
       - '.github/workflows/release-realtime.yml'
+  workflow_dispatch:
 
 concurrency:
   group: release-realtime
@@ -22,29 +41,42 @@ env:
   IMAGE_NAME: realtime
 
 jobs:
-  detect:
-    name: Detect version bump
+  meta:
+    name: Compute image tags
     runs-on: ubuntu-latest
     outputs:
-      bumped: ${{ steps.detect.outputs.bumped }}
-      version: ${{ steps.detect.outputs.version }}
+      sha_tag: ${{ steps.meta.outputs.sha_tag }}
+      version: ${{ steps.meta.outputs.version }}
+      version_bumped: ${{ steps.meta.outputs.version_bumped }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - id: detect
+      - id: meta
+        shell: bash
         run: |
-          node scripts/detect-version-bumps.mjs ${{ github.event.before }} ${{ github.sha }} > bumps.json
-          cat bumps.json
-          BUMPED=$(node -e "const b=require('./bumps.json'); process.stdout.write(b.realtime ? 'true' : 'false')")
-          VERSION=$(node -e "const b=require('./bumps.json'); process.stdout.write(b.realtimeVersion || '')")
-          echo "bumped=$BUMPED" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          SHA_TAG="sha-$(git rev-parse --short=12 HEAD)"
+          echo "sha_tag=$SHA_TAG" >> "$GITHUB_OUTPUT"
+
+          # Always read the head version (used for `vX.Y.Z` tag when bumped).
+          VERSION=$(node -e "process.stdout.write(require('./apps/realtime-server/package.json').version)")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          # Detect bump only on push events with a real `before` SHA.
+          BUMPED=false
+          BEFORE='${{ github.event.before }}'
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            node scripts/detect-version-bumps.mjs "$BEFORE" "${{ github.sha }}" > bumps.json || true
+            if [ -s bumps.json ]; then
+              BUMPED=$(node -e "const b=require('./bumps.json'); process.stdout.write(b.realtime ? 'true' : 'false')")
+            fi
+          fi
+          echo "version_bumped=$BUMPED" >> "$GITHUB_OUTPUT"
 
   deploy:
     name: Build + deploy to Cloud Run
-    needs: detect
-    if: needs.detect.outputs.bumped == 'true'
+    needs: meta
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -73,15 +105,30 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Compose image tags
+        id: tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          REG="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}"
+          TAGS="$REG:${{ needs.meta.outputs.sha_tag }}\n$REG:latest"
+          if [ "${{ needs.meta.outputs.version_bumped }}" = "true" ]; then
+            TAGS="$TAGS\n$REG:${{ needs.meta.outputs.version }}"
+          fi
+          {
+            echo 'list<<EOF'
+            printf '%b\n' "$TAGS"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+          echo "primary=$REG:${{ needs.meta.outputs.sha_tag }}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/realtime-server/Dockerfile
           push: true
-          tags: |
-            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ needs.detect.outputs.version }}
-            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:latest
+          tags: ${{ steps.tags.outputs.list }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -91,7 +138,7 @@ jobs:
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
-          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ needs.detect.outputs.version }}
+          image: ${{ steps.tags.outputs.primary }}
           flags: >-
             --port=1234
             --service-account=notai-deploy@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com
@@ -110,10 +157,21 @@ jobs:
             DATABASE_URL=DATABASE_URL:latest
             HOCUSPOCUS_JWT_SECRET=HOCUSPOCUS_JWT_SECRET:latest
 
-      - name: Tag deployment
+      - name: Tag deployment (only on version bump)
+        if: needs.meta.outputs.version_bumped == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="realtime-v${{ needs.detect.outputs.version }}"
+          set -euo pipefail
+          TAG="realtime-v${{ needs.meta.outputs.version }}"
           git tag "$TAG" "${{ github.sha }}"
           git push origin "$TAG"
+
+      - name: Summary
+        run: |
+          echo "### Realtime deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image: \`${{ steps.tags.outputs.primary }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Version (package.json): \`${{ needs.meta.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Version bumped this push: \`${{ needs.meta.outputs.version_bumped }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Cloud Run URL: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
