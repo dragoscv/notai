@@ -19,6 +19,8 @@ export const users = pgTable('user', {
   suspendedAt: timestamp('suspended_at', { withTimezone: true }),
   suspendedReason: text('suspended_reason'),
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+  /** IANA timezone (e.g. 'Europe/Bucharest'). Synced from the browser. */
+  timezone: text('timezone'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

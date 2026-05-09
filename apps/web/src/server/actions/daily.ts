@@ -3,29 +3,30 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
-import { db, notes, eq, and, isNull } from '@notai/db';
+import { db, notes, users, eq, and, isNull } from '@notai/db';
 import { requireQuota } from '@/server/plans';
+import { localDateKey, dailyNoteTitle } from '@/server/daily-utils';
 
 /**
  * Returns today's "Daily — YYYY-MM-DD" note for the current user, creating
- * it on first call. The title is the canonical lookup key (cheap and human
- * readable); we also tag the note with the 📅 icon so it stands out in
- * the sidebar and search results.
+ * it on first call. The title is the canonical lookup key (cheap and
+ * human-readable) and we tag the note with the 📅 icon.
  *
- * Dates use UTC so the same calendar day resolves identically regardless
- * of where the user opens the app from. Per-user timezone support is a
- * follow-up once we add `users.timezone`.
+ * "Today" is computed in the user's IANA timezone (synced from the
+ * browser via `<TimezoneSync>` and stored in `users.timezone`). UTC
+ * is used as a safe fallback when no timezone has been recorded yet.
  */
 export async function getOrCreateDailyNote(): Promise<{ id: string; title: string }> {
   const session = await auth();
   if (!session?.user?.id) throw new Error('Not signed in');
   const userId = session.user.id;
 
-  const today = new Date();
-  const yyyy = today.getUTCFullYear();
-  const mm = String(today.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(today.getUTCDate()).padStart(2, '0');
-  const title = `Daily — ${yyyy}-${mm}-${dd}`;
+  const [me] = await db
+    .select({ timezone: users.timezone })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  const title = dailyNoteTitle(localDateKey(me?.timezone ?? null));
 
   const [existing] = await db
     .select({ id: notes.id, title: notes.title })

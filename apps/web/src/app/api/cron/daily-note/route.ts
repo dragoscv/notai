@@ -1,21 +1,24 @@
 import { NextResponse } from 'next/server';
 import { db, notes, users, eq, and, isNull, sql } from '@notai/db';
 import { env } from '@notai/lib';
+import { localDateKey, dailyNoteTitle } from '@/server/daily-utils';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 /**
- * Daily-note rollover. Runs once per UTC day. For every user who's been
- * active in the last 7 days, ensures today's "Daily — YYYY-MM-DD" note
- * exists. We deliberately keep this proactive (vs. lazy on first visit)
- * so the user lands on an instantly-available note when they open the
- * app first thing in the morning.
+ * Daily-note rollover. Designed to run hourly so each user gets their
+ * note created shortly after midnight in their own timezone:
+ *   - Pull every active user (last 7 days), grouped with their `timezone`.
+ *   - Compute the local YYYY-MM-DD per user.
+ *   - Skip users whose local hour is outside [0, 2] — we only want to
+ *     spawn the note around their local midnight, not retroactively for
+ *     every day they've been gone.
+ *   - For users who pass the check, ensure today's note exists.
  *
- * Per-user timezone support is intentionally deferred — once we add
- * `users.timezone`, this cron can run hourly and only create notes for
- * users whose local clock just hit 00:00.
+ * Auth is shared with the other crons (Vercel cron header or
+ * `CRON_SECRET` bearer).
  */
 export async function GET(req: Request) {
   const cronHeader = req.headers.get('x-vercel-cron');
@@ -26,17 +29,10 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const today = new Date();
-  const yyyy = today.getUTCFullYear();
-  const mm = String(today.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(today.getUTCDate()).padStart(2, '0');
-  const title = `Daily — ${yyyy}-${mm}-${dd}`;
-
-  // Active users = anyone seen in the last 7 days; otherwise we'd
-  // create empty notes for accounts that may never come back.
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const activeUsers = await db
-    .select({ id: users.id })
+    .select({ id: users.id, timezone: users.timezone })
     .from(users)
     .where(
       and(
@@ -47,7 +43,17 @@ export async function GET(req: Request) {
 
   let created = 0;
   let skipped = 0;
+  let outOfWindow = 0;
   for (const u of activeUsers) {
+    const tz = u.timezone ?? 'UTC';
+    const hour = localHour(tz, now);
+    // Only fire near the user's local midnight. Hourly cron + a 3-hour
+    // window means we'll catch every user even if Vercel skips a tick.
+    if (hour > 2) {
+      outOfWindow++;
+      continue;
+    }
+    const title = dailyNoteTitle(localDateKey(tz, now));
     const [existing] = await db
       .select({ id: notes.id })
       .from(notes)
@@ -66,5 +72,24 @@ export async function GET(req: Request) {
     created++;
   }
 
-  return NextResponse.json({ ok: true, title, scanned: activeUsers.length, created, skipped });
+  return NextResponse.json({
+    ok: true,
+    scanned: activeUsers.length,
+    created,
+    skipped,
+    outOfWindow,
+  });
+}
+
+function localHour(tz: string, when: Date): number {
+  try {
+    const h = new Intl.DateTimeFormat('en-GB', {
+      timeZone: tz,
+      hour: '2-digit',
+      hour12: false,
+    }).format(when);
+    return Number.parseInt(h, 10);
+  } catch {
+    return when.getUTCHours();
+  }
 }
