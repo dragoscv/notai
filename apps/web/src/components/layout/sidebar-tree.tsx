@@ -48,6 +48,7 @@ import {
   Archive,
   ArchiveRestore,
   ExternalLink,
+  Download,
   Layers as LayersIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -69,6 +70,7 @@ import {
   deleteNote,
   duplicateNote,
   moveNote,
+  exportNoteMarkdown,
 } from '@/server/actions/notes';
 import { createFolder, renameFolder, deleteFolder, moveFolder } from '@/server/actions/folders';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -766,6 +768,24 @@ function NoteRow({
     window.open(`/sticky/${note.id}`, '_blank', 'popup=yes,width=360,height=480');
   };
 
+  const exportMarkdown = async () => {
+    try {
+      const { filename, content } = await exportNoteMarkdown(note.id);
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Exported as Markdown');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Export failed');
+    }
+  };
+
   return (
     <li>
       <ReorderGap target={dragId} kind="before" />
@@ -808,6 +828,9 @@ function NoteRow({
             <ContextMenuSubContent className="w-52">
               <ContextMenuItem onSelect={openAsSticky}>
                 <ExternalLink className="size-4" /> Open as sticky
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={exportMarkdown}>
+                <Download className="size-4" /> Export as Markdown
               </ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>

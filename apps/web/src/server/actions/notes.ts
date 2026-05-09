@@ -261,6 +261,44 @@ export async function duplicateNote(id: string) {
   return copy;
 }
 
+/**
+ * Returns a markdown payload for a single note. Uses the `plaintext` mirror
+ * (kept up to date by the realtime server) and prefixes the title as H1 so
+ * the downloaded file opens cleanly in any markdown viewer.
+ */
+export async function exportNoteMarkdown(id: string) {
+  const user = await requireUser();
+  const [row] = await db
+    .select({
+      id: notes.id,
+      title: notes.title,
+      icon: notes.icon,
+      plaintext: notes.plaintext,
+      updatedAt: notes.updatedAt,
+    })
+    .from(notes)
+    .leftJoin(
+      noteCollaborators,
+      and(eq(noteCollaborators.noteId, notes.id), eq(noteCollaborators.userId, user.id)),
+    )
+    .where(
+      and(
+        eq(notes.id, id),
+        isNull(notes.deletedAt),
+        or(eq(notes.ownerId, user.id), eq(noteCollaborators.userId, user.id)),
+      ),
+    )
+    .limit(1);
+  if (!row) throw new Error('Note not found');
+
+  const title = row.title?.trim() || 'Untitled';
+  const safe = title.replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80);
+  const filename = `${safe || 'note'}.md`;
+  const body = (row.plaintext ?? '').trim();
+  const content = body ? `# ${title}\n\n${body}\n` : `# ${title}\n`;
+  return { filename, content };
+}
+
 const moveSchema = z.object({
   noteId: z.string(),
   /** Target folder (null = root). */
