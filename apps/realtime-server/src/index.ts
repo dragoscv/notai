@@ -35,6 +35,26 @@ const editCounts = new Map<string, { edits: number; lastAt: number }>();
  */
 const server = new Hocuspocus({
   port: PORT,
+  /*
+   * Persistence cadence.
+   *
+   * Hocuspocus debounces store calls per-document. Defaults are
+   * debounce=2000ms / maxDebounce=10000ms, which means a user who
+   * refreshes within 2s of their last edit can read stale state from
+   * Postgres on the next cold load even though the change is still
+   * live in the server's in-memory Y.Doc (and therefore visible in any
+   * other connected window — exactly the "sticky still shows it but
+   * the main note went blank after refresh" symptom).
+   *
+   * 400ms / 2000ms gives us tighter durability with negligible db load
+   * (Y updates are tiny binary diffs and a single UPDATE is cheap).
+   * Combined with `unloadImmediately: false` we still benefit from
+   * coalescing during burst edits without losing recent strokes when
+   * the user refreshes.
+   */
+  debounce: 400,
+  maxDebounce: 2000,
+  unloadImmediately: false,
   extensions: [
     new Logger({ log: (message: string) => console.log(`[hp] ${message}`) }),
     new Database({
