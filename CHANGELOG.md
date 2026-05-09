@@ -14,6 +14,31 @@ Each app in this monorepo is versioned independently:
 
 ## [Unreleased]
 
+### Added — `@notai/web`: per-note AI chat panel (P0-4)
+
+P0-4 of the competitive backlog ([docs/competitive-analysis.md](docs/competitive-analysis.md)).
+A right-side chat panel anchored to the current note. Conversations
+persist to `note_chat_messages` (per-user, per-note) so reloading the
+page restores the thread.
+
+- **DB**: new table `note_chat_messages` + `chat_role` enum, indexed on
+  `(note_id, user_id, created_at)`. Migration `0007_note_chat.sql`,
+  applied locally; production runner will pick it up automatically.
+- **Server actions** (`apps/web/src/server/actions/chat-with-note.ts`):
+  `listChatMessages(noteId)`, `clearChat(noteId)`, and a streaming
+  `streamChatTurn({noteId, question})` that retrieves the current
+  note's plaintext (always grounded) plus the top 3 vector hits across
+  the user's other notes, builds a recent-history transcript (last 12
+  turns), enforces `requireQuota('ai')`, and persists both the user
+  prompt and the assistant reply.
+- **API**: `POST /api/notes/chat` streams NDJSON
+  (`citations`, `delta`, `message`, `done`, `error`).
+- **UI**: `<NoteChatPanel />` (`apps/web/src/components/note/note-chat-panel.tsx`)
+  — collapsible panel with streaming bubbles, Stop, Copy, Clear,
+  citation chips that link to the cited note. Open state is
+  per-note in localStorage so power users keep it open across reloads.
+- Header gains a `MessageSquare` toggle button next to the AI menu.
+
 ### Added — `@notai/editor` 0.4.0: inline AI commands (`/ai` slash bar)
 
 P0-3 of the competitive backlog ([docs/competitive-analysis.md](docs/competitive-analysis.md)).

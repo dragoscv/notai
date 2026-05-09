@@ -220,6 +220,38 @@ export const assets = pgTable(
   (t) => [index('assets_note_idx').on(t.noteId)],
 );
 
+/**
+ * Per-note AI chat messages. Each user has their own thread per note
+ * (multi-collaborator shared threads can be added later). Citations
+ * is a JSON array of `{label, noteId, title}` so the UI can render
+ * clickable references in the assistant message.
+ */
+export const chatRole = pgEnum('chat_role', ['user', 'assistant', 'system']);
+
+export const noteChatMessages = pgTable(
+  'note_chat_messages',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    noteId: text('note_id')
+      .notNull()
+      .references(() => notes.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: chatRole('role').notNull(),
+    content: text('content').notNull(),
+    citations: jsonb('citations').$type<Array<{
+      label: string;
+      noteId: string;
+      title: string;
+    }> | null>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('note_chat_msgs_idx').on(t.noteId, t.userId, t.createdAt)],
+);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   notes: many(notes),

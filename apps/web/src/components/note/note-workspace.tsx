@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { Pin, Star, MoreHorizontal, PanelRight, WifiOff } from 'lucide-react';
+import { Pin, Star, MoreHorizontal, PanelRight, WifiOff, MessageSquare } from 'lucide-react';
 import type { Editor } from '@tiptap/react';
 import {
   CanvasNote,
@@ -32,6 +32,7 @@ import { RolloverBanner } from './rollover-banner';
 import { TagChips } from './tag-chips';
 import { VoiceRecorder } from './voice-recorder';
 import { runSlashAi } from '@/lib/slash-ai-client';
+import { NoteChatPanel } from './note-chat-panel';
 import { NoteAiMenu } from './note-ai-menu';
 import { VersionHistory } from './version-history';
 import { searchBacklinkCandidates, createNoteFromBacklink } from '@/server/actions/backlinks';
@@ -73,6 +74,19 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
   const [editor, setEditor] = React.useState<Editor | null>(null);
   const canvasRef = React.useRef<CanvasNoteHandle>(null);
   const [surface, setSurface] = useSurface();
+
+  // Chat panel: open state is per-note + persisted to localStorage so
+  // power users keep it open across reloads, while first-time visitors
+  // see a clean canvas. SSR-safe via the lazy initializer.
+  const chatStorageKey = `notai:chat-panel-open:${note.id}`;
+  const [chatOpen, setChatOpen] = React.useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(chatStorageKey) === '1';
+  });
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(chatStorageKey, chatOpen ? '1' : '0');
+  }, [chatStorageKey, chatOpen]);
 
   // Subscribe to focused-block editor changes so the toolbar always targets
   // the active text block on the canvas.
@@ -178,6 +192,15 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
             }}
           />
           <NoteAiMenu noteId={note.id} onInsert={insertContent} />
+          <Button
+            size="icon-sm"
+            variant={chatOpen ? 'default' : 'ghost'}
+            onClick={() => setChatOpen((v) => !v)}
+            aria-label="Toggle chat"
+            title={chatOpen ? 'Close chat' : 'Chat with this note'}
+          >
+            <MessageSquare />
+          </Button>
           <VersionHistory noteId={note.id} />
 
           <DropdownMenu>
@@ -210,77 +233,80 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
         </div>
       </header>
 
-      <div
-        className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
-        data-surface={fullBg ? surfaceDataAttr : undefined}
-        style={fullBg ? surfaceStyle : undefined}
-      >
-        {!doc || !provider ? (
-          <div className="text-muted-foreground grid flex-1 place-items-center text-sm">
-            <Spinner /> Connecting…
-          </div>
-        ) : (
-          <>
-            <div className="editor-column mx-auto w-full px-8 pt-4">
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Untitled"
-                className="placeholder:text-muted-foreground w-full bg-transparent font-serif text-3xl font-semibold tracking-tight outline-none"
-              />
-              <div className="mt-2 flex items-center gap-2">
-                <TagChips noteId={note.id} />
-              </div>
-              <RolloverBanner noteId={note.id} noteTitle={title} canvasRef={canvasRef} />
-              {editor && (
-                <div className="bg-background/80 sticky top-0 z-10 mt-2 py-1.5 backdrop-blur">
-                  <Toolbar editor={editor} />
-                </div>
-              )}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div
+          className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
+          data-surface={fullBg ? surfaceDataAttr : undefined}
+          style={fullBg ? surfaceStyle : undefined}
+        >
+          {!doc || !provider ? (
+            <div className="text-muted-foreground grid flex-1 place-items-center text-sm">
+              <Spinner /> Connecting…
             </div>
-            <div
-              className="relative min-h-0 flex-1"
-              onClickCapture={(e) => {
-                const target = (e.target as HTMLElement).closest('a[data-backlink]');
-                if (!target) return;
-                const id = target.getAttribute('data-backlink');
-                if (!id) return;
-                e.preventDefault();
-                router.push(`/app/n/${id}`);
-              }}
-            >
-              {/* In "page" coverage, the surface is a centred paper sheet
+          ) : (
+            <>
+              <div className="editor-column mx-auto w-full px-8 pt-4">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Untitled"
+                  className="placeholder:text-muted-foreground w-full bg-transparent font-serif text-3xl font-semibold tracking-tight outline-none"
+                />
+                <div className="mt-2 flex items-center gap-2">
+                  <TagChips noteId={note.id} />
+                </div>
+                <RolloverBanner noteId={note.id} noteTitle={title} canvasRef={canvasRef} />
+                {editor && (
+                  <div className="bg-background/80 sticky top-0 z-10 mt-2 py-1.5 backdrop-blur">
+                    <Toolbar editor={editor} />
+                  </div>
+                )}
+              </div>
+              <div
+                className="relative min-h-0 flex-1"
+                onClickCapture={(e) => {
+                  const target = (e.target as HTMLElement).closest('a[data-backlink]');
+                  if (!target) return;
+                  const id = target.getAttribute('data-backlink');
+                  if (!id) return;
+                  e.preventDefault();
+                  router.push(`/app/n/${id}`);
+                }}
+              >
+                {/* In "page" coverage, the surface is a centred paper sheet
                   matching the editor column width with the rest of the
                   canvas left blank. In "full" coverage, the parent above
                   carries the surface and this inner wrapper is just a
                   positioning context for CanvasNote. */}
-              {!fullBg && (
-                <div
-                  aria-hidden
-                  className="editor-column pointer-events-none absolute inset-y-0 left-1/2 w-full -translate-x-1/2"
-                  data-surface={surfaceDataAttr}
-                  style={surfaceStyle}
+                {!fullBg && (
+                  <div
+                    aria-hidden
+                    className="editor-column pointer-events-none absolute inset-y-0 left-1/2 w-full -translate-x-1/2"
+                    data-surface={surfaceDataAttr}
+                    style={surfaceStyle}
+                  />
+                )}
+                <CanvasNote
+                  ref={canvasRef}
+                  doc={doc}
+                  provider={provider}
+                  user={{ name: user.name, color: colorFor(user.id) }}
+                  searchBacklinks={searchBacklinkCandidates}
+                  createBacklink={createNoteFromBacklink}
+                  aiContext={{ run: runSlashAi, noteId: note.id }}
+                  viewportKey={`notai:viewport:${note.id}`}
+                  minimap={surface.minimap}
+                  onMinimapCornerChange={(corner) =>
+                    setSurface({ ...surface, minimap: { ...surface.minimap, corner } })
+                  }
                 />
-              )}
-              <CanvasNote
-                ref={canvasRef}
-                doc={doc}
-                provider={provider}
-                user={{ name: user.name, color: colorFor(user.id) }}
-                searchBacklinks={searchBacklinkCandidates}
-                createBacklink={createNoteFromBacklink}
-                aiContext={{ run: runSlashAi, noteId: note.id }}
-                viewportKey={`notai:viewport:${note.id}`}
-                minimap={surface.minimap}
-                onMinimapCornerChange={(corner) =>
-                  setSurface({ ...surface, minimap: { ...surface.minimap, corner } })
-                }
-              />
-            </div>
-            <BacklinksPanel noteId={note.id} />
-          </>
-        )}
+              </div>
+              <BacklinksPanel noteId={note.id} />
+            </>
+          )}
+        </div>
+        <NoteChatPanel noteId={note.id} open={chatOpen} onOpenChange={setChatOpen} />
       </div>
     </div>
   );
