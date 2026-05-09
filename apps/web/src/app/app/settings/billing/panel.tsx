@@ -6,7 +6,7 @@ import { Button } from '@notai/ui';
 import { startCheckout, openBillingPortal } from '@/server/actions/billing';
 
 interface PlanInfo {
-  tier: 'free' | 'pro';
+  tier: 'free' | 'pro' | 'teams';
   status: string;
   currentPeriodEnd?: Date | string | null;
   cancelAtPeriodEnd?: boolean;

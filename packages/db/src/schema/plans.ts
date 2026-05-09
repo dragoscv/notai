@@ -156,3 +156,6 @@ export const referrals = pgTable(
 
 export type Plan = typeof plans.$inferSelect;
 export type PlanPrice = typeof planPrices.$inferSelect;
+export type BillingInterval = (typeof billingInterval.enumValues)[number];
+export type BillingCurrency = (typeof billingCurrency.enumValues)[number];
+export type PlanSlug = (typeof planSlug.enumValues)[number];

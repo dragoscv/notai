@@ -107,10 +107,11 @@ export async function getQuotaState(userId: string): Promise<QuotaState> {
   const ctx = await getPlanContextForUser(userId);
   const limits = effectiveLimits(ctx.plan);
 
-  const [{ value: notesCount }] = await db
+  const notesCountRow = await db
     .select({ value: count() })
     .from(notes)
     .where(and(eq(notes.ownerId, userId), isNull(notes.deletedAt)));
+  const notesCount = notesCountRow[0]?.value ?? 0;
 
   // Storage estimate: today we don't have a per-user attachment registry
   // wired up, so report 0. The Phase 4 storage gate will populate this.
@@ -121,10 +122,11 @@ export async function getQuotaState(userId: string): Promise<QuotaState> {
     where: and(eq(usageCounters.userId, userId), eq(usageCounters.periodStart, periodStart)),
   });
 
-  const [{ value: deviceCount }] = await db
+  const deviceCountRow = await db
     .select({ value: count() })
     .from(userDevices)
     .where(eq(userDevices.userId, userId));
+  const deviceCount = deviceCountRow[0]?.value ?? 0;
 
   return {
     notes: { used: notesCount, limit: limits.notesCloud ?? null },

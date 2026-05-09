@@ -28,6 +28,12 @@ export {
   between,
   notBetween,
   relations,
+  count,
+  countDistinct,
+  sum,
+  avg,
+  min,
+  max,
 } from 'drizzle-orm';
 
 export * from './rbac-config';

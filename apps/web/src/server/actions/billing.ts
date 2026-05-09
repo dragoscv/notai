@@ -3,9 +3,15 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
-import { db, subscriptions, users, eq } from '@notai/db';
-import { getStripe, PRICE_IDS } from '@/server/stripe';
-import { env } from '@notai/lib';
+import { db, subscriptions, eq, type BillingCurrency, type BillingInterval } from '@notai/db';
+import {
+  createCheckoutSession,
+  createPortalSession,
+  type CheckoutInput,
+} from '@/server/billing/checkout';
+import { syncAllPlansToStripe, syncPlanToStripe } from '@/server/billing/sync-stripe';
+import { requirePermission } from '@/server/rbac';
+import { audit } from '@/server/audit';
 
 async function requireUser() {
   const session = await auth();
@@ -14,8 +20,7 @@ async function requireUser() {
 }
 
 /**
- * Returns the current user's plan tier + subscription status. If they
- * have no row yet they're implicitly on the free tier.
+ * Returns the current user's plan tier + subscription status.
  */
 export async function getMyPlan() {
   const me = await requireUser();
@@ -24,16 +29,28 @@ export async function getMyPlan() {
     .from(subscriptions)
     .where(eq(subscriptions.userId, me.id))
     .limit(1);
-  if (!row) return { tier: 'free' as const, status: 'active' as const, currentPeriodEnd: null };
+  if (!row)
+    return {
+      tier: 'free' as const,
+      status: 'active' as const,
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+      interval: null,
+      currency: null,
+      trialEndsAt: null,
+    };
   return {
     tier: row.tier,
     status: row.status,
     currentPeriodEnd: row.currentPeriodEnd,
     cancelAtPeriodEnd: row.cancelAtPeriodEnd === 1,
+    interval: row.interval,
+    currency: row.currency,
+    trialEndsAt: row.trialEndsAt,
   };
 }
 
-/** True iff the user is on Pro AND their subscription is in good standing. */
+/** True iff the user is on Pro/Teams AND their subscription is in good standing. */
 export async function isPro(userId: string) {
   const [row] = await db
     .select({ tier: subscriptions.tier, status: subscriptions.status })
@@ -41,71 +58,87 @@ export async function isPro(userId: string) {
     .where(eq(subscriptions.userId, userId))
     .limit(1);
   if (!row) return false;
-  return row.tier === 'pro' && (row.status === 'active' || row.status === 'trialing');
+  return (
+    (row.tier === 'pro' || row.tier === 'teams') &&
+    (row.status === 'active' || row.status === 'trialing')
+  );
 }
 
 /**
- * Server action invoked by the Upgrade button. Creates a Stripe Checkout
- * session and redirects the browser to Stripe's hosted page.
+ * Legacy entry point used by the existing Settings → Billing panel.
+ * Maps the old `{ interval: 'monthly' | 'yearly' }` shape to the new
+ * dynamic checkout (defaults to Pro / EUR).
  */
 export async function startCheckout(input: { interval: 'monthly' | 'yearly' }) {
   const me = await requireUser();
-  const stripe = getStripe();
-  if (!stripe) throw new Error('Billing is not configured');
-  const priceId = input.interval === 'yearly' ? PRICE_IDS.proYearly : PRICE_IDS.proMonthly;
-  if (!priceId) throw new Error('Missing Stripe price for the selected interval');
-
-  // Reuse an existing customer if we have one, else let Checkout create it.
-  const [existing] = await db
-    .select({ stripeCustomerId: subscriptions.stripeCustomerId })
-    .from(subscriptions)
-    .where(eq(subscriptions.userId, me.id))
-    .limit(1);
-
-  const [user] = await db
-    .select({ email: users.email })
-    .from(users)
-    .where(eq(users.id, me.id))
-    .limit(1);
-
-  const origin = env.NEXT_PUBLIC_APP_URL ?? 'https://notai.ro';
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${origin}/app/settings/billing?status=success`,
-    cancel_url: `${origin}/app/settings/billing?status=cancelled`,
-    customer: existing?.stripeCustomerId ?? undefined,
-    customer_email: existing?.stripeCustomerId ? undefined : (user?.email ?? undefined),
-    client_reference_id: me.id,
-    allow_promotion_codes: true,
-    billing_address_collection: 'auto',
-    metadata: { userId: me.id },
-    subscription_data: {
-      metadata: { userId: me.id },
-    },
+  const session = await createCheckoutSession({
+    userId: me.id,
+    planSlug: 'pro',
+    currency: 'eur',
+    interval: input.interval === 'yearly' ? 'year' : 'month',
   });
+  redirect(session.url);
+}
 
-  if (!session.url) throw new Error('Stripe did not return a redirect URL');
+/**
+ * New flexible checkout used by the pricing page. Supports any plan,
+ * interval, currency, and an optional referral inviter id.
+ */
+export async function startDynamicCheckout(input: {
+  planSlug: 'pro' | 'teams';
+  interval: BillingInterval;
+  currency: BillingCurrency;
+  quantity?: number;
+  referralInviterId?: string | null;
+  returnPath?: string;
+}) {
+  const me = await requireUser();
+  const payload: CheckoutInput = {
+    userId: me.id,
+    planSlug: input.planSlug,
+    interval: input.interval,
+    currency: input.currency,
+    quantity: input.quantity,
+    referralInviterId: input.referralInviterId ?? null,
+    returnPath: input.returnPath,
+  };
+  const session = await createCheckoutSession(payload);
   redirect(session.url);
 }
 
 /** Open the Stripe customer portal for plan management / cancellation. */
 export async function openBillingPortal() {
   const me = await requireUser();
-  const stripe = getStripe();
-  if (!stripe) throw new Error('Billing is not configured');
-  const [row] = await db
-    .select({ stripeCustomerId: subscriptions.stripeCustomerId })
-    .from(subscriptions)
-    .where(eq(subscriptions.userId, me.id))
-    .limit(1);
-  if (!row?.stripeCustomerId) throw new Error('No Stripe customer on file');
-
-  const origin = env.NEXT_PUBLIC_APP_URL ?? 'https://notai.ro';
-  const portal = await stripe.billingPortal.sessions.create({
-    customer: row.stripeCustomerId,
-    return_url: `${origin}/app/settings/billing`,
-  });
+  const url = await createPortalSession(me.id);
   revalidatePath('/app/settings/billing');
-  redirect(portal.url);
+  redirect(url);
+}
+
+/**
+ * Admin-only: push every plan + price into Stripe. Idempotent.
+ */
+export async function adminSyncAllPlans() {
+  await requirePermission('plans:write');
+  const result = await syncAllPlansToStripe();
+  await audit({
+    action: 'plans.sync_stripe.all',
+    resourceType: 'plans',
+    metadata: { summary: result as unknown as Record<string, unknown> },
+  });
+  revalidatePath('/admin/plans');
+  return result;
+}
+
+/** Admin-only: sync a single plan to Stripe. */
+export async function adminSyncPlan(planId: string) {
+  await requirePermission('plans:write');
+  const result = await syncPlanToStripe(planId);
+  await audit({
+    action: 'plans.sync_stripe.one',
+    resourceType: 'plans',
+    resourceId: planId,
+    metadata: result as unknown as Record<string, unknown>,
+  });
+  revalidatePath('/admin/plans');
+  return result;
 }

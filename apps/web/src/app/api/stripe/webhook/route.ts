@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
-import { db, subscriptions, billingEvents, eq } from '@notai/db';
+import { db, subscriptions, billingEvents, plans, planPrices, referrals, eq, and } from '@notai/db';
 import { getStripe } from '@/server/stripe';
 import { env } from '@notai/lib';
 
@@ -8,9 +8,16 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Stripe webhook handler. Verifies the signature, ignores duplicate
- * events via the `billing_events` idempotency table, and reflects each
- * event into our `subscriptions` row.
+ * Stripe webhook handler.
+ *
+ * Verifies the signature, ignores duplicate events via the
+ * `billing_events` idempotency table, and reflects each event into our
+ * `subscriptions` row — including `planId`, `interval`, `currency`,
+ * `trialEndsAt`, `cancelAtPeriodEnd` so the rest of the app can read the
+ * full subscription shape without consulting Stripe.
+ *
+ * Also redeems referral credits when a subscription enters `active` for
+ * the first time (status transition tracked via metadata.referralInviterId).
  */
 export async function POST(req: Request) {
   const stripe = getStripe();
@@ -21,7 +28,6 @@ export async function POST(req: Request) {
   const sig = req.headers.get('stripe-signature');
   if (!sig) return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
 
-  // We must use the raw body for signature verification.
   const raw = await req.text();
   let event: Stripe.Event;
   try {
@@ -31,11 +37,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Bad signature' }, { status: 400 });
   }
 
-  // Idempotency: insert event id; if it already exists we exit cleanly.
-  try {
-    await db.insert(billingEvents).values({ id: event.id, type: event.type }).onConflictDoNothing();
-  } catch (err) {
-    console.error('[stripe] failed to record event', err);
+  // Idempotency: if we've seen this event id, skip handler logic.
+  const inserted = await db
+    .insert(billingEvents)
+    .values({ id: event.id, type: event.type })
+    .onConflictDoNothing()
+    .returning({ id: billingEvents.id });
+  if (inserted.length === 0) {
+    return NextResponse.json({ received: true, deduplicated: true });
   }
 
   try {
@@ -49,6 +58,7 @@ export async function POST(req: Request) {
         if (!subscriptionId || !customerId) break;
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
         await upsertSubscription(userId, customerId, sub);
+        await maybeRedeemReferral(session.metadata?.referralInviterId, userId);
         break;
       }
       case 'customer.subscription.created':
@@ -62,14 +72,11 @@ export async function POST(req: Request) {
         break;
       }
       case 'invoice.payment_failed': {
-        // Status update happens via the subscription update event,
-        // so we just log here.
         const invoice = event.data.object as Stripe.Invoice;
         console.warn('[stripe] payment failed', invoice.id);
         break;
       }
       default:
-        // Quiet — there are dozens of event types we don't care about.
         break;
     }
   } catch (err) {
@@ -79,20 +86,60 @@ export async function POST(req: Request) {
   return NextResponse.json({ received: true });
 }
 
-async function upsertSubscription(userId: string, customerId: string, sub: Stripe.Subscription) {
-  const tier: 'free' | 'pro' = sub.status === 'canceled' ? 'free' : 'pro';
-  const status = sub.status as
-    | 'active'
-    | 'trialing'
-    | 'past_due'
-    | 'canceled'
-    | 'incomplete'
-    | 'incomplete_expired'
-    | 'unpaid'
-    | 'paused';
+type SubStatus =
+  | 'active'
+  | 'trialing'
+  | 'past_due'
+  | 'canceled'
+  | 'incomplete'
+  | 'incomplete_expired'
+  | 'unpaid'
+  | 'paused';
+
+async function upsertSubscription(
+  userId: string,
+  customerId: string,
+  sub: Stripe.Subscription,
+): Promise<void> {
+  const item = sub.items.data[0];
+  const stripePriceId = item?.price.id ?? null;
   const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
-  const priceId = sub.items.data[0]?.price.id ?? null;
+  const trialEndsAt = sub.trial_end ? new Date(sub.trial_end * 1000) : null;
   const cancelAtPeriodEnd = sub.cancel_at_period_end ? 1 : 0;
+  const status = sub.status as SubStatus;
+
+  let planId: string | null = (sub.metadata?.planId as string) ?? null;
+  let planSlug: 'free' | 'pro' | 'teams' = 'free';
+  let interval: 'month' | 'year' | null = null;
+  let currency: 'eur' | 'usd' | 'ron' | null = null;
+
+  if (stripePriceId) {
+    const priceRow = await db.query.planPrices.findFirst({
+      where: eq(planPrices.stripePriceId, stripePriceId),
+    });
+    if (priceRow) {
+      planId = priceRow.planId;
+      interval = priceRow.interval;
+      currency = priceRow.currency;
+    } else if (item?.price?.recurring?.interval) {
+      interval = item.price.recurring.interval as 'month' | 'year';
+      const cur = item.price.currency?.toLowerCase();
+      if (cur === 'eur' || cur === 'usd' || cur === 'ron') currency = cur;
+    }
+  }
+
+  if (planId) {
+    const planRow = await db.query.plans.findFirst({ where: eq(plans.id, planId) });
+    if (planRow) planSlug = planRow.slug;
+  } else if (sub.metadata?.planSlug) {
+    const slug = sub.metadata.planSlug as 'free' | 'pro' | 'teams';
+    if (slug === 'free' || slug === 'pro' || slug === 'teams') planSlug = slug;
+  }
+
+  const tier: 'free' | 'pro' | 'teams' =
+    status === 'canceled' || status === 'incomplete_expired' || status === 'unpaid'
+      ? 'free'
+      : planSlug;
 
   const existing = await db
     .select({ userId: subscriptions.userId })
@@ -103,27 +150,51 @@ async function upsertSubscription(userId: string, customerId: string, sub: Strip
   if (existing.length === 0) {
     await db.insert(subscriptions).values({
       userId,
+      planId,
       stripeCustomerId: customerId,
       stripeSubscriptionId: sub.id,
-      stripePriceId: priceId,
+      stripePriceId,
       tier,
       status,
+      interval,
+      currency,
       currentPeriodEnd: periodEnd,
+      trialEndsAt,
       cancelAtPeriodEnd,
     });
   } else {
     await db
       .update(subscriptions)
       .set({
+        planId,
         stripeCustomerId: customerId,
         stripeSubscriptionId: sub.id,
-        stripePriceId: priceId,
+        stripePriceId,
         tier,
         status,
+        interval,
+        currency,
         currentPeriodEnd: periodEnd,
+        trialEndsAt,
         cancelAtPeriodEnd,
         updatedAt: new Date(),
       })
       .where(eq(subscriptions.userId, userId));
   }
+}
+
+/**
+ * Mark a referral as accepted on first paid checkout. The 1mo Pro credit
+ * for inviter + invitee is granted by a follow-up admin cron that issues
+ * Stripe coupon codes; this records intent.
+ */
+async function maybeRedeemReferral(
+  inviterId: string | null | undefined,
+  inviteeId: string,
+): Promise<void> {
+  if (!inviterId || inviterId === inviteeId) return;
+  await db
+    .update(referrals)
+    .set({ inviteeUserId: inviteeId, status: 'accepted', acceptedAt: new Date() })
+    .where(and(eq(referrals.inviterId, inviterId), eq(referrals.status, 'pending')));
 }
