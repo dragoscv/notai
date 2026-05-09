@@ -90,7 +90,18 @@ export function AppShell({
       <a href="#app-main" className="a11y-skip-link">
         Skip to content
       </a>
-      <div className="bg-background flex h-dvh w-full overflow-hidden">
+      <div
+        className="bg-background flex h-dvh w-full overflow-hidden"
+        onContextMenu={(e) => {
+          // App-wide guard: suppress the native browser menu on any
+          // shell chrome that doesn't have its own custom Radix
+          // ContextMenu. Inner triggers (sidebar tree items, future
+          // editor menus) call preventDefault during bubbling so they
+          // still open their own menu first; this handler only fires
+          // for the bare backdrop / panels / buttons we don't wire.
+          if (!e.defaultPrevented) e.preventDefault();
+        }}
+      >
         {sidebar}
 
         {/* Mobile backdrop — only active when drawer open */}

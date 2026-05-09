@@ -120,12 +120,15 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
   }, []);
 
   // Subscribe to focused-block editor changes so the toolbar always targets
-  // the active text block on the canvas.
+  // the active text block on the canvas. Depends on `synced` because we
+  // remount CanvasNote when sync arrives (see <CanvasNote key=... /> below);
+  // without re-running this effect on the new handle the toolbar would
+  // stay frozen on the pre-sync canvas instance.
   React.useEffect(() => {
     const handle = canvasRef.current;
     if (!handle) return;
     return handle.subscribeFocused(setEditor);
-  }, [doc]);
+  }, [doc, synced]);
 
   const insertContent = React.useCallback((md: string | Record<string, unknown>) => {
     const handle = canvasRef.current;
@@ -159,7 +162,16 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
   const fullBg = surface.coverage === 'full';
 
   return (
-    <div className="flex h-full flex-col">
+    <div
+      className="flex h-full flex-col"
+      onContextMenu={(e) => {
+        // Suppress the native browser menu anywhere in the note shell
+        // unless an inner Radix ContextMenuTrigger has already handled it.
+        // Radix preventDefaults during bubbling, so this only fires for
+        // bare chrome (header buttons, panels, surface backdrop, etc.).
+        if (!e.defaultPrevented) e.preventDefault();
+      }}
+    >
       <FocusMode />
       <header
         className="bg-background/70 flex shrink-0 items-center gap-2 border-b px-4 py-2 backdrop-blur"
@@ -334,6 +346,12 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                   />
                 )}
                 <CanvasNote
+                  // Remount once Hocuspocus reports the initial snapshot
+                  // has been applied. Without this, a fast race between
+                  // CanvasNote subscribing to the Y.Doc and the IDB /
+                  // websocket payload landing left the canvas blank
+                  // until the user switched notes or drew something.
+                  key={synced ? `${note.id}:ready` : `${note.id}:pending`}
                   ref={canvasRef}
                   doc={doc}
                   provider={provider}

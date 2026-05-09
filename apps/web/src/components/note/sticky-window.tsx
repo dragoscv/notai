@@ -22,7 +22,7 @@ export interface StickyWindowProps {
  * Y.Doc so text/drawings/title stay in real-time sync.
  */
 export function StickyWindow({ note, token, realtimeUrl, user }: StickyWindowProps) {
-  const { doc, provider } = useNoteDoc({ noteId: note.id, url: realtimeUrl, token });
+  const { doc, provider, synced } = useNoteDoc({ noteId: note.id, url: realtimeUrl, token });
   const [title, setTitle] = useSharedTitle(doc, note.title);
   const [surface, setSurface] = useSurface('notai:surface:sticky');
 
@@ -49,6 +49,9 @@ export function StickyWindow({ note, token, realtimeUrl, user }: StickyWindowPro
     <div
       className={cn('flex h-dvh w-dvw flex-col overflow-hidden', 'shadow-xl ring-1 ring-black/5')}
       style={{ background: palette.bg, color: palette.fg }}
+      onContextMenu={(e) => {
+        if (!e.defaultPrevented) e.preventDefault();
+      }}
     >
       {/* Tauri drag region: `data-tauri-drag-region` makes the whole bar draggable in the desktop app */}
       <header
@@ -110,6 +113,9 @@ export function StickyWindow({ note, token, realtimeUrl, user }: StickyWindowPro
       >
         {doc && provider ? (
           <CanvasNote
+            // See note-workspace.tsx — remount once sync lands so the
+            // canvas isn't blank until the user pokes it.
+            key={synced ? `${note.id}:ready` : `${note.id}:pending`}
             doc={doc}
             provider={provider}
             user={{ name: user.name, color: '#333' }}
