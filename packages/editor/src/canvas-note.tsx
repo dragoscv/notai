@@ -14,6 +14,7 @@ import type { HocuspocusProvider } from '@hocuspocus/provider';
 import { GripVertical, Trash2, Plus } from 'lucide-react';
 import { cn } from '@notai/lib/utils';
 import { TextBlock } from './text-block';
+import { Minimap, type MinimapCorner } from './minimap';
 import {
   addBlock,
   BLOCKS_CONTENT_MAP,
@@ -102,6 +103,14 @@ export interface CanvasNoteProps {
   theme?: 'light' | 'dark';
   /** Persist viewport pan/zoom under this localStorage key (per-device). */
   viewportKey?: string;
+  /**
+   * Minimap overlay. When `enabled`, shows a thumbnail of the note in
+   * `corner`; clicks on the map pan the canvas. The minimap is also
+   * draggable — `onMinimapCornerChange` is fired with the snapped
+   * corner so the parent can persist the choice.
+   */
+  minimap?: { enabled: boolean; corner: MinimapCorner };
+  onMinimapCornerChange?: (corner: MinimapCorner) => void;
 }
 
 /* -------------------------------------------------------------------- */
@@ -121,6 +130,8 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     surfaceSpacing = 32,
     theme,
     viewportKey,
+    minimap,
+    onMinimapCornerChange,
   },
   ref,
 ) {
@@ -717,6 +728,19 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
         >
           <Plus className="size-3" /> Text
         </button>
+      )}
+
+      {/* Minimap overlay (authoring only). The corner is parent-controlled
+          so it persists across reloads via the parent's settings store. */}
+      {!stickyMode && minimap?.enabled && (
+        <Minimap
+          doc={doc}
+          host={host}
+          api={api}
+          viewport={viewport}
+          corner={minimap.corner}
+          onCornerChange={(c) => onMinimapCornerChange?.(c)}
+        />
       )}
     </div>
   );

@@ -6,6 +6,7 @@ export * from './use-note-doc';
 export * from './use-shared-title';
 export * from './use-open-stickies';
 export * from './backlink-extension';
+export { Minimap, MINIMAP_DEFAULT, type MinimapCorner, type MinimapSettings } from './minimap';
 export {
   migrateLegacyDoc,
   getBlocksArray,

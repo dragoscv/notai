@@ -1,10 +1,21 @@
 'use client';
 import * as React from 'react';
-import { FileText, Rows3, Grid3x3, Columns3, LayoutGrid, Square, Maximize } from 'lucide-react';
+import {
+  FileText,
+  Rows3,
+  Grid3x3,
+  Columns3,
+  LayoutGrid,
+  Square,
+  Maximize,
+  Map as MapIcon,
+} from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@notai/ui/components/popover';
 import { Slider } from '@notai/ui/components/slider';
+import { Switch } from '@notai/ui/components/switch';
 import { cn } from '@notai/lib/utils';
+import { MINIMAP_DEFAULT, type MinimapCorner, type MinimapSettings } from '@notai/editor';
 
 export type Surface = 'plain' | 'ruled' | 'grid' | 'dots' | 'columns';
 export type SurfaceCoverage = 'page' | 'full';
@@ -13,6 +24,7 @@ export interface SurfaceSettings {
   surface: Surface;
   spacing: number;
   coverage: SurfaceCoverage;
+  minimap: MinimapSettings;
 }
 
 const SURFACES: {
@@ -28,7 +40,12 @@ const SURFACES: {
 ];
 
 const DEFAULT_KEY = 'notai:surface';
-const DEFAULT: SurfaceSettings = { surface: 'plain', spacing: 32, coverage: 'page' };
+const DEFAULT: SurfaceSettings = {
+  surface: 'plain',
+  spacing: 32,
+  coverage: 'page',
+  minimap: MINIMAP_DEFAULT,
+};
 
 export function useSurface(
   storageKey: string = DEFAULT_KEY,
@@ -37,7 +54,14 @@ export function useSurface(
   React.useEffect(() => {
     try {
       const raw = localStorage.getItem(storageKey);
-      if (raw) setState({ ...DEFAULT, ...JSON.parse(raw) });
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<SurfaceSettings>;
+        setState({
+          ...DEFAULT,
+          ...parsed,
+          minimap: { ...DEFAULT.minimap, ...(parsed.minimap ?? {}) },
+        });
+      }
     } catch {
       /* ignore */
     }
@@ -45,7 +69,12 @@ export function useSurface(
     const onStorage = (e: StorageEvent) => {
       if (e.key !== storageKey || !e.newValue) return;
       try {
-        setState({ ...DEFAULT, ...JSON.parse(e.newValue) });
+        const parsed = JSON.parse(e.newValue) as Partial<SurfaceSettings>;
+        setState({
+          ...DEFAULT,
+          ...parsed,
+          minimap: { ...DEFAULT.minimap, ...(parsed.minimap ?? {}) },
+        });
       } catch {
         /* ignore */
       }
@@ -161,7 +190,79 @@ export function SurfaceSwitcher({
             disabled={value.surface === 'plain'}
           />
         </div>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between text-xs">
+            <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+              <MapIcon className="size-3" />
+              Minimap
+            </span>
+            <Switch
+              checked={value.minimap.enabled}
+              onCheckedChange={(checked) =>
+                onChange({ ...value, minimap: { ...value.minimap, enabled: checked } })
+              }
+              aria-label="Toggle minimap"
+            />
+          </div>
+          <div
+            className={cn(
+              'grid grid-cols-2 gap-1 transition-opacity',
+              !value.minimap.enabled && 'pointer-events-none opacity-40',
+            )}
+          >
+            {(
+              [
+                { value: 'tl', label: 'Top L' },
+                { value: 'tr', label: 'Top R' },
+                { value: 'bl', label: 'Bot L' },
+                { value: 'br', label: 'Bot R' },
+              ] as const
+            ).map((opt) => {
+              const active = opt.value === value.minimap.corner;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() =>
+                    onChange({
+                      ...value,
+                      minimap: { ...value.minimap, corner: opt.value as MinimapCorner },
+                    })
+                  }
+                  className={cn(
+                    'flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] transition',
+                    active
+                      ? 'border-primary bg-accent text-accent-foreground'
+                      : 'border-border hover:bg-accent',
+                  )}
+                >
+                  <CornerGlyph corner={opt.value as MinimapCorner} />
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-muted-foreground mt-1 text-[10px]">
+            Tip: drag the minimap to snap it to a different corner.
+          </p>
+        </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function CornerGlyph({ corner }: { corner: MinimapCorner }) {
+  const v = corner[0] === 't' ? 'top' : 'bottom';
+  const h = corner[1] === 'l' ? 'left' : 'right';
+  return (
+    <span
+      aria-hidden
+      className="border-current/50 relative inline-block size-3 rounded-[2px] border"
+    >
+      <span
+        className="absolute size-1 rounded-[1px] bg-current"
+        style={{ [v]: 1, [h]: 1 } as React.CSSProperties}
+      />
+    </span>
   );
 }

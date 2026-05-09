@@ -262,6 +262,10 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                 user={{ name: user.name, color: colorFor(user.id) }}
                 searchBacklinks={searchBacklinkCandidates}
                 viewportKey={`notai:viewport:${note.id}`}
+                minimap={surface.minimap}
+                onMinimapCornerChange={(corner) =>
+                  setSurface({ ...surface, minimap: { ...surface.minimap, corner } })
+                }
               />
             </div>
             <BacklinksPanel noteId={note.id} />
