@@ -28,3 +28,9 @@ document.querySelector('#save').addEventListener('click', async () => {
     statusEl.textContent = `Could not reach Notai: ${err.message}`;
   }
 });
+
+document.querySelector('#disconnect').addEventListener('click', async () => {
+  await chrome.storage.sync.remove(['token']);
+  tokenEl.value = '';
+  statusEl.textContent = 'Disconnected. Paste a new token to reconnect.';
+});

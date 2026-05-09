@@ -53,5 +53,6 @@ export async function POST(req: Request) {
   if (!row) {
     return NextResponse.json({ error: 'Failed to save' }, { status: 500 });
   }
-  return NextResponse.json({ id: row.id, ok: true });
+  const origin = new URL(req.url).origin;
+  return NextResponse.json({ id: row.id, url: `${origin}/app/n/${row.id}`, ok: true });
 }

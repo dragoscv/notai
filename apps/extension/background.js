@@ -83,20 +83,39 @@ async function clip(input) {
       }),
     });
     if (!res.ok) throw new Error(`Notai responded ${res.status}`);
-    notify('✓ Saved to Notai', headline);
+    const json = await res.json().catch(() => ({}));
+    const noteUrl = json?.url || (json?.id ? `${apiBase}/app/n/${json.id}` : '');
+    notify('✓ Saved to Notai', headline, noteUrl);
   } catch (err) {
     notify('Notai clip failed', String(err));
   }
 }
 
-function notify(title, message) {
-  chrome.notifications?.create({
-    type: 'basic',
-    title,
-    message,
-    iconUrl: 'icons/icon-128.png',
-  });
+const notificationLinks = new Map();
+
+function notify(title, message, openUrl) {
+  if (!chrome.notifications) return;
+  chrome.notifications.create(
+    {
+      type: 'basic',
+      title,
+      message,
+      iconUrl: 'icons/icon-128.png',
+    },
+    (id) => {
+      if (id && openUrl) notificationLinks.set(id, openUrl);
+    },
+  );
 }
+
+chrome.notifications?.onClicked.addListener((id) => {
+  const url = notificationLinks.get(id);
+  if (url) {
+    chrome.tabs.create({ url });
+    notificationLinks.delete(id);
+  }
+  chrome.notifications.clear(id);
+});
 
 /** Runs in the page; gathers a sensible plaintext snapshot. */
 function extractContent(mode) {

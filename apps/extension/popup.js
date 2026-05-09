@@ -50,6 +50,17 @@ $('#open-options').addEventListener('click', (e) => {
   chrome.runtime.openOptionsPage();
 });
 
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    window.close();
+    return;
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    e.preventDefault();
+    $('#save').click();
+  }
+});
+
 $('#save').addEventListener('click', async () => {
   const apiBase = (await chrome.storage.sync.get(['apiBase'])).apiBase || 'https://notai.ro';
   const token = (await chrome.storage.sync.get(['token'])).token;
@@ -68,6 +79,7 @@ $('#save').addEventListener('click', async () => {
     kind: mode,
   };
   statusEl.textContent = 'Saving…';
+  $('#save').disabled = true;
   try {
     const res = await fetch(`${apiBase}/api/clipper`, {
       method: 'POST',
@@ -78,9 +90,27 @@ $('#save').addEventListener('click', async () => {
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    statusEl.textContent = '✓ Saved.';
-    setTimeout(() => window.close(), 600);
+    const json = await res.json().catch(() => ({}));
+    const noteUrl = json?.url || (json?.id ? `${apiBase}/app/n/${json.id}` : '');
+    if (noteUrl) {
+      statusEl.innerHTML = '';
+      const ok = document.createElement('span');
+      ok.textContent = '✓ Saved. ';
+      const link = document.createElement('a');
+      link.href = '#';
+      link.textContent = 'Open note';
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        chrome.tabs.create({ url: noteUrl });
+        window.close();
+      });
+      statusEl.append(ok, link);
+    } else {
+      statusEl.textContent = '✓ Saved.';
+    }
+    setTimeout(() => window.close(), 1400);
   } catch (err) {
     statusEl.textContent = `Save failed: ${err.message}`;
+    $('#save').disabled = false;
   }
 });
