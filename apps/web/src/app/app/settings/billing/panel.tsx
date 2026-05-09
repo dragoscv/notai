@@ -49,7 +49,7 @@ export function BillingPanel({ plan }: { plan: PlanInfo }) {
     : null;
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-8 px-6 py-10">
+    <div className="space-y-8">
       <header>
         <h1 className="font-serif text-3xl font-semibold tracking-tight">Billing</h1>
         <p className="text-muted-foreground mt-1 text-sm">
