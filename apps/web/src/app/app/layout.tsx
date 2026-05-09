@@ -8,6 +8,7 @@ import { AnalyticsProvider } from '@/components/layout/analytics-provider';
 import { TimezoneSync } from '@/components/layout/timezone-sync';
 import { VoiceCapture } from '@/components/voice/voice-capture';
 import { ShortcutsCheatsheet } from '@/components/layout/shortcuts-cheatsheet';
+import { QuickCapture } from '@/components/layout/quick-capture';
 import { isAdmin } from '@/server/rbac';
 import { listNotes } from '@/server/actions/notes';
 import { listFolders } from '@/server/actions/folders';
@@ -40,6 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <TimezoneSync initialTimezone={me?.timezone ?? null} />
         <VoiceCapture />
         <ShortcutsCheatsheet />
+        <QuickCapture />
         <AppShell
           sidebar={<Sidebar user={session.user} notes={notes} folders={folders} isAdmin={admin} />}
           commandPalette={<CommandPalette notes={notes} />}

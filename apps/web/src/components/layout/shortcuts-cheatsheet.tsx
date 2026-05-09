@@ -25,7 +25,10 @@ const GROUPS: Group[] = [
   },
   {
     title: 'Capture',
-    items: [{ keys: [MOD, 'Shift', 'V'], label: 'Voice capture' }],
+    items: [
+      { keys: [MOD, '.'], label: 'Quick capture overlay' },
+      { keys: [MOD, 'Shift', 'V'], label: 'Voice capture' },
+    ],
   },
   {
     title: 'Editor',

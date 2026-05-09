@@ -14,6 +14,31 @@ Each app in this monorepo is versioned independently:
 
 ## [Unreleased]
 
+### Added — Quick capture (P0-7)
+
+P0-7 of the competitive backlog. A friction-free way to dump a thought
+into Notai from anywhere in the web app — closing the gap with Apple
+Notes Quick Note, Bear's compose sheet, and Notion's `+ New` modal.
+
+- **Server action** (`apps/web/src/server/actions/quick-capture.ts`):
+  `quickCapture({text})` validates 1–20000 chars, enforces the `notes`
+  quota, picks the first non-empty line (≤ 80 chars) as the note title,
+  and persists the rest as plaintext. Creates a sticky-kind note with a
+  ⚡ icon. Returns `{id, title}`. Revalidates `/app`.
+- **Component** (`apps/web/src/components/layout/quick-capture.tsx`):
+  - Floating bottom-right gradient bubble (FAB) — always available on
+    every authenticated page, hidden inside Tauri sticky windows via
+    the existing `data-focus-hide` convention.
+  - `⌘ .` / `Ctrl + .` global hotkey toggles a centered dialog overlay
+    with a 6-row textarea, draft persistence in localStorage
+    (`notai:quick-capture:draft`) so a tab crash never loses input.
+  - Two save modes: `⌘ ↵` saves and stays put for rapid-fire captures,
+    `⇧ ⌘ ↵` (or "Save & open") saves and routes to `/app/n/{id}`.
+  - "Cancel" closes without persisting; clicking outside is treated as
+    "minimize" while text is non-empty (draft survives).
+  - Mounted once in `apps/web/src/app/app/layout.tsx`. Shortcut listed
+    under Capture in the in-app shortcuts cheatsheet.
+
 ### Added — Comments + @-mentions + notifications (P0-6)
 
 P0-6 of the competitive backlog. Notai now ships a real collaborative
