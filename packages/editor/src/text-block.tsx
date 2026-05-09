@@ -22,6 +22,7 @@ import { Extension } from '@tiptap/core';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
 import type * as Y from 'yjs';
 import { Backlink } from './backlink-extension';
+import { SlashMenu } from './slash-menu-extension';
 import { cn } from '@notai/lib/utils';
 
 const FontSize = Extension.create({
@@ -56,6 +57,7 @@ export interface TextBlockProps {
   onFocusEditor?: (editor: Editor | null) => void;
   onReady?: (editor: Editor) => void;
   searchBacklinks?: (q: string) => Promise<Array<{ id: string; title: string }>>;
+  createBacklink?: (title: string) => Promise<{ id: string; title: string }>;
 }
 
 /**
@@ -74,6 +76,7 @@ export function TextBlock({
   onFocusEditor,
   onReady,
   searchBacklinks,
+  createBacklink,
 }: TextBlockProps) {
   const editor = useEditor(
     {
@@ -114,7 +117,8 @@ export function TextBlock({
           HTMLAttributes: { class: 'rounded-md max-w-full my-3' },
           allowBase64: false,
         }),
-        ...(searchBacklinks ? [Backlink.configure({ searchBacklinks })] : []),
+        ...(searchBacklinks ? [Backlink.configure({ searchBacklinks, createBacklink })] : []),
+        SlashMenu,
         Collaboration.configure({ fragment }),
         CollaborationCursor.configure({ provider, user }),
       ],

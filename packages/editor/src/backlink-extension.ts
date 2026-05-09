@@ -5,6 +5,19 @@ import type { SuggestionOptions } from '@tiptap/suggestion';
 export interface BacklinkOptions {
   /** Returns matching notes for the user's typed query. */
   searchBacklinks: (query: string) => Promise<Array<{ id: string; title: string }>>;
+  /**
+   * Optional: when the user picks the synthetic “Create ‘query’” entry,
+   * the host creates a new note with that title and returns its id. The
+   * extension then inserts a normal backlink node pointing at it.
+   */
+  createBacklink?: (title: string) => Promise<{ id: string; title: string }>;
+}
+
+export interface BacklinkSuggestionItem {
+  id: string;
+  title: string;
+  /** When true, this is the synthetic “Create …” row at the bottom. */
+  isNew?: boolean;
 }
 
 /**
@@ -22,6 +35,7 @@ export const Backlink = Mention.extend<BacklinkOptions>({
     return {
       ...this.parent?.(),
       searchBacklinks: async () => [],
+      createBacklink: undefined,
       HTMLAttributes: {
         class:
           'inline-flex items-center gap-0.5 rounded bg-primary/10 text-primary px-1 underline underline-offset-2 cursor-pointer',
@@ -42,7 +56,7 @@ export const Backlink = Mention.extend<BacklinkOptions>({
   },
 }).configure({});
 
-function makeSuggestion(): Partial<SuggestionOptions<{ id: string; title: string }>> {
+function makeSuggestion(): Partial<SuggestionOptions<BacklinkSuggestionItem>> {
   return {
     char: '[[',
     allowSpaces: true,
@@ -51,21 +65,62 @@ function makeSuggestion(): Partial<SuggestionOptions<{ id: string; title: string
       const opts = editor.extensionManager.extensions.find((e) => e.name === 'backlink')
         ?.options as BacklinkOptions | undefined;
       if (!opts?.searchBacklinks) return [];
-      const rows = await opts.searchBacklinks(query);
-      return rows.slice(0, 8);
+      const rows: BacklinkSuggestionItem[] = (await opts.searchBacklinks(query)).slice(0, 8);
+      const trimmed = (query ?? '').trim();
+      // Offer “Create ‘xxx’” when the typed title doesn’t exactly match an existing one.
+      if (
+        trimmed &&
+        opts.createBacklink &&
+        !rows.some((r) => r.title.toLowerCase() === trimmed.toLowerCase())
+      ) {
+        rows.push({ id: '__new__', title: trimmed, isNew: true });
+      }
+      return rows;
     },
     command: ({ editor, range, props }) => {
-      editor
-        .chain()
-        .focus()
-        .insertContentAt(range, [
-          {
-            type: 'backlink',
-            attrs: { id: props.id, label: props.title },
-          },
-          { type: 'text', text: ' ' },
-        ])
-        .run();
+      const opts = editor.extensionManager.extensions.find((e) => e.name === 'backlink')
+        ?.options as BacklinkOptions | undefined;
+      const insert = (id: string, label: string) => {
+        editor
+          .chain()
+          .focus()
+          .insertContentAt(range, [
+            { type: 'backlink', attrs: { id, label } },
+            { type: 'text', text: ' ' },
+          ])
+          .run();
+      };
+      if (props.isNew && opts?.createBacklink) {
+        // Insert a placeholder immediately so the cursor moves on,
+        // then swap it for the real id once the server replies.
+        insert('pending', props.title);
+        opts
+          .createBacklink(props.title)
+          .then(({ id, title }) => {
+            // Walk the doc to upgrade any “pending” backlink with this label
+            // to its real id. Only the most recent matching one is updated.
+            const { state, view } = editor;
+            let targetFrom: number | null = null;
+            state.doc.descendants((node, pos) => {
+              if (
+                node.type.name === 'backlink' &&
+                node.attrs.id === 'pending' &&
+                node.attrs.label === title
+              ) {
+                targetFrom = pos;
+              }
+            });
+            if (targetFrom !== null) {
+              const tr = state.tr.setNodeMarkup(targetFrom, undefined, { id, label: title });
+              view.dispatch(tr);
+            }
+          })
+          .catch(() => {
+            // Best-effort: leave the placeholder; user can retype.
+          });
+        return;
+      }
+      insert(props.id, props.title);
     },
     render: () => {
       let component: ReactRenderer<unknown> | null = null;

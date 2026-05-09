@@ -97,6 +97,8 @@ export interface CanvasNoteProps {
   stickyMode?: boolean;
   className?: string;
   searchBacklinks?: (q: string) => Promise<Array<{ id: string; title: string }>>;
+  /** Optional: create a new note from a `[[…]]` autocomplete “Create” entry. */
+  createBacklink?: (title: string) => Promise<{ id: string; title: string }>;
   /** Page-template background drawn behind the (transparent) Excalidraw canvas. */
   surface?: 'plain' | 'ruled' | 'grid' | 'dots' | 'columns';
   surfaceSpacing?: number;
@@ -126,6 +128,7 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     stickyMode = false,
     className,
     searchBacklinks,
+    createBacklink,
     surface,
     surfaceSpacing = 32,
     theme,
@@ -710,6 +713,7 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
             zoom={viewport.zoom}
             onFocusEditor={handleBlockFocus}
             searchBacklinks={searchBacklinks}
+            createBacklink={createBacklink}
           />
         ))}
       </div>
@@ -745,6 +749,7 @@ interface BlockFrameProps {
   zoom: number;
   onFocusEditor: (e: Editor | null) => void;
   searchBacklinks?: (q: string) => Promise<Array<{ id: string; title: string }>>;
+  createBacklink?: (title: string) => Promise<{ id: string; title: string }>;
 }
 
 function BlockFrame({
@@ -758,6 +763,7 @@ function BlockFrame({
   zoom,
   onFocusEditor,
   searchBacklinks,
+  createBacklink,
 }: BlockFrameProps) {
   const fragment = useBlockFragment(doc, block.id);
   const [hovered, setHovered] = React.useState(false);
@@ -835,6 +841,7 @@ function BlockFrame({
           user={user}
           editable={!readOnly}
           searchBacklinks={searchBacklinks}
+          createBacklink={createBacklink}
           onFocusEditor={onFocusEditor}
           className="block-content min-h-[1.5em] px-3 py-2"
         />

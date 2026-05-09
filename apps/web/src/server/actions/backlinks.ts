@@ -2,6 +2,8 @@
 
 import { auth } from '@/auth';
 import { db, notes, noteCollaborators, eq, and, or, sql, isNull } from '@notai/db';
+import { revalidatePath } from 'next/cache';
+import { requireQuota } from '@/server/plans';
 
 interface BacklinkHit {
   id: string;
@@ -70,4 +72,31 @@ export async function listIncomingBacklinks(noteId: string): Promise<BacklinkHit
     )
     .limit(20);
   return rows;
+}
+
+/**
+ * Create a new note with the given title and return enough info for the
+ * editor to insert a backlink to it. Used by the `[[…]]` autocomplete
+ * when the user picks the synthetic "Create '<title>'" item.
+ */
+export async function createNoteFromBacklink(title: string): Promise<BacklinkHit> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Not signed in');
+  const userId = session.user.id;
+  const safeTitle = (title ?? '').trim().slice(0, 200) || 'Untitled';
+
+  await requireQuota(userId, 'notes');
+
+  const [note] = await db
+    .insert(notes)
+    .values({
+      ownerId: userId,
+      title: safeTitle,
+      kind: 'note',
+    })
+    .returning({ id: notes.id, title: notes.title });
+
+  if (!note) throw new Error('Failed to create note');
+  revalidatePath('/app');
+  return { id: note.id, title: note.title };
 }

@@ -12,6 +12,18 @@
         scroll-behavior: smooth;
     }
 
+    /* Focus mode: hide app chrome so only the editor remains. The
+     * <FocusMode> overlay sets [data-focus="true"] on <html>, and any
+     * element marked with [data-focus-hide] (sidebar, note headers,
+     * etc.) fades out until the user exits with `F` or the close button. */
+    html[data-focus='true'] [data-focus-hide],
+    html[data-focus='true'] aside[aria-label='Primary navigation'] {
+        display: none !important;
+    }
+    html[data-focus='true'] body {
+        background: var(--background);
+    }
+
     body {
         overscroll-behavior-y: none;
     }

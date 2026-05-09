@@ -32,7 +32,8 @@ import { TagChips } from './tag-chips';
 import { VoiceRecorder } from './voice-recorder';
 import { NoteAiMenu } from './note-ai-menu';
 import { VersionHistory } from './version-history';
-import { searchBacklinkCandidates } from '@/server/actions/backlinks';
+import { searchBacklinkCandidates, createNoteFromBacklink } from '@/server/actions/backlinks';
+import { FocusMode } from './focus-mode';
 import { useRouter } from 'next/navigation';
 
 function colorFor(id: string) {
@@ -112,7 +113,11 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
 
   return (
     <div className="flex h-full flex-col">
-      <header className="bg-background/70 flex shrink-0 items-center gap-2 border-b px-4 py-2 backdrop-blur">
+      <FocusMode />
+      <header
+        className="bg-background/70 flex shrink-0 items-center gap-2 border-b px-4 py-2 backdrop-blur"
+        data-focus-hide
+      >
         <ConnectionPill status={status} synced={synced} />
 
         <div className="bg-border mx-2 h-5 w-px" />
@@ -261,6 +266,7 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                 provider={provider}
                 user={{ name: user.name, color: colorFor(user.id) }}
                 searchBacklinks={searchBacklinkCandidates}
+                createBacklink={createNoteFromBacklink}
                 viewportKey={`notai:viewport:${note.id}`}
                 minimap={surface.minimap}
                 onMinimapCornerChange={(corner) =>

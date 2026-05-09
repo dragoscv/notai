@@ -2,7 +2,17 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { PenLine, Star, Archive, Search, Settings, LogOut, Home, Shield } from 'lucide-react';
+import {
+  PenLine,
+  Star,
+  Archive,
+  Search,
+  Settings,
+  LogOut,
+  Home,
+  Shield,
+  Sparkles,
+} from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@notai/ui/components/avatar';
 import {
@@ -49,6 +59,7 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
   return (
     <aside
       aria-label="Primary navigation"
+      data-focus-hide
       className="bg-card/50 relative flex h-full w-64 flex-col border-r backdrop-blur"
     >
       {/* Soft warm wash at the top to match the rest of the app */}
@@ -72,7 +83,10 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
           </span>
           <span className="font-serif text-base">Notai</span>
         </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <OpenStickiesButton variant="icon" />
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Search trigger */}
@@ -93,6 +107,12 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
       {/* Top nav */}
       <nav className="space-y-0.5 px-2">
         <NavItem href="/app" icon={<Home />} label="Today" active={pathname === '/app'} />
+        <NavItem
+          href="/app/ask"
+          icon={<Sparkles />}
+          label="Ask Notai"
+          active={pathname === '/app/ask'}
+        />
         <NavItem href="/app?filter=favorites" icon={<Star />} label="Favorites" />
         <NavItem href="/app?filter=archived" icon={<Archive />} label="Archived" />
       </nav>
@@ -105,23 +125,24 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
         <DesktopAppPromo collapsed={false} />
       </div>
 
-      <div className="border-t px-2 py-1.5">
-        <OpenStickiesButton variant="inline" />
-      </div>
-
       {/* Account */}
-      <div className="bg-card/30 border-t p-2">
+      <div className="p-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="hover:bg-accent flex w-full items-center gap-2 rounded-md p-2 text-left text-sm transition-colors">
-              <Avatar className="ring-card size-7 ring-2">
+            <button className="hover:bg-accent flex w-full items-center gap-2 rounded-lg border p-2.5 text-left text-sm transition-colors">
+              <Avatar className="size-7">
                 {user.image && <AvatarImage src={user.image} alt={user.name ?? 'user'} />}
                 <AvatarFallback className="from-primary/30 to-primary/10 text-foreground/80 bg-gradient-to-br text-[10px] font-medium">
                   {getInitials(user.name, user.email)}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{user.name ?? 'Anon'}</p>
+                <div className="truncate text-xs font-medium">
+                  {user.name ?? user.email ?? 'Anon'}
+                </div>
+                <div className="text-muted-foreground truncate text-[10px]">
+                  {isAdmin ? 'Super admin' : (user.email ?? 'Account')}
+                </div>
               </div>
             </button>
           </DropdownMenuTrigger>
