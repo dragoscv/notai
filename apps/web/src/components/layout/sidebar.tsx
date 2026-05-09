@@ -52,6 +52,7 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
     if (note) router.push(`/app/n/${note.id}`);
   });
   useHotkey('mod+,', () => setSettingsOpen(true));
+  useHotkey('mod+j', () => router.push('/app/today'));
   useSettingsOpenRequests(() => setSettingsOpen(true));
   useHotkey('mod+k', () => {
     document.dispatchEvent(new CustomEvent('notai:command-palette'));
