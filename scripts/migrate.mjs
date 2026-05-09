@@ -27,6 +27,14 @@
  *   - For prod, takes a backup first (gcloud or pg_dump). Aborts if the backup fails.
  *   - Wraps the migration in a single transaction (drizzle's default behaviour).
  *   - Verifies all migrations are present afterwards and exits non-zero on any error.
+ *   - Detects pending migrations by HASH MEMBERSHIP (not set size), so partially-
+ *     recorded history is caught instead of silently skipped.
+ *   - Verifies the journal's `when` timestamps are monotonically increasing —
+ *     otherwise drizzle's migrator silently skips entries with stale `when`.
+ *   - Warns if a stale DATABASE_URL is leaked from the shell environment;
+ *     `node --env-file` does NOT override pre-existing env vars.
+ *   - Re-reads __drizzle_migrations after applying and HARD-FAILS if any
+ *     on-disk migration hash is still missing (catches drizzle silent skips).
  */
 import { readFileSync, existsSync, mkdirSync, readdirSync, createWriteStream, statSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
@@ -93,6 +101,20 @@ const repoRoot = resolve(__dirname, '..');
 const migrationsDir = join(repoRoot, 'packages/db/drizzle');
 const backupsDir = join(repoRoot, 'backups');
 const envFile = join(repoRoot, isProd ? '.env.production' : '.env.local');
+
+// ─── Defuse leaked DATABASE_URL ──────────────────────────────────────────
+// `node --env-file=…` does NOT override variables already present in the
+// shell environment. If a previous command left DATABASE_URL set (e.g. you
+// ran `--env-file=.env.production` earlier in the same shell), --env=local
+// would silently keep talking to prod. We strip it so the chosen .env file
+// is the single source of truth.
+if (process.env.DATABASE_URL) {
+    log.plain('');
+    log.warn(
+        c(C.yellow, `Stripping pre-existing DATABASE_URL from shell env (host=${(() => { try { return new URL(process.env.DATABASE_URL).hostname; } catch { return '?'; } })()}) — will use ${relativePath(envFile)} instead.`),
+    );
+    delete process.env.DATABASE_URL;
+}
 
 // ─── Header ──────────────────────────────────────────────────────────────
 log.plain('');
@@ -167,14 +189,44 @@ try {
     log.warn('drizzle migrations table not found — first run, will be created.');
 }
 
-// Compute pending — drizzle's hash is sha256 of the SQL file. We just
-// flag any local .sql that isn't represented by a folder hash entry,
-// AND additionally show files whose journal entry is missing.
+// Compute pending — drizzle's hash is sha256 of the SQL file. We check
+// hash MEMBERSHIP (not set size), which catches gaps where a later
+// migration was recorded but an earlier one was not. The previous
+// size-based heuristic silently hid such gaps.
 const journalPath = join(migrationsDir, 'meta/_journal.json');
 const journal = existsSync(journalPath)
     ? JSON.parse(readFileSync(journalPath, 'utf8'))
     : { entries: [] };
 const journalByTag = new Map(journal.entries.map((e) => [e.tag, e]));
+
+// Validate journal monotonicity. Drizzle's migrator iterates entries in
+// order and skips any whose `when` is <= the latest applied `created_at`.
+// A non-monotonic `when` therefore causes silent skips.
+const journalIssues = [];
+for (let i = 1; i < journal.entries.length; i++) {
+    const prev = journal.entries[i - 1];
+    const curr = journal.entries[i];
+    if (curr.when <= prev.when) {
+        journalIssues.push(
+            `${curr.tag} (when=${curr.when}) is not strictly greater than ${prev.tag} (when=${prev.when})`,
+        );
+    }
+}
+if (journalIssues.length > 0) {
+    log.error('Journal _journal.json has non-monotonic `when` timestamps:');
+    for (const issue of journalIssues) log.error(`  · ${issue}`);
+    log.error('Drizzle would silently skip the older entry. Refusing to run.');
+    log.error('Fix packages/db/drizzle/meta/_journal.json so each entry.when > the previous one.');
+    await sql.end();
+    process.exit(3);
+}
+
+// Compute on-disk hashes once.
+const onDiskHashes = new Map();
+for (const file of onDisk) {
+    const content = readFileSync(join(migrationsDir, file), 'utf8');
+    onDiskHashes.set(file, createHash('sha256').update(content).digest('hex'));
+}
 
 const pending = [];
 for (const file of onDisk) {
@@ -184,8 +236,8 @@ for (const file of onDisk) {
         pending.push({ file, status: 'orphan', detail: 'no journal entry' });
         continue;
     }
-    // Drizzle stores hashes per migration in the table; if table is empty, all pending.
-    if (!migrationsTableExists || appliedHashes.size < journal.entries.indexOf(entry) + 1) {
+    const hash = onDiskHashes.get(file);
+    if (!appliedHashes.has(hash)) {
         pending.push({ file, status: 'pending', detail: '' });
     }
 }
@@ -361,6 +413,24 @@ try {
     for (const h of hist) {
         console.log(`    ${c(C.dim, new Date(Number(h.created_at)).toISOString())}  ${c(C.grey, h.hash.slice(0, 16))}…`);
     }
+
+    // CRITICAL: re-check that every on-disk migration hash is recorded.
+    // If drizzle's migrator silently skipped any (e.g. due to a non-monotonic
+    // journal `when`), the schema and the bookkeeping would diverge again.
+    const recordedRows = await verify`select hash from drizzle.__drizzle_migrations`;
+    const recorded = new Set(recordedRows.map((r) => r.hash));
+    const missing = [];
+    for (const [file, hash] of onDiskHashes) {
+        if (!recorded.has(hash)) missing.push({ file, hash });
+    }
+    if (missing.length > 0) {
+        log.error('Post-apply check FAILED — these on-disk migrations are NOT recorded in __drizzle_migrations:');
+        for (const m of missing) log.error(`  · ${m.file}  (hash=${m.hash.slice(0, 16)}…)`);
+        log.error('Drizzle silently skipped them. Investigate _journal.json `when` ordering.');
+        await verify.end();
+        process.exit(4);
+    }
+    log.ok(`all ${onDiskHashes.size} on-disk migration(s) are recorded.`);
 } catch (err) {
     log.warn(`verification query failed: ${err.message}`);
 }

@@ -14,6 +14,47 @@ Each app in this monorepo is versioned independently:
 
 ## [Unreleased]
 
+### Fixed — DB migrations: prevent silent skips (root-cause + hardened runner)
+
+Drizzle's postgres-js migrator decides what to apply by comparing each
+journal entry's `when` timestamp against the latest `created_at` already
+recorded in `drizzle.__drizzle_migrations`. `0004_rbac_billing_admin` had
+`when=1778305649166` in `_journal.json` — older than `0002` and `0003`.
+Once `0003` was recorded with `created_at=1778600000000`, drizzle
+silently treated `0004` as already applied and moved on to `0005`. The
+Phase-1 schema (RBAC, plans, broadcasts, audit log, etc.) was rescued by
+hand-applying `0004.sql` directly, but the corresponding hash row was
+never inserted, so the bookkeeping diverged from reality.
+
+The custom `scripts/migrate.mjs` runner masked the gap with a second
+bug: it computed pending migrations as
+`appliedHashes.size < journal.entries.indexOf(entry) + 1` instead of
+checking actual hash membership. With 5 rows recorded and 6 on disk it
+reported "1 pending" and called drizzle-migrate, which did nothing for
+`0004` (per above), recorded `0005`, and the runner reported success.
+
+Changes:
+
+- `packages/db/drizzle/meta/_journal.json` — `0004.when` rewritten to
+  `1778700000000` (between `0003` and `0005`) so future fresh databases
+  apply migrations in true chronological order.
+- Backfilled the missing `0004` hash row into local + production
+  `drizzle.__drizzle_migrations` (one-shot script, deleted after use).
+- `scripts/migrate.mjs`:
+  - Pending detection now checks **hash membership**, catching gaps
+    instead of hiding them.
+  - Validates `_journal.json` `when` is strictly monotonic at startup;
+    refuses to run otherwise (exit 3).
+  - Strips any pre-existing `DATABASE_URL` from the shell environment
+    so `node --env-file=…` is the single source of truth (previously a
+    leaked prod URL would silently override `.env.local`).
+  - Post-apply verification re-reads `__drizzle_migrations` and
+    HARD-FAILS (exit 4) if any on-disk migration hash is still
+    missing — stops the same class of bug from sneaking back.
+
+Both `--env=local` and `--env=production --dry-run` now report 0 pending
+and 6/6 hashes recorded.
+
 ### Changed — `@notai/editor` 0.2.0 + `@notai/realtime-server` 0.2.0 (canvas-first notes)
 
 The editor was a TipTap text column with an Excalidraw drawing layer
