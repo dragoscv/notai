@@ -2,7 +2,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { PenLine, Star, Archive, Search, Settings, LogOut, Home } from 'lucide-react';
+import { PenLine, Star, Archive, Search, Settings, LogOut, Home, Shield } from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@notai/ui/components/avatar';
 import {
@@ -28,9 +28,10 @@ interface SidebarProps {
   user: { id: string; name?: string | null; email?: string | null; image?: string | null };
   notes: Note[];
   folders: Folder[];
+  isAdmin?: boolean;
 }
 
-export function Sidebar({ user, notes, folders }: SidebarProps) {
+export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [settingsOpen, setSettingsOpen] = React.useState(false);
@@ -137,6 +138,13 @@ export function Sidebar({ user, notes, folders }: SidebarProps) {
             <DropdownMenuItem onSelect={() => setSettingsOpen(true)}>
               <Settings /> Settings
             </DropdownMenuItem>
+            {isAdmin ? (
+              <DropdownMenuItem asChild>
+                <Link href="/admin">
+                  <Shield /> Admin
+                </Link>
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={async () => {
