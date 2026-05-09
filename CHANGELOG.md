@@ -14,6 +14,38 @@ Each app in this monorepo is versioned independently:
 
 ## [Unreleased]
 
+### Added — `@notai/editor` 0.3.0: tables, callouts, toggles, math, mermaid
+
+P0-1 + P0-2 of the competitive backlog ([docs/competitive-analysis.md](docs/competitive-analysis.md)).
+Closes the "can I move my notes here?" gap against Notion, OneNote, and
+Obsidian without changing the canvas-first document model.
+
+- **Tables** — `@tiptap/extension-table` family (table, row, header, cell)
+  with column resizing. Slash menu `/table` inserts 3×3 with header row.
+  Toolbar surfaces `Add row · Add column · Toggle header · Delete table`
+  contextually when the cursor is inside a table.
+- **Callouts** — new block node `callout` with five variants (info, tip,
+  success, warn, danger). Each variant has a default emoji icon and an
+  OKLCH-mixed accent so it reads correctly in both themes. Slash menu
+  exposes one entry per variant; toolbar has a single quick-toggle.
+- **Toggle blocks** — collapsible `toggleBlock` with `toggleSummary` +
+  `toggleContent` children, `open` attribute synced through Yjs so
+  collaborators see the same fold state. ProseMirror plugin handles
+  chevron clicks; CSS hides content via `[data-open='false']`.
+- **Math (KaTeX)** — both inline (`mathInline`) and block (`mathBlock`)
+  atoms with a React node view. Click renders KaTeX, click again to edit
+  raw LaTeX in a textarea. KaTeX is loaded lazily from jsDelivr the first
+  time a math node renders, keeping the cold-start bundle untouched.
+- **Mermaid diagrams** — `mermaid` block atom with a React node view.
+  Lazy-loads the mermaid library on first render and chooses dark/neutral
+  theme based on the document class. Double-click to edit the source.
+  Errors are caught and rendered with the offending source.
+- Slash menu groups now include `advanced` and (reserved) `ai`; group
+  rendering follows a fixed `GROUP_ORDER` so menu shape is stable.
+- `packages/ui/src/styles.css` — new `.tiptap-table`, `.tiptap-callout`,
+  `.tiptap-toggle*`, `.tiptap-math*`, `.tiptap-mermaid*` rules using the
+  existing OKLCH palette + `color-mix(in oklab, …)` for theming.
+
 ### Fixed — DB migrations: prevent silent skips (root-cause + hardened runner)
 
 Drizzle's postgres-js migrator decides what to apply by comparing each

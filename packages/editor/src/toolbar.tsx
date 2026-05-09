@@ -31,6 +31,15 @@ import {
   ChevronDown,
   AArrowDown,
   AArrowUp,
+  Table as TableIcon,
+  Lightbulb,
+  Sigma,
+  Workflow,
+  ChevronRight,
+  Trash2,
+  Rows3,
+  Columns3,
+  Eraser,
 } from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
 import { Separator } from '@notai/ui/components/separator';
@@ -278,6 +287,57 @@ export function Toolbar({ editor, className }: ToolbarProps) {
       >
         <LinkIcon />
       </TB>
+
+      <Separator orientation="vertical" className="mx-1 h-5" />
+
+      <TB
+        onClick={() =>
+          editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+        }
+        label="Insert table"
+      >
+        <TableIcon />
+      </TB>
+      <TB
+        active={editor.isActive('callout')}
+        onClick={() => editor.chain().focus().toggleCallout().run()}
+        label="Callout"
+      >
+        <Lightbulb />
+      </TB>
+      <TB onClick={() => editor.chain().focus().setToggleBlock().run()} label="Toggle block">
+        <ChevronRight />
+      </TB>
+      <TB onClick={() => editor.chain().focus().setMathBlock('').run()} label="Math (KaTeX)">
+        <Sigma />
+      </TB>
+      <TB onClick={() => editor.chain().focus().setMermaid('').run()} label="Mermaid diagram">
+        <Workflow />
+      </TB>
+
+      {editor.isActive('table') ? (
+        <>
+          <Separator orientation="vertical" className="mx-1 h-5" />
+          <TB onClick={() => editor.chain().focus().addRowAfter().run()} label="Add row below">
+            <Rows3 />
+          </TB>
+          <TB
+            onClick={() => editor.chain().focus().addColumnAfter().run()}
+            label="Add column after"
+          >
+            <Columns3 />
+          </TB>
+          <TB
+            onClick={() => editor.chain().focus().toggleHeaderRow().run()}
+            label="Toggle header row"
+          >
+            <Eraser />
+          </TB>
+          <TB onClick={() => editor.chain().focus().deleteTable().run()} label="Delete table">
+            <Trash2 />
+          </TB>
+        </>
+      ) : null}
 
       <div className="ml-auto flex items-center gap-0.5">
         <TB

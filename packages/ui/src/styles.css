@@ -546,6 +546,141 @@
         @apply text-muted-foreground line-through;
     }
 
+    /* ───────────────────────── Tables ───────────────────────── */
+    .ProseMirror table.tiptap-table {
+        @apply my-3 w-full border-collapse text-sm;
+        table-layout: fixed;
+        overflow: hidden;
+    }
+    .ProseMirror .tiptap-table td,
+    .ProseMirror .tiptap-table th {
+        @apply border border-border px-2 py-1.5 align-top relative;
+        min-width: 56px;
+    }
+    .ProseMirror .tiptap-table th {
+        @apply bg-muted/40 font-semibold text-foreground;
+    }
+    .ProseMirror .tiptap-table .selectedCell::after {
+        @apply pointer-events-none absolute inset-0 bg-primary/15;
+        content: '';
+    }
+    .ProseMirror .tiptap-table .column-resize-handle {
+        @apply absolute -right-1 top-0 z-20 w-1 cursor-col-resize bg-primary/40;
+        bottom: -1px;
+    }
+    .ProseMirror .tableWrapper {
+        @apply my-3 overflow-x-auto;
+    }
+
+    /* ───────────────────────── Callouts ───────────────────────── */
+    .ProseMirror .tiptap-callout {
+        @apply my-3 grid grid-cols-[auto_1fr] gap-x-3 rounded-lg border-l-4 border bg-card/40 px-3.5 py-2.5;
+    }
+    .ProseMirror .tiptap-callout__icon {
+        @apply select-none pt-0.5 text-lg leading-none;
+    }
+    .ProseMirror .tiptap-callout__body > :first-child { margin-top: 0; }
+    .ProseMirror .tiptap-callout__body > :last-child { margin-bottom: 0; }
+    .ProseMirror .tiptap-callout[data-variant='info'] {
+        border-left-color: oklch(0.65 0.13 235);
+        background: color-mix(in oklab, oklch(0.65 0.13 235) 10%, var(--card));
+    }
+    .ProseMirror .tiptap-callout[data-variant='tip'] {
+        border-left-color: oklch(0.7 0.16 300);
+        background: color-mix(in oklab, oklch(0.7 0.16 300) 10%, var(--card));
+    }
+    .ProseMirror .tiptap-callout[data-variant='success'] {
+        border-left-color: oklch(0.7 0.17 150);
+        background: color-mix(in oklab, oklch(0.7 0.17 150) 10%, var(--card));
+    }
+    .ProseMirror .tiptap-callout[data-variant='warn'] {
+        border-left-color: oklch(0.78 0.17 80);
+        background: color-mix(in oklab, oklch(0.78 0.17 80) 12%, var(--card));
+    }
+    .ProseMirror .tiptap-callout[data-variant='danger'] {
+        border-left-color: oklch(0.65 0.22 25);
+        background: color-mix(in oklab, oklch(0.65 0.22 25) 10%, var(--card));
+    }
+
+    /* ───────────────────────── Toggle blocks ───────────────────────── */
+    .ProseMirror .tiptap-toggle {
+        @apply my-2 rounded-md;
+    }
+    .ProseMirror .tiptap-toggle__summary {
+        @apply flex items-start gap-2 cursor-text;
+    }
+    .ProseMirror .tiptap-toggle__chevron {
+        @apply mt-1 inline-flex size-4 shrink-0 select-none items-center justify-center rounded text-muted-foreground transition-transform hover:bg-accent;
+        cursor: pointer;
+    }
+    .ProseMirror .tiptap-toggle[data-open='true'] .tiptap-toggle__chevron {
+        transform: rotate(90deg);
+    }
+    .ProseMirror .tiptap-toggle__summary-text {
+        @apply min-w-0 flex-1;
+    }
+    .ProseMirror .tiptap-toggle__content {
+        @apply ml-6 mt-1 border-l border-border/60 pl-3;
+    }
+    .ProseMirror .tiptap-toggle[data-open='false'] .tiptap-toggle__content {
+        display: none;
+    }
+
+    /* ───────────────────────── Math (KaTeX) ───────────────────────── */
+    .ProseMirror .tiptap-math {
+        cursor: pointer;
+        border-radius: 4px;
+    }
+    .ProseMirror .tiptap-math:hover {
+        background: color-mix(in oklab, var(--primary) 10%, transparent);
+    }
+    .ProseMirror .tiptap-math--inline {
+        display: inline-block;
+        padding: 0 2px;
+        vertical-align: baseline;
+    }
+    .ProseMirror .tiptap-math--block {
+        @apply my-3 block w-full overflow-x-auto py-2 text-center;
+    }
+    .ProseMirror .tiptap-math--editing {
+        background: var(--muted);
+        padding: 4px;
+        cursor: text;
+    }
+    .ProseMirror .tiptap-math__input {
+        @apply w-full resize-none bg-transparent font-mono text-sm outline-none;
+        min-height: 1.5em;
+    }
+    .ProseMirror .tiptap-math__output { display: inline-block; }
+
+    /* ───────────────────────── Mermaid ───────────────────────── */
+    .ProseMirror .tiptap-mermaid {
+        @apply my-3 overflow-x-auto rounded-md border border-border bg-card/30 p-3;
+    }
+    .ProseMirror .tiptap-mermaid--editing {
+        @apply bg-muted/40;
+    }
+    .ProseMirror .tiptap-mermaid__svg svg {
+        @apply mx-auto block;
+        max-width: 100%;
+        height: auto;
+    }
+    .ProseMirror .tiptap-mermaid__input {
+        @apply w-full resize-y bg-transparent font-mono text-sm outline-none;
+    }
+    .ProseMirror .tiptap-mermaid__hint {
+        @apply mt-1 text-xs text-muted-foreground;
+    }
+    .ProseMirror .tiptap-mermaid__hint kbd {
+        @apply rounded border border-border bg-card px-1 py-px text-[10px];
+    }
+    .ProseMirror .tiptap-mermaid__error {
+        @apply text-sm text-destructive;
+    }
+    .ProseMirror .tiptap-mermaid__error pre {
+        @apply mt-1 whitespace-pre-wrap rounded bg-muted p-2 font-mono text-xs text-foreground;
+    }
+
     /* Collaboration cursor */
     .collaboration-cursor__caret {
         @apply relative border-l-2 pointer-events-none;

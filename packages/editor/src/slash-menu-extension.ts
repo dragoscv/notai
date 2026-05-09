@@ -7,7 +7,7 @@ export interface SlashCommand {
   label: string;
   hint: string;
   keywords: string[];
-  group: 'basic' | 'lists' | 'blocks';
+  group: 'basic' | 'lists' | 'blocks' | 'advanced' | 'ai';
   run: (editor: Editor, range: Range) => void;
 }
 
@@ -131,6 +131,79 @@ export const SLASH_COMMANDS: SlashCommand[] = [
       const mm = String(d.getMinutes()).padStart(2, '0');
       e.chain().focus().deleteRange(r).insertContent(`${hh}:${mm}`).run();
     },
+  },
+  {
+    id: 'table',
+    label: 'Table',
+    hint: '3×3 table you can grow',
+    keywords: ['table', 'grid', 'rows', 'columns', 'spreadsheet'],
+    group: 'advanced',
+    run: (e, r) =>
+      e.chain().focus().deleteRange(r).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+  },
+  {
+    id: 'callout-info',
+    label: 'Callout — Info',
+    hint: 'Highlight a tip or warning',
+    keywords: ['callout', 'admonition', 'note', 'aside', 'info', 'warn', 'success'],
+    group: 'advanced',
+    run: (e, r) => e.chain().focus().deleteRange(r).setCallout({ variant: 'info' }).run(),
+  },
+  {
+    id: 'callout-warn',
+    label: 'Callout — Warning',
+    hint: 'Yellow warning callout',
+    keywords: ['callout', 'warn', 'warning', 'caution'],
+    group: 'advanced',
+    run: (e, r) => e.chain().focus().deleteRange(r).setCallout({ variant: 'warn' }).run(),
+  },
+  {
+    id: 'callout-danger',
+    label: 'Callout — Danger',
+    hint: 'Red danger callout',
+    keywords: ['callout', 'danger', 'error', 'red'],
+    group: 'advanced',
+    run: (e, r) => e.chain().focus().deleteRange(r).setCallout({ variant: 'danger' }).run(),
+  },
+  {
+    id: 'callout-success',
+    label: 'Callout — Success',
+    hint: 'Green success callout',
+    keywords: ['callout', 'success', 'done', 'green', 'ok'],
+    group: 'advanced',
+    run: (e, r) => e.chain().focus().deleteRange(r).setCallout({ variant: 'success' }).run(),
+  },
+  {
+    id: 'toggle',
+    label: 'Toggle',
+    hint: 'Collapsible section',
+    keywords: ['toggle', 'details', 'collapse', 'fold', 'expand'],
+    group: 'advanced',
+    run: (e, r) => e.chain().focus().deleteRange(r).setToggleBlock().run(),
+  },
+  {
+    id: 'math-block',
+    label: 'Math block',
+    hint: 'KaTeX equation, displayed',
+    keywords: ['math', 'katex', 'tex', 'latex', 'formula', 'equation'],
+    group: 'advanced',
+    run: (e, r) => e.chain().focus().deleteRange(r).setMathBlock('').run(),
+  },
+  {
+    id: 'math-inline',
+    label: 'Math (inline)',
+    hint: 'Inline KaTeX',
+    keywords: ['math', 'inline', 'katex', 'tex', 'latex'],
+    group: 'advanced',
+    run: (e, r) => e.chain().focus().deleteRange(r).setMathInline('').run(),
+  },
+  {
+    id: 'mermaid',
+    label: 'Diagram (Mermaid)',
+    hint: 'Flowcharts, sequence, graphs',
+    keywords: ['mermaid', 'diagram', 'flowchart', 'graph', 'sequence', 'chart'],
+    group: 'advanced',
+    run: (e, r) => e.chain().focus().deleteRange(r).setMermaid('').run(),
   },
 ];
 

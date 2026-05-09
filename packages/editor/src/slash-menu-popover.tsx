@@ -15,6 +15,14 @@ import {
   Image as ImageIcon,
   Calendar,
   Clock,
+  Table as TableIcon,
+  Lightbulb,
+  AlertTriangle,
+  ShieldAlert,
+  CheckCircle2,
+  ChevronRight,
+  Sigma,
+  Workflow,
 } from 'lucide-react';
 import type { SlashCommand } from './slash-menu-extension';
 
@@ -34,13 +42,26 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   image: ImageIcon,
   date: Calendar,
   time: Clock,
+  table: TableIcon,
+  'callout-info': Lightbulb,
+  'callout-warn': AlertTriangle,
+  'callout-danger': ShieldAlert,
+  'callout-success': CheckCircle2,
+  toggle: ChevronRight,
+  'math-block': Sigma,
+  'math-inline': Sigma,
+  mermaid: Workflow,
 };
 
 const GROUP_LABELS: Record<SlashCommand['group'], string> = {
   basic: 'Basic blocks',
   lists: 'Lists',
   blocks: 'Blocks',
+  advanced: 'Advanced',
+  ai: 'AI',
 };
+
+const GROUP_ORDER: SlashCommand['group'][] = ['ai', 'basic', 'lists', 'blocks', 'advanced'];
 
 export const SlashMenuPopover = React.forwardRef<
   { onKeyDown: (e: KeyboardEvent) => boolean },
@@ -100,42 +121,44 @@ export const SlashMenuPopover = React.forwardRef<
 
   return (
     <div className="bg-card max-h-80 min-w-[280px] overflow-y-auto rounded-lg border p-1 text-sm shadow-xl">
-      {(Object.keys(grouped) as SlashCommand['group'][]).map((group) => (
-        <div key={group} className="mb-1 last:mb-0">
-          <div className="text-muted-foreground px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide">
-            {GROUP_LABELS[group]}
-          </div>
-          {grouped[group]!.map(({ item, flatIndex }) => {
-            const Icon = ICONS[item.id] ?? Type;
-            const isActive = flatIndex === active;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => select(flatIndex)}
-                onMouseEnter={() => setActive(flatIndex)}
-                className={`flex w-full items-center gap-2.5 rounded px-2 py-1.5 text-left transition-colors ${
-                  isActive ? 'bg-primary/15 text-foreground' : 'text-foreground/85'
-                }`}
-              >
-                <span
-                  className={`grid size-7 shrink-0 place-items-center rounded border ${
-                    isActive ? 'bg-primary/10 border-primary/30' : 'bg-muted/40'
+      {(Object.keys(grouped) as SlashCommand['group'][])
+        .sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b))
+        .map((group) => (
+          <div key={group} className="mb-1 last:mb-0">
+            <div className="text-muted-foreground px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide">
+              {GROUP_LABELS[group]}
+            </div>
+            {grouped[group]!.map(({ item, flatIndex }) => {
+              const Icon = ICONS[item.id] ?? Type;
+              const isActive = flatIndex === active;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => select(flatIndex)}
+                  onMouseEnter={() => setActive(flatIndex)}
+                  className={`flex w-full items-center gap-2.5 rounded px-2 py-1.5 text-left transition-colors ${
+                    isActive ? 'bg-primary/15 text-foreground' : 'text-foreground/85'
                   }`}
                 >
-                  <Icon className="size-3.5" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{item.label}</span>
-                  <span className="text-muted-foreground block truncate text-[11px]">
-                    {item.hint}
+                  <span
+                    className={`grid size-7 shrink-0 place-items-center rounded border ${
+                      isActive ? 'bg-primary/10 border-primary/30' : 'bg-muted/40'
+                    }`}
+                  >
+                    <Icon className="size-3.5" />
                   </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      ))}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{item.label}</span>
+                    <span className="text-muted-foreground block truncate text-[11px]">
+                      {item.hint}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
     </div>
   );
 });

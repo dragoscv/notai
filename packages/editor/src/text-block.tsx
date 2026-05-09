@@ -16,12 +16,20 @@ import TextAlign from '@tiptap/extension-text-align';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import Image from '@tiptap/extension-image';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableHeader from '@tiptap/extension-table-header';
+import TableCell from '@tiptap/extension-table-cell';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import { Extension } from '@tiptap/core';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
 import type * as Y from 'yjs';
 import { Backlink } from './backlink-extension';
+import { Callout } from './callout-extension';
+import { ToggleBlock, ToggleSummary, ToggleContent } from './toggle-extension';
+import { MathInline, MathBlock } from './math-extension';
+import { Mermaid } from './mermaid-extension';
 import { SlashMenu } from './slash-menu-extension';
 import { cn } from '@notai/lib/utils';
 
@@ -117,6 +125,23 @@ export function TextBlock({
           HTMLAttributes: { class: 'rounded-md max-w-full my-3' },
           allowBase64: false,
         }),
+        Table.configure({
+          resizable: true,
+          HTMLAttributes: { class: 'tiptap-table' },
+          handleWidth: 6,
+          cellMinWidth: 56,
+          allowTableNodeSelection: true,
+        }),
+        TableRow,
+        TableHeader,
+        TableCell,
+        Callout,
+        ToggleBlock,
+        ToggleSummary,
+        ToggleContent,
+        MathInline,
+        MathBlock,
+        Mermaid,
         ...(searchBacklinks ? [Backlink.configure({ searchBacklinks, createBacklink })] : []),
         SlashMenu,
         Collaboration.configure({ fragment }),

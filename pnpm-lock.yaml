@@ -123,6 +123,18 @@ catalogs:
     '@tiptap/extension-superscript':
       specifier: ^2.10.4
       version: 2.27.2
+    '@tiptap/extension-table':
+      specifier: ^2.10.4
+      version: 2.27.2
+    '@tiptap/extension-table-cell':
+      specifier: ^2.10.4
+      version: 2.27.2
+    '@tiptap/extension-table-header':
+      specifier: ^2.10.4
+      version: 2.27.2
+    '@tiptap/extension-table-row':
+      specifier: ^2.10.4
+      version: 2.27.2
     '@tiptap/extension-task-item':
       specifier: ^2.10.4
       version: 2.27.2
@@ -189,9 +201,15 @@ catalogs:
     framer-motion:
       specifier: ^11.15.0
       version: 11.18.2
+    katex:
+      specifier: ^0.16.11
+      version: 0.16.45
     lucide-react:
       specifier: ^0.469.0
       version: 0.469.0
+    mermaid:
+      specifier: ^11.4.1
+      version: 11.14.0
     next:
       specifier: ^16.0.0
       version: 16.2.4
@@ -467,7 +485,7 @@ importers:
         version: 16.2.4(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(sass@1.51.0)
       next-auth:
         specifier: 'catalog:'
-        version: 5.0.0-beta.31(next@16.2.4(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(sass@1.51.0))(react@19.2.5)
+        version: 5.0.0-beta.31(next@16.2.4(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(sass@1.51.0))(react@19.2.5)
       next-themes:
         specifier: 'catalog:'
         version: 0.4.6(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -555,7 +573,7 @@ importers:
         version: 0.38.4(@neondatabase/serverless@0.10.4)(@opentelemetry/api@1.9.1)(@types/pg@8.11.6)(@types/react@19.2.14)(postgres@3.4.9)(react@19.2.5)
       next-auth:
         specifier: 'catalog:'
-        version: 5.0.0-beta.31(next@16.2.4(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(sass@1.51.0))(react@19.2.5)
+        version: 5.0.0-beta.31(next@16.2.4(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(sass@1.51.0))(react@19.2.5)
       postgres:
         specifier: 'catalog:'
         version: 3.4.9
@@ -629,6 +647,18 @@ importers:
       '@tiptap/extension-superscript':
         specifier: 'catalog:'
         version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
+      '@tiptap/extension-table':
+        specifier: 'catalog:'
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))(@tiptap/pm@2.27.2)
+      '@tiptap/extension-table-cell':
+        specifier: 'catalog:'
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
+      '@tiptap/extension-table-header':
+        specifier: 'catalog:'
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
+      '@tiptap/extension-table-row':
+        specifier: 'catalog:'
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
       '@tiptap/extension-task-item':
         specifier: 'catalog:'
         version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))(@tiptap/pm@2.27.2)
@@ -659,9 +689,15 @@ importers:
       '@tiptap/suggestion':
         specifier: 'catalog:'
         version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))(@tiptap/pm@2.27.2)
+      katex:
+        specifier: 'catalog:'
+        version: 0.16.45
       lucide-react:
         specifier: 'catalog:'
         version: 0.469.0(react@19.2.5)
+      mermaid:
+        specifier: 'catalog:'
+        version: 11.14.0
       pdfjs-dist:
         specifier: 'catalog:'
         version: 4.10.38
@@ -3725,6 +3761,27 @@ packages:
     resolution: {integrity: sha512-VTGJDuNqdesibSVW94Q71VaGVGr/bwBppdaNLn7k6beOegALfIH7ncArlkD/eihOlJ2qaWiT7FoWNLTb/Fdv1w==}
     peerDependencies:
       '@tiptap/core': ^2.7.0
+
+  '@tiptap/extension-table-cell@2.27.2':
+    resolution: {integrity: sha512-9Lk46MjZMFzVZfOj9Kd7VgC6Odt6vmEhlCYVumErShUY7EkFqCw3b2IYoUtQkntfOEx/Afnhff/okNQwPsJeUA==}
+    peerDependencies:
+      '@tiptap/core': ^2.7.0
+
+  '@tiptap/extension-table-header@2.27.2':
+    resolution: {integrity: sha512-ZEb6lbG0NbbodWLV0b4BS/QrDIPlUbCcuOsUxzqVvlMUY1Vg6Fj6fKwLaBcsIUDHi8sxZDBEgYEDw3BR/zcO6A==}
+    peerDependencies:
+      '@tiptap/core': ^2.7.0
+
+  '@tiptap/extension-table-row@2.27.2':
+    resolution: {integrity: sha512-Nw9+tA56Y5HtLVP01NGCZSUuTQhJPtfK9OfmDgGgcxynn2cRVdEtj+9FNZqRhQ1iRVaAI+Rd4xRvX9qYePMOxw==}
+    peerDependencies:
+      '@tiptap/core': ^2.7.0
+
+  '@tiptap/extension-table@2.27.2':
+    resolution: {integrity: sha512-pDbhOpT5phZkcsyPjGBQlXv0+0hmdrvqHJ+dJjkGcCtlfy2pHiEIhmIItOFagc7wXy8G9iUFZ9Jie4zvDf+brg==}
+    peerDependencies:
+      '@tiptap/core': ^2.7.0
+      '@tiptap/pm': ^2.7.0
 
   '@tiptap/extension-task-item@2.27.2':
     resolution: {integrity: sha512-ZBSqj/dygB/Rp5K9qOxRVwASTZCmKVoTq8C59KvMgD/aFjJxhq/w2dZaWkCUEXEep+NmvJqo0kfeAEMY5UDnGg==}
@@ -9889,6 +9946,23 @@ snapshots:
     dependencies:
       '@tiptap/core': 2.27.2(@tiptap/pm@2.27.2)
 
+  '@tiptap/extension-table-cell@2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))':
+    dependencies:
+      '@tiptap/core': 2.27.2(@tiptap/pm@2.27.2)
+
+  '@tiptap/extension-table-header@2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))':
+    dependencies:
+      '@tiptap/core': 2.27.2(@tiptap/pm@2.27.2)
+
+  '@tiptap/extension-table-row@2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))':
+    dependencies:
+      '@tiptap/core': 2.27.2(@tiptap/pm@2.27.2)
+
+  '@tiptap/extension-table@2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))(@tiptap/pm@2.27.2)':
+    dependencies:
+      '@tiptap/core': 2.27.2(@tiptap/pm@2.27.2)
+      '@tiptap/pm': 2.27.2
+
   '@tiptap/extension-task-item@2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))(@tiptap/pm@2.27.2)':
     dependencies:
       '@tiptap/core': 2.27.2(@tiptap/pm@2.27.2)
@@ -12338,7 +12412,7 @@ snapshots:
 
   neo-async@2.6.2: {}
 
-  next-auth@5.0.0-beta.31(next@16.2.4(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(sass@1.51.0))(react@19.2.5):
+  next-auth@5.0.0-beta.31(next@16.2.4(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(sass@1.51.0))(react@19.2.5):
     dependencies:
       '@auth/core': 0.41.2
       next: 16.2.4(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(sass@1.51.0)
