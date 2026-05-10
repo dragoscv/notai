@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { CalendarDays, ArrowRight, X } from 'lucide-react';
 import { toast } from 'sonner';
-import type { CanvasNoteHandle } from '@notai/editor';
+import { appendTextToScene, type CanvasNoteHandle } from '@notai/editor';
 import { getYesterdayOpenTodos } from '@/server/actions/daily';
 
 interface RolloverBannerProps {
@@ -57,32 +57,19 @@ export function RolloverBanner({ noteId, noteTitle, canvasRef }: RolloverBannerP
   const insert = () => {
     const handle = canvasRef.current;
     if (!handle) return;
-    const json = {
-      type: 'doc',
-      content: [
-        {
-          type: 'heading',
-          attrs: { level: 3 },
-          content: [{ type: 'text', text: `Carried over from ${date}` }],
-        },
-        {
-          type: 'taskList',
-          content: items.map((text) => ({
-            type: 'taskItem',
-            attrs: { checked: false },
-            content: [
-              {
-                type: 'paragraph',
-                content: [{ type: 'text', text }],
-              },
-            ],
-          })),
-        },
-      ],
-    };
-    if (!handle.insertContent(json)) {
-      handle.addTextBlock();
-      setTimeout(() => handle.insertContent(json), 60);
+    const api = handle.getExcalidrawApi?.();
+    if (!api) {
+      toast.error('Canvas not ready yet — try again in a moment.');
+      return;
+    }
+    // Phase-3 era rollover: write directly onto the Excalidraw scene as a
+    // single text element. Heading line is sentence-case; each task gets
+    // a `[ ]` prefix so the existing ChecklistOverlay can toggle them.
+    const body = `## Carried over from ${date}\n\n` + items.map((t) => `[ ] ${t}`).join('\n');
+    const id = appendTextToScene(api, body, { focus: true });
+    if (!id) {
+      toast.error("Couldn't roll forward — please try again.");
+      return;
     }
     window.localStorage.setItem(storageKey, '1');
     setDismissed(true);

@@ -1,9 +1,25 @@
 'use client';
 import * as React from 'react';
-import { Sparkles, Loader2, Copy, ListChecks, ScrollText, Wand2 } from 'lucide-react';
+import {
+  Sparkles,
+  Loader2,
+  Copy,
+  ListChecks,
+  ScrollText,
+  Wand2,
+  Network,
+  PenLine,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
-import { summarizeNote, extractActionItems, rewriteForClarity } from '@/server/actions/ai-actions';
+import { insertMindMap, hasMindMap, appendTextToScene, type CanvasNoteHandle } from '@notai/editor';
+import {
+  summarizeNote,
+  extractActionItems,
+  rewriteForClarity,
+  continueWriting,
+} from '@/server/actions/ai-actions';
+import { generateMindMap } from '@/server/actions/mind-map';
 
 type Mode = 'summary' | 'actions' | 'rewrite';
 
@@ -21,15 +37,91 @@ const META: Record<Mode, { label: string; Icon: React.ComponentType<{ className?
 export function NoteAiMenu({
   noteId,
   onInsert,
+  canvasRef,
 }: {
   noteId: string;
   onInsert?: (markdown: string) => void;
+  canvasRef?: React.RefObject<CanvasNoteHandle | null>;
 }) {
   const [open, setOpen] = React.useState(false);
   const [mode, setMode] = React.useState<Mode>('summary');
   const [result, setResult] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [mapBuilding, setMapBuilding] = React.useState(false);
+  const [continuing, setContinuing] = React.useState(false);
+
+  const continueThought = async () => {
+    setMenuOpen(false);
+    const api = canvasRef?.current?.getExcalidrawApi();
+    if (!api) {
+      toast.error('Canvas not ready yet.');
+      return;
+    }
+    // Pick the selected text element if any; otherwise the latest one
+    // by `updated` timestamp. Skip empty elements.
+    const elements = api
+      .getSceneElements()
+      .filter(
+        (el) => el.type === 'text' && !el.isDeleted && (el as { text?: string }).text?.trim(),
+      );
+    if (elements.length === 0) {
+      toast.error('Write something first \u2014 then I can continue from it.');
+      return;
+    }
+    const state = api.getAppState();
+    const selectedIds = state.selectedElementIds ?? {};
+    const selected = elements.find((el) => selectedIds[el.id]);
+    const target =
+      selected ?? elements.reduce((a, b) => ((a.updated ?? 0) > (b.updated ?? 0) ? a : b));
+    const prefix = (target as { text: string }).text.trim();
+    if (prefix.length < 8) {
+      toast.error('Need a few more words to continue from.');
+      return;
+    }
+    setContinuing(true);
+    const t = toast.loading('Continuing your thought\u2026');
+    try {
+      const out = await continueWriting({ noteId, prefix: prefix.slice(-2000) });
+      if (!out) {
+        toast.error('No continuation generated.', { id: t });
+        return;
+      }
+      appendTextToScene(api, out, { focus: true });
+      toast.success('Added.', { id: t });
+    } catch (err) {
+      toast.error((err as Error).message || 'Could not continue', { id: t });
+    } finally {
+      setContinuing(false);
+    }
+  };
+
+  const buildMindMap = async () => {
+    setMenuOpen(false);
+    const api = canvasRef?.current?.getExcalidrawApi();
+    if (!api) {
+      toast.error('Canvas not ready yet.');
+      return;
+    }
+    const replacing = hasMindMap(api);
+    if (replacing) {
+      const ok = window.confirm(
+        'A mind map already exists on this canvas. Replace it with a fresh one based on the current note?',
+      );
+      if (!ok) return;
+    }
+    setMapBuilding(true);
+    const t = toast.loading(replacing ? 'Regenerating mind map…' : 'Generating mind map…');
+    try {
+      const map = await generateMindMap(noteId);
+      insertMindMap(api, map, { replace: replacing });
+      toast.success(replacing ? 'Mind map regenerated.' : 'Mind map inserted.', { id: t });
+    } catch (err) {
+      toast.error((err as Error).message, { id: t });
+    } finally {
+      setMapBuilding(false);
+    }
+  };
 
   const run = async (m: Mode) => {
     setMenuOpen(false);
@@ -70,7 +162,7 @@ export function NoteAiMenu({
               className="fixed inset-0 z-10"
               aria-label="Close menu"
             />
-            <ul className="bg-popover absolute right-0 z-20 mt-1 min-w-[180px] overflow-hidden rounded-lg border text-sm shadow-md">
+            <ul className="bg-popover absolute right-0 z-20 mt-1 min-w-[200px] overflow-hidden rounded-lg border text-sm shadow-md">
               {(Object.keys(META) as Mode[]).map((m) => {
                 const I = META[m].Icon;
                 return (
@@ -85,6 +177,40 @@ export function NoteAiMenu({
                   </li>
                 );
               })}
+              {canvasRef && (
+                <li className="border-t">
+                  <button
+                    type="button"
+                    disabled={continuing}
+                    className="hover:bg-muted flex w-full items-center gap-2 px-3 py-2 text-left disabled:opacity-60"
+                    onClick={continueThought}
+                  >
+                    {continuing ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <PenLine className="size-4" />
+                    )}
+                    Continue this thought
+                  </button>
+                </li>
+              )}
+              {canvasRef && (
+                <li className="border-t">
+                  <button
+                    type="button"
+                    disabled={mapBuilding}
+                    className="hover:bg-muted flex w-full items-center gap-2 px-3 py-2 text-left disabled:opacity-60"
+                    onClick={buildMindMap}
+                  >
+                    {mapBuilding ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Network className="size-4" />
+                    )}
+                    Generate mind map
+                  </button>
+                </li>
+              )}
             </ul>
           </>
         )}

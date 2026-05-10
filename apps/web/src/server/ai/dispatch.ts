@@ -97,3 +97,24 @@ export async function getTranscribeProvider(
   }
   return null;
 }
+
+/**
+ * Resolve the raw OpenAI API key + Whisper model for the user. Used by
+ * the segmented-transcription action to call Whisper directly with
+ * `response_format=verbose_json` (which the standard `TranscribeProvider`
+ * interface does not surface).
+ */
+export async function getTranscribeKey(
+  userId: string | null,
+): Promise<{ apiKey: string; model: string } | null> {
+  if (userId) {
+    const prefs = await getUserAiPrefs(userId);
+    const sec = await getDecryptedSecret(userId, 'openai');
+    if (sec)
+      return { apiKey: sec.secret, model: prefs.transcribe.model ?? env.OPENAI_WHISPER_MODEL };
+  }
+  if (env.OPENAI_API_KEY) {
+    return { apiKey: env.OPENAI_API_KEY, model: env.OPENAI_WHISPER_MODEL };
+  }
+  return null;
+}

@@ -1,9 +1,15 @@
 'use client';
 import * as React from 'react';
-import { History, RefreshCcw, Loader2, Trash2 } from 'lucide-react';
+import { History, RefreshCcw, Loader2, Trash2, GitCompare } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
-import { listVersions, restoreVersion, deleteVersion } from '@/server/actions/versions';
+import {
+  listVersions,
+  restoreVersion,
+  deleteVersion,
+  ensureRecentSnapshot,
+} from '@/server/actions/versions';
+import { getNote } from '@/server/actions/notes';
 
 interface Version {
   id: string;
@@ -12,6 +18,89 @@ interface Version {
   label: string | null;
   createdAt: Date;
   preview: string;
+}
+
+interface DiffLine {
+  kind: 'same' | 'add' | 'del';
+  text: string;
+}
+
+interface DiffWord {
+  kind: 'same' | 'add' | 'del';
+  text: string;
+}
+
+/**
+ * Word-level diff inside a single line. Splits on whitespace,
+ * keeps the separators so we can rejoin without rewrites.
+ */
+function diffWords(a: string, b: string): DiffWord[] {
+  const tokens = (s: string) => s.split(/(\s+)/);
+  const A = tokens(a);
+  const B = tokens(b);
+  const m = A.length;
+  const n = B.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      dp[i]![j] = A[i] === B[j] ? dp[i + 1]![j + 1]! + 1 : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
+    }
+  }
+  const out: DiffWord[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < m && j < n) {
+    if (A[i] === B[j]) {
+      out.push({ kind: 'same', text: A[i]! });
+      i++;
+      j++;
+    } else if (dp[i + 1]![j]! >= dp[i]![j + 1]!) {
+      out.push({ kind: 'del', text: A[i]! });
+      i++;
+    } else {
+      out.push({ kind: 'add', text: B[j]! });
+      j++;
+    }
+  }
+  while (i < m) out.push({ kind: 'del', text: A[i++]! });
+  while (j < n) out.push({ kind: 'add', text: B[j++]! });
+  return out;
+}
+
+/**
+ * Tiny line-level diff via Longest Common Subsequence. Good enough
+ * for a 60-snapshot panel; we don't need word-level precision.
+ */
+function diffLines(a: string, b: string): DiffLine[] {
+  const A = a.split('\n');
+  const B = b.split('\n');
+  const m = A.length;
+  const n = B.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      dp[i]![j] = A[i] === B[j] ? dp[i + 1]![j + 1]! + 1 : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
+    }
+  }
+  const out: DiffLine[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < m && j < n) {
+    if (A[i] === B[j]) {
+      out.push({ kind: 'same', text: A[i]! });
+      i++;
+      j++;
+    } else if (dp[i + 1]![j]! >= dp[i]![j + 1]!) {
+      out.push({ kind: 'del', text: A[i]! });
+      i++;
+    } else {
+      out.push({ kind: 'add', text: B[j]! });
+      j++;
+    }
+  }
+  while (i < m) out.push({ kind: 'del', text: A[i++]! });
+  while (j < n) out.push({ kind: 'add', text: B[j++]! });
+  return out;
 }
 
 /**
@@ -25,10 +114,20 @@ export function VersionHistory({ noteId }: { noteId: string }) {
   const [loading, setLoading] = React.useState(false);
   const [selected, setSelected] = React.useState<Version | null>(null);
   const [pending, startTransition] = React.useTransition();
+  const [showDiff, setShowDiff] = React.useState(false);
+  const [currentText, setCurrentText] = React.useState<string>('');
 
   const refresh = React.useCallback(async () => {
     setLoading(true);
     try {
+      // Lazy hourly snapshot \u2014 if it's been quiet for over an hour
+      // we record a fresh snapshot so the user always sees something
+      // recent in the timeline.
+      try {
+        await ensureRecentSnapshot(noteId);
+      } catch {
+        /* non-fatal */
+      }
       const v = await listVersions(noteId);
       setVersions(v);
       if (v.length > 0) setSelected(v[0] ?? null);
@@ -42,6 +141,13 @@ export function VersionHistory({ noteId }: { noteId: string }) {
   React.useEffect(() => {
     if (open) void refresh();
   }, [open, refresh]);
+
+  React.useEffect(() => {
+    if (!open || !showDiff) return;
+    void getNote(noteId)
+      .then((n) => setCurrentText(n?.plaintext ?? ''))
+      .catch(() => setCurrentText(''));
+  }, [open, showDiff, noteId]);
 
   const restore = (v: Version) =>
     startTransition(async () => {
@@ -120,8 +226,80 @@ export function VersionHistory({ noteId }: { noteId: string }) {
               ))}
             </ul>
             <div className="space-y-3">
-              <div className="bg-card max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-lg border p-4 text-sm">
-                {selected ? selected.preview || '(empty)' : 'Select a snapshot to preview.'}
+              <div className="flex items-center justify-between">
+                <p className="text-muted-foreground text-[11px] uppercase tracking-wide">
+                  {showDiff ? 'Diff vs current' : 'Snapshot preview'}
+                </p>
+                {selected && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDiff((v) => !v)}
+                    className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px]"
+                  >
+                    <GitCompare className="size-3" />
+                    {showDiff ? 'Plain preview' : 'Compare with current'}
+                  </button>
+                )}
+              </div>
+              <div className="bg-card max-h-[60vh] overflow-y-auto rounded-lg border p-4 text-sm">
+                {!selected ? (
+                  <span className="text-muted-foreground">Select a snapshot to preview.</span>
+                ) : showDiff ? (
+                  <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
+                    {(() => {
+                      const lines = diffLines(selected.preview, currentText);
+                      const out: React.ReactNode[] = [];
+                      for (let i = 0; i < lines.length; i++) {
+                        const l = lines[i]!;
+                        const next = lines[i + 1];
+                        // Pair an adjacent del+add into a word-level diff for
+                        // a much more readable rewrite view.
+                        if (l.kind === 'del' && next && next.kind === 'add') {
+                          const words = diffWords(l.text, next.text);
+                          out.push(
+                            <div key={i}>
+                              <span className="text-muted-foreground">~ </span>
+                              {words.map((w, k) => (
+                                <span
+                                  key={k}
+                                  className={
+                                    w.kind === 'add'
+                                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                      : w.kind === 'del'
+                                        ? 'bg-rose-500/15 text-rose-700 line-through dark:text-rose-300'
+                                        : ''
+                                  }
+                                >
+                                  {w.text}
+                                </span>
+                              ))}
+                            </div>,
+                          );
+                          i++; // skip the paired add
+                          continue;
+                        }
+                        out.push(
+                          <div
+                            key={i}
+                            className={
+                              l.kind === 'add'
+                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                : l.kind === 'del'
+                                  ? 'bg-rose-500/10 text-rose-700 line-through dark:text-rose-300'
+                                  : 'text-muted-foreground'
+                            }
+                          >
+                            {l.kind === 'add' ? '+ ' : l.kind === 'del' ? '- ' : '  '}
+                            {l.text || '\u00a0'}
+                          </div>,
+                        );
+                      }
+                      return out;
+                    })()}
+                  </pre>
+                ) : (
+                  <span className="whitespace-pre-wrap">{selected.preview || '(empty)'}</span>
+                )}
               </div>
               {selected && (
                 <button

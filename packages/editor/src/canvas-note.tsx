@@ -1,7 +1,6 @@
 'use client';
 import * as React from 'react';
 import * as Y from 'yjs';
-import type { Editor } from '@tiptap/react';
 import type {
   ExcalidrawImperativeAPI,
   ExcalidrawInitialDataState,
@@ -11,23 +10,16 @@ import type {
   ExcalidrawElement,
 } from '@excalidraw/excalidraw/element/types';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
-import { GripVertical, MessageCircle, Trash2 } from 'lucide-react';
 import { cn } from '@notai/lib/utils';
-import { TextBlock } from './text-block';
 import { Minimap, type MinimapCorner } from './minimap';
-import {
-  addBlock,
-  BLOCKS_CONTENT_MAP,
-  BLOCKS_KEY,
-  deleteBlockAt,
-  LEGACY_BLOCK_ID,
-  migrateLegacyDoc,
-  peekBlockFragment,
-  peekBlocksArray,
-  SCENE_MAP,
-  updateBlockAt,
-  type SceneBlock,
-} from './migrate-doc';
+import { useExcalidrawCalc } from './excalidraw-calc';
+import { ExcalidrawHeadingsToolbar } from './excalidraw-headings';
+import { ExcalidrawBacklinksOverlay } from './excalidraw-backlinks';
+import { ExcalidrawChecklistOverlay } from './excalidraw-checklist';
+import { ExcalidrawMathMermaidOverlay } from './excalidraw-math-mermaid';
+import { ExcalidrawRangeCalcOverlay } from './excalidraw-range-calc';
+import { appendTextToScene } from './append-to-scene';
+import { migrateLegacyDoc } from './migrate-doc';
 
 export type { ExcalidrawImperativeAPI };
 
@@ -75,15 +67,22 @@ function writeElementsToDoc(doc: Y.Doc, elements: readonly AnyElement[]): void {
 /* -------------------------------------------------------------------- */
 
 export interface CanvasNoteHandle {
-  /** Editor for the most recently focused text block, or null. */
-  getFocusedEditor: () => Editor | null;
-  /** Subscribe to focused-editor changes (e.g. to drive a shared toolbar). */
-  subscribeFocused: (cb: (e: Editor | null) => void) => () => void;
-  /** Insert content at the focused editor; if none, create a new block at viewport center. */
+  /**
+   * Always returns null on the new canvas-canonical surface. Kept on
+   * the interface so legacy consumers compile; nothing on the canvas
+   * exposes a TipTap Editor anymore (Phase-3 step-3 of the migration).
+   */
+  getFocusedEditor: () => unknown | null;
+  /** Always emits null. See `getFocusedEditor`. */
+  subscribeFocused: (cb: (e: unknown | null) => void) => () => void;
+  /**
+   * Drop content onto the Excalidraw scene. Strings become a new text
+   * element placed below the lowest existing element. JSON content
+   * (legacy TipTap shape) is best-effort flattened to plaintext.
+   * Returns true if the content was dropped onto the scene.
+   */
   insertContent: (content: string | Record<string, unknown>) => boolean;
-  /** Add a new empty text block at the current viewport center. */
-  addTextBlock: () => string | null;
-  /** Raw Excalidraw API (e.g. for PDF import). */
+  /** Raw Excalidraw API (e.g. for PDF import, smart paste). */
   getExcalidrawApi: () => ExcalidrawImperativeAPI | null;
 }
 
@@ -117,6 +116,24 @@ export interface CanvasNoteProps {
    */
   minimap?: { enabled: boolean; corner: MinimapCorner };
   onMinimapCornerChange?: (corner: MinimapCorner) => void;
+  /**
+   * Smart paste: when the user pastes a single URL onto the canvas,
+   * fire this callback with the URL. The default Excalidraw paste
+   * behaviour is suppressed, so the consumer is responsible for
+   * dropping a card / summary onto the scene. If absent, URL pastes
+   * fall through to Excalidraw's native behaviour (which inserts the
+   * URL as a text element).
+   */
+  onUrlPaste?: (url: string) => void;
+  /**
+   * Smart paste: when the user pastes a long block of plaintext onto
+   * the canvas (no input focused), fire this callback. Consumer can
+   * decide whether to insert verbatim, run an AI outline pass, or
+   * prompt the user. If absent OR the consumer returns false (or
+   * doesn't preventDefault its own way), the paste falls through to
+   * Excalidraw's native behaviour.
+   */
+  onLongTextPaste?: (text: string) => boolean | void;
 }
 
 /* -------------------------------------------------------------------- */
@@ -141,12 +158,70 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     viewportKey,
     minimap,
     onMinimapCornerChange,
+    onUrlPaste,
+    onLongTextPaste,
   },
   ref,
 ) {
   const [api, setApi] = React.useState<ExcalidrawImperativeAPI | null>(null);
   const [host, setHost] = React.useState<HTMLDivElement | null>(null);
   const resolvedTheme = useResolvedTheme(theme);
+  // These props are kept on `CanvasNoteProps` for backwards-compat with
+  // call sites still wiring them in, but Phase-3 step-2 retired the
+  // TipTap block layer that consumed them. Reference once to satisfy
+  // `noUnusedParameters` without changing the public API.
+  void user;
+  void createBacklink;
+  void aiContext;
+  void onCommentBlock;
+
+  // Excalidraw-native Calc: live arithmetic on text elements ("5 * 12 = "
+  // → "60" appears next to it). Disabled in read-only / sticky preview
+  // contexts so a sticky window mirror doesn't try to mutate the scene.
+  useExcalidrawCalc(api, !readOnly);
+
+  /* ---------- Smart paste: URL → consumer-handled summary card ---------- */
+  React.useEffect(() => {
+    if (!host || readOnly || (!onUrlPaste && !onLongTextPaste)) return;
+    const handler = (e: ClipboardEvent) => {
+      // Don't hijack pastes that target a focused input/textarea/contentEditable
+      // (e.g. the Excalidraw text editor itself, or any chrome input).
+      const tgt = e.target as HTMLElement | null;
+      if (tgt) {
+        if (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable) {
+          return;
+        }
+      }
+      const text = e.clipboardData?.getData('text/plain')?.trim();
+      if (!text) return;
+      // Only intercept clean single-URL pastes (no surrounding text).
+      if (!/^https?:\/\/\S+$/.test(text)) {
+        // Long-text path: only intercept on the canvas surface (no
+        // input focused) and only when the consumer wants to handle
+        // it. >= 500 chars chosen so a chunky paragraph doesn't pop
+        // the dialog but a copy-pasted article does.
+        if (onLongTextPaste && text.length >= 500) {
+          const handled = onLongTextPaste(text);
+          if (handled) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }
+        return;
+      }
+      try {
+        // eslint-disable-next-line no-new
+        new URL(text);
+      } catch {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      onUrlPaste?.(text);
+    };
+    host.addEventListener('paste', handler, true);
+    return () => host.removeEventListener('paste', handler, true);
+  }, [host, readOnly, onUrlPaste, onLongTextPaste]);
 
   /* ---------- Migration on first mount ----------
    * IMPORTANT: wait for the Hocuspocus provider to sync remote state
@@ -189,9 +264,6 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
       p.off?.('synced', onSynced);
     };
   }, [doc, provider]);
-
-  /* ---------- Block list (subscribe to Y.Array) ---------- */
-  const blocks = useBlocksArray(doc);
 
   /* ---------- Viewport (zoom / scroll / active tool) ---------- */
   const persistedViewport = React.useMemo(() => readViewport(viewportKey), [viewportKey]);
@@ -596,12 +668,12 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
   }, [api, stickyMode, host]);
 
   /* ---------- Focused editor tracking ---------- */
-  const focusedRef = React.useRef<Editor | null>(null);
-  const focusListenersRef = React.useRef(new Set<(e: Editor | null) => void>());
-  const handleBlockFocus = React.useCallback((editor: Editor | null) => {
-    focusedRef.current = editor;
-    focusListenersRef.current.forEach((cb) => cb(editor));
-  }, []);
+  // Phase-3 step-3 retired the TipTap layer entirely; these refs are
+  // now permanent null. Kept so the imperative handle's API surface
+  // stays stable for any external code that still calls
+  // `getFocusedEditor`/`subscribeFocused`.
+  const focusedRef = React.useRef<unknown | null>(null);
+  const focusListenersRef = React.useRef(new Set<(e: unknown | null) => void>());
 
   /* ---------- Imperative handle ---------- */
   React.useImperativeHandle(
@@ -614,28 +686,19 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
         return () => focusListenersRef.current.delete(cb);
       },
       insertContent: (content) => {
-        const ed = focusedRef.current;
-        if (ed) {
-          ed.chain().focus().insertContent(content).run();
-          return true;
-        }
-        return false;
-      },
-      addTextBlock: () => {
-        if (readOnly) return null;
-        const center = viewportCenterWorld(api, host);
-        const block = addBlock(doc, { x: center.x - 380, y: center.y - 24 });
-        return block.id;
+        // Phase-3 step-2: TipTap block layer no longer renders, so
+        // there's never a focused TipTap editor to insert into. Route
+        // every insert onto the Excalidraw scene as a text element.
+        if (readOnly || !api) return false;
+        const text = typeof content === 'string' ? content : flattenJsonToPlaintext(content);
+        if (!text.trim()) return false;
+        const id = appendTextToScene(api, text, { focus: true });
+        return id != null;
       },
       getExcalidrawApi: () => api,
     }),
-    [api, doc, host, readOnly],
+    [api, readOnly],
   );
-
-  /* ---------- Active-tool gating for blocks ---------- */
-  // Blocks are interactive only in selection mode (clicking text edits it).
-  // In hand mode you pan; in any drawing tool you draw on top of blocks.
-  const blocksInteractive = !readOnly && viewport.activeTool === 'selection';
 
   /* ---------- Render ---------- */
   return (
@@ -693,38 +756,48 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
         </React.Suspense>
       </div>
 
-      {/* Blocks layer — same world transform as Excalidraw. Excalidraw's
-          screen→world: screenX = (worldX + scrollX) * zoom. We replicate
-          that with `scale(zoom) translate(scrollX, scrollY)`. */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          transform: `translate(${viewport.scrollX * viewport.zoom}px, ${
-            viewport.scrollY * viewport.zoom
-          }px) scale(${viewport.zoom})`,
-          transformOrigin: '0 0',
-        }}
-        data-blocks-layer
-      >
-        {blocks.map((block, idx) => (
-          <BlockFrame
-            key={block.id}
-            block={block}
-            index={idx}
-            doc={doc}
-            provider={provider}
-            user={user}
-            interactive={blocksInteractive}
-            readOnly={readOnly}
-            zoom={viewport.zoom}
-            onFocusEditor={handleBlockFocus}
-            searchBacklinks={searchBacklinks}
-            createBacklink={createBacklink}
-            aiContext={aiContext}
-            onCommentBlock={onCommentBlock}
-          />
-        ))}
-      </div>
+      {/* Phase-2 Excalidraw migration: heading presets for the
+          currently-selected text element. Renders nothing when the
+          selection isn't a single text element. Suppressed on read-only
+          canvases (sticky mirrors, shared-link viewers). */}
+      <ExcalidrawHeadingsToolbar api={api} enabled={!readOnly} />
+
+      {/* Phase-2 Excalidraw migration: clickable [[Backlink]] chips
+          rendered beneath any text element that contains `[[…]]`
+          patterns. Read-only over the scene; titles resolve via the
+          same `searchBacklinks` callback the TipTap layer uses, so a
+          `[[Note]]` written on the canvas and one written in a TipTap
+          block both navigate to the same target. */}
+      <ExcalidrawBacklinksOverlay
+        api={api}
+        enabled={!stickyMode}
+        searchBacklinks={searchBacklinks}
+      />
+
+      {/* Phase-2 Excalidraw migration: click-to-toggle checkboxes for
+          any line beginning with `[ ]` / `[x]` (with or without a
+          bullet prefix). Read-only mirrors stay non-interactive via
+          `enabled={!readOnly}`. */}
+      <ExcalidrawChecklistOverlay api={api} enabled={!readOnly} />
+
+      {/* Phase-2 Excalidraw migration: rendered KaTeX `$$…$$` and
+          ```mermaid …``` blocks appear as live previews under the
+          owning text element. Source stays editable; preview is
+          read-only. Disabled on sticky mirrors to keep them lean. */}
+      <ExcalidrawMathMermaidOverlay api={api} enabled={!stickyMode} />
+
+      {/* Range-calc: when the user selects 2+ text elements, parse the
+          numbers out of them and float a chip-bar with sum/mean/min/max
+          plus a count. Click a chip to drop the result as a fresh
+          highlighted text element below the selection. Disabled on
+          read-only mirrors so they remain pure-display. */}
+      <ExcalidrawRangeCalcOverlay api={api} enabled={!readOnly} />
+
+      {/* Phase-3 step-2 of the Excalidraw migration: the legacy TipTap
+          BlockFrame layer is no longer rendered. Notes that still have
+          un-migrated blocks show the migration banner ("Recover legacy
+          text") so the user can convert in one click; until then the
+          legacy data still lives in the Y.Doc but is invisible here. */}
 
       {/* Minimap overlay (authoring only). The corner is parent-controlled
           so it persists across reloads via the parent's settings store. */}
@@ -743,181 +816,6 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
 });
 
 /* -------------------------------------------------------------------- */
-/* Block frame                                                            */
-/* -------------------------------------------------------------------- */
-
-interface BlockFrameProps {
-  block: SceneBlock;
-  index: number;
-  doc: Y.Doc;
-  provider: HocuspocusProvider;
-  user: { name: string; color: string };
-  interactive: boolean;
-  readOnly: boolean;
-  zoom: number;
-  onFocusEditor: (e: Editor | null) => void;
-  searchBacklinks?: (q: string) => Promise<Array<{ id: string; title: string }>>;
-  createBacklink?: (title: string) => Promise<{ id: string; title: string }>;
-  aiContext?: import('./ai-types').SlashAiContext;
-  onCommentBlock?: (blockId: string) => void;
-}
-
-function BlockFrame({
-  block,
-  index,
-  doc,
-  provider,
-  user,
-  interactive,
-  readOnly,
-  zoom,
-  onFocusEditor,
-  searchBacklinks,
-  createBacklink,
-  aiContext,
-  onCommentBlock,
-}: BlockFrameProps) {
-  const fragment = useBlockFragment(doc, block.id);
-  const [hovered, setHovered] = React.useState(false);
-
-  const onDragHandle = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (readOnly) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const startClientX = e.clientX;
-    const startClientY = e.clientY;
-    const start = block;
-    const target = e.currentTarget;
-    target.setPointerCapture(e.pointerId);
-    const move = (ev: PointerEvent) => {
-      const dx = (ev.clientX - startClientX) / zoom;
-      const dy = (ev.clientY - startClientY) / zoom;
-      updateBlockAt(doc, index, { ...start, x: start.x + dx, y: start.y + dy });
-    };
-    const up = () => {
-      target.removeEventListener('pointermove', move);
-      target.removeEventListener('pointerup', up);
-      target.removeEventListener('pointercancel', up);
-    };
-    target.addEventListener('pointermove', move);
-    target.addEventListener('pointerup', up);
-    target.addEventListener('pointercancel', up);
-  };
-
-  const onResizeHandle = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (readOnly) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const startClientX = e.clientX;
-    const startWidth = block.width;
-    const target = e.currentTarget;
-    target.setPointerCapture(e.pointerId);
-    const move = (ev: PointerEvent) => {
-      const dx = (ev.clientX - startClientX) / zoom;
-      const w = Math.max(180, Math.round(startWidth + dx));
-      updateBlockAt(doc, index, { ...block, width: w });
-    };
-    const up = () => {
-      target.removeEventListener('pointermove', move);
-      target.removeEventListener('pointerup', up);
-      target.removeEventListener('pointercancel', up);
-    };
-    target.addEventListener('pointermove', move);
-    target.addEventListener('pointerup', up);
-    target.addEventListener('pointercancel', up);
-  };
-
-  return (
-    <div
-      data-block-id={block.id}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        position: 'absolute',
-        left: block.x,
-        top: block.y,
-        width: block.width,
-        pointerEvents: interactive ? 'auto' : 'none',
-      }}
-      className={cn('group rounded-md', interactive && 'hover:ring-primary/30 hover:ring-1')}
-    >
-      {fragment ? (
-        <TextBlock
-          // Re-mount TipTap whenever the underlying Y.XmlFragment reference
-          // changes — this happens when sync replaces a lazily-bound local
-          // fragment with the real remote one. Without the key, TipTap
-          // stays bound to the orphaned reference and renders blank.
-          key={fragmentKeyOf(fragment)}
-          fragment={fragment}
-          provider={provider}
-          user={user}
-          editable={!readOnly}
-          searchBacklinks={searchBacklinks}
-          createBacklink={createBacklink}
-          aiContext={aiContext}
-          onFocusEditor={onFocusEditor}
-          className="block-content min-h-[1.5em] px-3 py-2"
-        />
-      ) : (
-        <div
-          className="text-muted-foreground/50 px-3 py-2 text-xs"
-          aria-hidden
-          // Placeholder while we wait for the remote blocks-content map
-          // to deliver this block's fragment. Nothing to type into yet.
-        >
-          &nbsp;
-        </div>
-      )}
-      {/* Hover chrome: drag handle + delete. Hidden in readOnly mode. */}
-      {!readOnly && hovered && (
-        <>
-          <button
-            type="button"
-            aria-label="Drag block"
-            title="Drag to move"
-            onPointerDown={onDragHandle}
-            className="bg-card/90 absolute -left-7 top-1 cursor-grab rounded border px-1 py-1 opacity-80 shadow-sm hover:opacity-100 active:cursor-grabbing"
-          >
-            <GripVertical className="size-3" />
-          </button>
-          <button
-            type="button"
-            aria-label="Delete block"
-            title="Delete block"
-            onClick={(e) => {
-              e.stopPropagation();
-              deleteBlockAt(doc, index);
-            }}
-            className="bg-card/90 absolute -right-7 top-1 rounded border px-1 py-1 opacity-80 shadow-sm hover:opacity-100"
-          >
-            <Trash2 className="size-3" />
-          </button>
-          {onCommentBlock && (
-            <button
-              type="button"
-              aria-label="Comment on block"
-              title="Comment on this block"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCommentBlock(block.id);
-              }}
-              className="bg-card/90 absolute -right-7 top-9 rounded border px-1 py-1 opacity-80 shadow-sm hover:opacity-100"
-            >
-              <MessageCircle className="size-3" />
-            </button>
-          )}
-          <div
-            onPointerDown={onResizeHandle}
-            title="Resize"
-            className="hover:bg-primary/40 absolute -right-1 bottom-2 top-2 w-1.5 cursor-ew-resize rounded"
-          />
-        </>
-      )}
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------- */
 /* Helpers                                                                */
 /* -------------------------------------------------------------------- */
 
@@ -928,133 +826,32 @@ interface Viewport {
   activeTool: string;
 }
 
-function useBlocksArray(doc: Y.Doc): SceneBlock[] {
-  /*
-   * Subscribe to BOTH the scene map (for `blocks` key replacement) and
-   * the current blocks Y.Array (for content changes). Why both?
-   *
-   * Hocuspocus sync replaces the local empty Y.Array with the remote
-   * one — `scene.set('blocks', remoteArr)`. If we only observed the
-   * local empty array, our subscription would never fire after sync
-   * and the note would render blank until the user switched notes
-   * (forcing a remount). Observing the scene map lets us detect the
-   * replacement and re-attach to the new array.
-   */
-  const subscribe = React.useCallback(
-    (cb: () => void) => {
-      const scene = doc.getMap(SCENE_MAP);
-      let observedArr: Y.Array<SceneBlock> | null = null;
-
-      const attach = (next: Y.Array<SceneBlock> | null) => {
-        if (observedArr === next) return;
-        if (observedArr) observedArr.unobserve(cb);
-        observedArr = next;
-        if (next) next.observe(cb);
-      };
-
-      attach(peekBlocksArray(doc));
-
-      const onSceneChange = (ev: Y.YMapEvent<unknown>) => {
-        if (!ev.keysChanged.has(BLOCKS_KEY)) return;
-        attach(peekBlocksArray(doc));
-        cb();
-      };
-      scene.observe(onSceneChange);
-
-      return () => {
-        scene.unobserve(onSceneChange);
-        if (observedArr) observedArr.unobserve(cb);
-      };
-    },
-    [doc],
-  );
-
-  const get = React.useCallback(() => {
-    const arr = peekBlocksArray(doc);
-    return arr ? snapshot(arr) : EMPTY_BLOCKS;
-  }, [doc]);
-
-  return React.useSyncExternalStore(subscribe, get, get);
-}
-
-const EMPTY_BLOCKS: SceneBlock[] = [];
-
 /**
- * Subscribe to a single block's content fragment. Returns the current
- * Y.XmlFragment for the block id, or null while we're waiting for the
- * remote `blocks-content` map to deliver it.
- *
- * Why this is a hook rather than a memo: when Hocuspocus syncs the doc,
- * the remote fragment for this id arrives via `map.set(id, remoteFrag)`.
- * That REPLACES the reference. Components must observe the map and
- * re-resolve when the key changes, otherwise they stay bound to a
- * lazily-created local empty fragment that's no longer reachable from
- * the doc — that's the "blank on first refresh" bug.
- *
- * The legacy block id always resolves immediately (its content lives in
- * a top-level XmlFragment whose reference Yjs never replaces — peer edits
- * merge into it directly).
+ * Best-effort flatten of a TipTap JSON node into a plaintext string.
+ * Used by `insertContent` after Phase-3 step-2 removed the TipTap
+ * block layer: legacy callers passing JSON shapes (slash-AI, AI menu,
+ * meeting mode, voice, asset uploader) get their content dropped onto
+ * the canvas as a single text element rather than failing silently.
  */
-function useBlockFragment(doc: Y.Doc, blockId: string): Y.XmlFragment | null {
-  const subscribe = React.useCallback(
-    (cb: () => void) => {
-      // Legacy fragment is stable; no observation needed.
-      if (blockId === LEGACY_BLOCK_ID) return () => {};
-      const map = doc.getMap(BLOCKS_CONTENT_MAP);
-      const onChange = (ev: Y.YMapEvent<unknown>) => {
-        if (ev.keysChanged.has(blockId)) cb();
-      };
-      map.observe(onChange);
-      return () => map.unobserve(onChange);
-    },
-    [doc, blockId],
-  );
-  const get = React.useCallback(() => peekBlockFragment(doc, blockId), [doc, blockId]);
-  return React.useSyncExternalStore(subscribe, get, get);
-}
-
-/**
- * Stable key for a Y.XmlFragment so React remounts TipTap when the
- * underlying reference is replaced by sync. Yjs assigns each shared
- * type a `_item` clock id under the hood; we fall back to object
- * identity through a WeakMap for fragments that don't expose one.
- */
-const fragmentKeys = new WeakMap<Y.XmlFragment, string>();
-let fragmentKeyCounter = 0;
-function fragmentKeyOf(frag: Y.XmlFragment): string {
-  let key = fragmentKeys.get(frag);
-  if (!key) {
-    fragmentKeyCounter += 1;
-    key = `f${fragmentKeyCounter}`;
-    fragmentKeys.set(frag, key);
-  }
-  return key;
-}
-
-// Snapshot must be referentially stable when contents are unchanged.
-const snapshotCache = new WeakMap<Y.Array<SceneBlock>, { sig: string; data: SceneBlock[] }>();
-function snapshot(arr: Y.Array<SceneBlock>): SceneBlock[] {
-  const data = arr.toArray();
-  const sig = data.map((b) => `${b.id}:${b.x}:${b.y}:${b.width}`).join('|');
-  const cached = snapshotCache.get(arr);
-  if (cached && cached.sig === sig) return cached.data;
-  snapshotCache.set(arr, { sig, data });
-  return data;
-}
-
-function viewportCenterWorld(
-  api: ExcalidrawImperativeAPI | null,
-  host: HTMLElement | null,
-): { x: number; y: number } {
-  if (!api || !host) return { x: 0, y: 0 };
-  const s = api.getAppState();
-  const z = s.zoom?.value ?? 1;
-  const rect = host.getBoundingClientRect();
-  // screen center → world: (screenX/zoom) - scrollX
-  return {
-    x: rect.width / 2 / z - s.scrollX,
-    y: rect.height / 2 / z - s.scrollY,
+function flattenJsonToPlaintext(node: unknown): string {
+  const out: string[] = [];
+  const walk = (n: unknown): void => {
+    if (n == null) return;
+    if (typeof n === 'string') {
+      out.push(n);
+      return;
+    }
+    if (typeof n !== 'object') return;
+    const obj = n as Record<string, unknown>;
+    if (typeof obj.text === 'string') out.push(obj.text);
+    if (Array.isArray(obj.content)) for (const c of obj.content) walk(c);
+    if (obj.type === 'hardBreak' || obj.type === 'paragraph') out.push('\n');
   };
+  walk(node);
+  return out
+    .join('')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 interface PersistedViewport {

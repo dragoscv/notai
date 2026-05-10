@@ -9,6 +9,10 @@ import { TimezoneSync } from '@/components/layout/timezone-sync';
 import { VoiceCapture } from '@/components/voice/voice-capture';
 import { ShortcutsCheatsheet } from '@/components/layout/shortcuts-cheatsheet';
 import { QuickCapture } from '@/components/layout/quick-capture';
+import { DailyNoteHotkey } from '@/components/layout/daily-note-hotkey';
+import { OnboardingTour } from '@/components/layout/onboarding-tour';
+import { PomodoroTimer } from '@/components/layout/pomodoro-timer';
+import { DailyReviewHost } from '@/components/layout/daily-review-host';
 import { isAdmin } from '@/server/rbac';
 import { listNotes } from '@/server/actions/notes';
 import { listFolders } from '@/server/actions/folders';
@@ -42,6 +46,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <VoiceCapture />
         <ShortcutsCheatsheet />
         <QuickCapture />
+        <DailyNoteHotkey />
+        <OnboardingTour />
+        <PomodoroTimer />
+        <DailyReviewHost />
         <AppShell
           sidebar={<Sidebar user={session.user} notes={notes} folders={folders} isAdmin={admin} />}
           commandPalette={<CommandPalette notes={notes} />}

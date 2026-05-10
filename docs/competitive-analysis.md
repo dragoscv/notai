@@ -365,3 +365,32 @@ nervous system."*
   within one sprint.
 - We do not chase parity for parity's sake. If a feature doesn't serve the
   ADHD/calm/visible-thinking thesis, it stays at P2.
+
+---
+
+## 8. 2026 update — what shipped while we were heads-down
+
+Refreshed 2026-05-09 from product launches and reviews across Sept 2025 → May 2026.
+
+### The big shifts
+
+- **Notion 3.0 "Agents" (Sep 18 2025)** — agents that can run for ~20 min, perform research, build databases, draft docs. Custom agents with their own instructions, knowledge, schedules. Multi-step actions inside your workspace. *Reaction:* parity isn't urgent for our wedge (we are calmer/lighter, not more agentic), but a single-task "Notai Assistant" that can fill a daily note, reorganize a corkboard, or run a scheduled "morning brief" is now table-stakes for power users. **P1.**
+- **Notion AI Meeting Notes + Cmd-K Meeting Notes (2025)** — captures audio, transcribes, summarizes, writes follow-ups; Cmd-K creates structured meeting templates. *Reaction:* we now ship **Meeting Mode** (Granola-style, this release). Differentiator: ours is calm and inserts straight into your free-form canvas instead of a Notion database row.
+- **Notion Skills + Charts dashboards (Mar 2026)** — saved "skills" you can re-invoke from Cmd-K; native charts on top of databases. *Reaction:* skills map cleanly onto our existing slash menu + AI prompts library; charts wait until we have first-class databases (P3).
+- **Apple Math Notes (iPad/Mac, 2024-25; matured 2026)** — type any expression with `=`, get an inline live result; supports variable assignments and graphing. *Reaction:* shipped **Excalidraw-native Calc** in this release. We're the first non-Apple notes app with Math Notes parity that also works in a browser.
+- **Apple Image Wand + Math Notes graphing** — sketch → image; equation → graph. *Reaction:* P2; needs a sketch-recognition model and is a polish moment, not a wedge feature.
+- **Granola / Supernormal / Screenpipe (ambient meeting capture)** — mic + tab audio, transcribe in the background, AI-merge with your typed bullet points. Granola's killer move is "you keep typing your real notes, we polish them after the call". *Reaction:* shipped **Meeting Mode** with the same UX — raw notes on the right, transcript chunks streaming, one-click "enhance & insert".
+- **Microsoft Copilot Notebooks + Loop (Sep 2025)** — Copilot can build a mind map from a notebook, then expand any node interactively; Loop pages embed live data. *Reaction:* mind-map-from-note maps onto our Excalidraw canvas perfectly — once block-migration is done we can offer "AI: organize this canvas as a mind map" as a one-click button. **P1, post-Phase-2.**
+- **Tana Smart Builder + Voice notes (2025-26)** — voice-first capture that auto-classifies into projects, tasks, ideas. *Reaction:* our Quick Capture + voice transcription already gets us 70% there; auto-classify into existing notes/corkboards is **P1**.
+- **Mem 2.0 / Reflect "AI search"** — unified semantic search across all notes with chat. *Reaction:* we have per-note chat; cross-workspace "Ask all my notes" is **P0** for the next sprint, gates retention.
+- **Obsidian 1.7 Bases** — lightweight databases over folders of notes, no plugin needed. *Reaction:* fits PKM crowd, not our wedge. **P3.**
+- **Heptabase Tags + AI summary cards (2026)** — visual canvas + AI cards. They're the closest visual-thinking competitor. *Reaction:* makes our Excalidraw bet correct; differentiator is collaborative real-time + ambient stickies.
+
+### What this changes for our roadmap
+
+1. **Excalidraw is the canvas — committed.** This release lays the foundation (no auto-seeded TipTap blocks, per-note migration). Phase 2 reimplements headings/lists/math/mermaid/callouts as Excalidraw-native and removes TipTap from notes.
+2. **Meeting Mode shipped.** Validates the "calm capture, AI polish" pattern. Next: auto-summary triggers (no button), speaker diarization once Whisper-large supports it cheaply.
+3. **Cross-note "Ask everything"** moves to P0. The semantic-search infra is already there for per-note chat; we extend it to corpus-wide.
+4. **Single-task Assistant** moves to P1. Not multi-agent; one well-scoped morning-brief / weekly-review / inbox-sweep agent that respects the calm aesthetic.
+5. **Mind-map-from-note** queued behind Phase 2 of the Excalidraw migration. The canvas already supports it; we just need the AI prompt + layout heuristic.
+

@@ -11,6 +11,7 @@ export interface SearchHit {
   title: string;
   icon: string | null;
   snippet: string;
+  preview: string;
   isPinned: boolean;
   rank: number;
 }
@@ -20,7 +21,10 @@ export interface SearchHit {
  * GIN trigram index on `notes.plaintext` plus a similarity score on the
  * title for a cheap, accurate ranking. Excludes soft-deleted rows.
  */
-export async function searchNotes(rawQuery: string): Promise<SearchHit[]> {
+export async function searchNotes(
+  rawQuery: string,
+  filters?: { pinnedOnly?: boolean; favoritesOnly?: boolean; stickiesOnly?: boolean },
+): Promise<SearchHit[]> {
   const session = await auth();
   if (!session?.user?.id) return [];
   const userId = session.user.id;
@@ -55,6 +59,9 @@ export async function searchNotes(rawQuery: string): Promise<SearchHit[]> {
         isNull(notes.deletedAt),
         or(eq(notes.ownerId, userId), eq(noteCollaborators.userId, userId)),
         or(sql`${notes.title} ILIKE ${like}`, sql`${notes.plaintext} ILIKE ${like}`),
+        filters?.pinnedOnly ? eq(notes.isPinned, true) : undefined,
+        filters?.favoritesOnly ? eq(notes.isFavorite, true) : undefined,
+        filters?.stickiesOnly ? eq(notes.kind, 'sticky') : undefined,
       ),
     )
     .orderBy(sql`rank DESC`)
@@ -67,6 +74,7 @@ export async function searchNotes(rawQuery: string): Promise<SearchHit[]> {
     isPinned: r.isPinned,
     rank: Number(r.rank),
     snippet: makeSnippet(r.plaintext, q),
+    preview: makePreview(r.plaintext, q),
   }));
 }
 
@@ -78,5 +86,16 @@ function makeSnippet(text: string, q: string): string {
   if (idx < 0) return text.slice(0, 140) + (text.length > 140 ? '…' : '');
   const start = Math.max(0, idx - 50);
   const end = Math.min(text.length, idx + q.length + 90);
+  return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+}
+
+/** ~600 chars of context for the hover preview pane. */
+function makePreview(text: string, q: string): string {
+  if (!text) return '';
+  const lower = text.toLowerCase();
+  const idx = lower.indexOf(q.toLowerCase());
+  if (idx < 0) return text.slice(0, 600) + (text.length > 600 ? '…' : '');
+  const start = Math.max(0, idx - 200);
+  const end = Math.min(text.length, idx + q.length + 400);
   return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
 }

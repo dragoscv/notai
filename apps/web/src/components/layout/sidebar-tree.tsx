@@ -43,13 +43,18 @@ import {
   Copy,
   Trash2,
   Pencil,
+  GitMerge,
   FolderPlus,
   FilePlus2,
   Archive,
   ArchiveRestore,
   ExternalLink,
   Download,
+  Printer,
+  ClipboardCopy,
   Layers as LayersIcon,
+  Hash,
+  BookmarkPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -72,9 +77,19 @@ import {
   moveNote,
   exportNoteMarkdown,
 } from '@/server/actions/notes';
-import { createFolder, renameFolder, deleteFolder, moveFolder } from '@/server/actions/folders';
+import {
+  createFolder,
+  renameFolder,
+  deleteFolder,
+  moveFolder,
+  setFolderIcon,
+} from '@/server/actions/folders';
+import { FolderDefaultTagsDialog } from './folder-default-tags-dialog';
+import { createPersonalTemplate } from '@/server/actions/templates';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { usePrompt } from '@/components/ui/prompt-dialog';
+import { EmbedStatusIndicator } from '@/components/layout/embed-status-indicator';
+import { NoteMergeDialog } from '@/components/note/note-merge-dialog';
 
 /* --------------------- Expanded-state persistence ------------------------ */
 
@@ -419,6 +434,7 @@ export function SidebarTree({ folders, notes }: SidebarTreeProps) {
           Notes
         </h3>
         <div className="flex items-center gap-0.5">
+          <EmbedStatusIndicator />
           <IconHeaderBtn
             aria-label="New folder"
             title="New folder"
@@ -616,6 +632,7 @@ function FolderRow(props: FolderRowProps) {
   } = props;
   const isOpen = expanded.has(node.folder.id);
   const dragId: DragId = { kind: 'folder', id: node.folder.id };
+  const [defaultTagsOpen, setDefaultTagsOpen] = React.useState(false);
 
   // Droppable: drop INTO this folder (makes it the parent)
   const { setNodeRef: setContentsRef, isOver: isOverContents } = useDroppable({
@@ -666,7 +683,17 @@ function FolderRow(props: FolderRowProps) {
               )}
             />
             {isOpen ? (
-              <FolderOpen className="text-muted-foreground size-3.5 shrink-0" />
+              node.folder.icon ? (
+                <span className="size-3.5 shrink-0 text-center text-xs leading-none">
+                  {node.folder.icon}
+                </span>
+              ) : (
+                <FolderOpen className="text-muted-foreground size-3.5 shrink-0" />
+              )
+            ) : node.folder.icon ? (
+              <span className="size-3.5 shrink-0 text-center text-xs leading-none">
+                {node.folder.icon}
+              </span>
             ) : (
               <FolderIcon className="text-muted-foreground size-3.5 shrink-0" />
             )}
@@ -687,6 +714,48 @@ function FolderRow(props: FolderRowProps) {
           <ContextMenuItem onSelect={() => onRenameFolder(node.folder)}>
             <Pencil className="size-4" /> Rename
           </ContextMenuItem>
+          <ContextMenuItem onSelect={() => setDefaultTagsOpen(true)}>
+            <Hash className="size-4" /> Default tags\u2026
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <div className="grid grid-cols-8 gap-1 px-2 py-1.5">
+            {[
+              '\ud83d\udcc1',
+              '\ud83d\udcda',
+              '\ud83d\udcdd',
+              '\ud83d\udca1',
+              '\ud83c\udfaf',
+              '\ud83d\ude80',
+              '\u2728',
+              '\ud83d\udd25',
+              '\ud83c\udf31',
+              '\u2615',
+              '\ud83d\udcbc',
+              '\ud83c\udfa8',
+              '\ud83d\udd2c',
+              '\ud83c\udfae',
+              '\u2764\ufe0f',
+              '\u274c',
+            ].map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => {
+                  void setFolderIcon({
+                    id: node.folder.id,
+                    icon: emoji === '\u274c' ? null : emoji,
+                  });
+                }}
+                className={cn(
+                  'hover:bg-muted flex size-6 items-center justify-center rounded text-sm',
+                  node.folder.icon === emoji && 'bg-muted',
+                )}
+                title={emoji === '\u274c' ? 'Clear icon' : `Set icon to ${emoji}`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
           <ContextMenuSeparator />
           <ContextMenuItem
             className="text-destructive focus:text-destructive"
@@ -696,6 +765,13 @@ function FolderRow(props: FolderRowProps) {
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+
+      <FolderDefaultTagsDialog
+        folderId={node.folder.id}
+        folderName={node.folder.name}
+        open={defaultTagsOpen}
+        onOpenChange={setDefaultTagsOpen}
+      />
 
       {isOpen && (
         <ul className="space-y-0.5">
@@ -754,6 +830,7 @@ function NoteRow({
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: encodeDrag(dragId),
   });
+  const [mergeOpen, setMergeOpen] = React.useState(false);
 
   const openAsSticky = async () => {
     try {
@@ -786,6 +863,65 @@ function NoteRow({
     }
   };
 
+  const copyMarkdown = async () => {
+    try {
+      const { content } = await exportNoteMarkdown(note.id);
+      await navigator.clipboard.writeText(content);
+      toast.success('Copied note as Markdown');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Copy failed');
+    }
+  };
+
+  const saveAsTemplate = async () => {
+    const title = window.prompt('Template name', note.title || 'My template');
+    if (!title) return;
+    try {
+      await createPersonalTemplate({ noteId: note.id, title });
+      toast.success('Saved as personal template');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not save template');
+    }
+  };
+
+  const exportPdf = async () => {
+    try {
+      const { content } = await exportNoteMarkdown(note.id);
+      // Spawn a hidden iframe with a clean print-friendly layout, let
+      // the browser's "Save as PDF" do the actual rendering. We don't
+      // ship a markdown\u2192PDF library because every browser already has
+      // a great one and the Print dialog is the universal escape hatch.
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${note.title || 'Untitled'}</title><style>
+        body{font-family:ui-serif,Georgia,Cambria,'Times New Roman',Times,serif;font-size:12pt;line-height:1.55;max-width:680px;margin:24px auto;padding:0 16px;color:#111;}
+        h1{font-size:22pt;margin:0 0 16px;font-weight:600;}
+        pre{white-space:pre-wrap;word-wrap:break-word;font-family:inherit;}
+        @page{margin:18mm;}
+      </style></head><body><pre>${content.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c]!)}</pre></body></html>`;
+      const doc = iframe.contentDocument;
+      if (!doc) throw new Error('Print frame unavailable');
+      doc.open();
+      doc.write(html);
+      doc.close();
+      // Wait one tick for layout to settle.
+      await new Promise((r) => setTimeout(r, 50));
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      // Browsers keep the iframe alive while the dialog is up; clean
+      // up after a comfortable timeout.
+      setTimeout(() => iframe.remove(), 2000);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Print failed');
+    }
+  };
+
   return (
     <li>
       <ReorderGap target={dragId} kind="before" />
@@ -800,13 +936,26 @@ function NoteRow({
             <Link
               href={`/app/n/${note.id}`}
               className={cn(
-                'text-foreground/80 hover:bg-accent hover:text-accent-foreground flex items-center gap-2 rounded-md py-1.5 text-sm',
+                'text-foreground/80 hover:bg-accent hover:text-accent-foreground flex items-center gap-2 rounded-md',
                 active && 'bg-accent text-accent-foreground',
               )}
-              style={{ paddingLeft: `${depth * 12 + 22}px`, paddingRight: '8px' }}
+              style={{
+                paddingLeft: `${depth * 12 + 22}px`,
+                paddingRight: '8px',
+                paddingTop: 'var(--sidebar-row-pad-y, 0.375rem)',
+                paddingBottom: 'var(--sidebar-row-pad-y, 0.375rem)',
+                fontSize: 'var(--sidebar-row-text, 0.875rem)',
+              }}
             >
               <span className="shrink-0 text-xs">{note.icon ?? '📝'}</span>
               <span className="min-w-0 flex-1 truncate">{note.title || 'Untitled'}</span>
+              {note.color && note.color !== 'default' && (
+                <span
+                  aria-hidden
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ background: noteColorSwatch(note.color) }}
+                />
+              )}
               {note.isPinned && <Pin className="text-muted-foreground size-3 shrink-0" />}
               {note.isFavorite && (
                 <Star className="size-3 shrink-0 fill-yellow-500 text-yellow-500" />
@@ -821,6 +970,9 @@ function NoteRow({
           <ContextMenuItem onSelect={() => onDuplicate(note)}>
             <Copy className="size-4" /> Duplicate
           </ContextMenuItem>
+          <ContextMenuItem onSelect={() => setMergeOpen(true)}>
+            <GitMerge className="size-4" /> Merge into\u2026
+          </ContextMenuItem>
           <ContextMenuSub>
             <ContextMenuSubTrigger>
               <LayersIcon className="size-4" /> More
@@ -831,6 +983,15 @@ function NoteRow({
               </ContextMenuItem>
               <ContextMenuItem onSelect={exportMarkdown}>
                 <Download className="size-4" /> Export as Markdown
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={copyMarkdown}>
+                <ClipboardCopy className="size-4" /> Copy as Markdown
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={exportPdf}>
+                <Printer className="size-4" /> Print / Save as PDF
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={saveAsTemplate}>
+                <BookmarkPlus className="size-4" /> Save as template\u2026
               </ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>
@@ -878,11 +1039,26 @@ function NoteRow({
         </ContextMenuContent>
       </ContextMenu>
       <ReorderGap target={dragId} kind="after" />
+      <NoteMergeDialog source={note} open={mergeOpen} onOpenChange={setMergeOpen} />
     </li>
   );
 }
 
 /* ------------------------------ Helpers --------------------------------- */
+
+const NOTE_COLOR_SWATCHES: Record<string, string> = {
+  amber: '#fde68a',
+  rose: '#fecdd3',
+  sky: '#bae6fd',
+  emerald: '#a7f3d0',
+  violet: '#ddd6fe',
+  slate: '#cbd5e1',
+};
+
+function noteColorSwatch(color: string | null | undefined): string | undefined {
+  if (!color) return undefined;
+  return NOTE_COLOR_SWATCHES[color];
+}
 
 function IconHeaderBtn({ children, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (

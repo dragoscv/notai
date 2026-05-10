@@ -13,6 +13,7 @@ import {
   Shield,
   Sparkles,
   CalendarDays,
+  Network,
   PanelLeftClose,
   PanelLeftOpen,
   X,
@@ -82,6 +83,8 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
   return (
     <aside
       aria-label="Primary navigation"
+      id="app-sidebar"
+      tabIndex={-1}
       data-focus-hide
       data-collapsed={collapsed}
       className={cn(
@@ -225,6 +228,13 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
           icon={<Sparkles />}
           label="Ask Notai"
           active={pathname === '/app/ask'}
+          collapsed={collapsed}
+        />
+        <NavItem
+          href="/app/graph"
+          icon={<Network />}
+          label="Graph"
+          active={pathname === '/app/graph'}
           collapsed={collapsed}
         />
         <NavItem

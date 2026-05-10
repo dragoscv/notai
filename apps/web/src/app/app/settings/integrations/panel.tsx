@@ -169,7 +169,43 @@ export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[
           ))}
         </ul>
       </section>
+
+      <BookmarkletSection baseUrl={baseUrl} />
     </div>
+  );
+}
+
+function BookmarkletSection({ baseUrl }: { baseUrl: string }) {
+  // The bookmarklet is a self-contained snippet a user drags onto
+  // their bookmarks bar. It opens a /clip page with the current
+  // page\u2019s url, title, and any selected text \u2014 no extension required.
+  const code = React.useMemo(() => {
+    const inner = `(function(){var u=encodeURIComponent(location.href);var t=encodeURIComponent(document.title||'');var s=encodeURIComponent((window.getSelection&&window.getSelection().toString())||'');window.open('${baseUrl}/clip?url='+u+'&title='+t+'&selection='+s,'_blank','noopener');})()`;
+    return `javascript:${inner}`;
+  }, [baseUrl]);
+  return (
+    <section className="space-y-3">
+      <h2 className="flex items-center gap-2 text-base font-semibold">
+        <Chrome className="size-4" /> Bookmarklet (one-click clip)
+      </h2>
+      <p className="text-muted-foreground text-sm">
+        Drag the button below onto your browser\u2019s bookmarks bar. Clicking it on any page
+        captures the URL, title, and any selected text into a fresh Notai note.
+      </p>
+      <div className="bg-card flex items-center justify-between gap-3 rounded-xl border p-4">
+        {/* Drag this anchor onto the bookmarks bar. */}
+        <a
+          href={code}
+          // Prevent Next from intercepting the javascript: href.
+          onClick={(e) => e.preventDefault()}
+          className="bg-primary text-primary-foreground inline-flex cursor-grab items-center gap-2 rounded-md px-3 py-2 text-sm font-medium shadow-sm active:cursor-grabbing"
+        >
+          <Chrome className="size-4" />
+          Clip to Notai
+        </a>
+        <span className="text-muted-foreground text-xs">Drag me \u2192 bookmarks bar</span>
+      </div>
+    </section>
   );
 }
 

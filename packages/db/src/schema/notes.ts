@@ -52,6 +52,12 @@ export const folders = pgTable(
     name: text('name').notNull().default('New folder'),
     icon: text('icon'),
     position: integer('position').notNull().default(0),
+    /**
+     * Tag IDs that should be auto-attached to any note created inside
+     * this folder. Empty array by default \u2014 callers explicitly opt in
+     * via the folder context menu.
+     */
+    defaultTagIds: jsonb('default_tag_ids').$type<string[]>().notNull().default([]),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -143,6 +149,14 @@ export const notes = pgTable(
     })('embedding'),
     embeddingModel: text('embedding_model'),
     embeddingUpdatedAt: timestamp('embedding_updated_at', { withTimezone: true }),
+
+    /**
+     * Public read-only share link. Null token means "not shared".
+     * `publicShareExpiresAt` is optional — null means never expires
+     * (until the user manually disables the link).
+     */
+    publicShareToken: text('public_share_token'),
+    publicShareExpiresAt: timestamp('public_share_expires_at', { withTimezone: true }),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -263,7 +277,8 @@ export const noteChatMessages = pgTable(
 
 /**
  * Comments on a note. `anchor` is jsonb so we don't fan out a column per
- * variant — `{kind:'note'}`, `{kind:'block', blockId}`, or
+ * variant — `{kind:'note'}`, `{kind:'block', blockId}`,
+ * `{kind:'element', elementId}` (Excalidraw-canonical surface), or
  * `{kind:'canvas', x, y}`. Replies are a single level deep: `parentId`
  * is null for top-level comments.
  */
@@ -287,6 +302,7 @@ export const noteComments = pgTable(
       .$type<
         | { kind: 'note' }
         | { kind: 'block'; blockId: string }
+        | { kind: 'element'; elementId: string }
         | { kind: 'canvas'; x: number; y: number }
       >()
       .notNull(),

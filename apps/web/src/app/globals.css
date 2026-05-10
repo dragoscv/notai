@@ -39,6 +39,50 @@
     :root[data-editor-width='wide'] {
         --editor-max-w: 64rem;
     }
+
+    /* Dyslexia-friendly body font. Toggled via Settings \u2192 Appearance.
+     * Avoids shipping a heavy webfont \u2014 we lean on Comic Sans / Verdana
+     * which OpenDyslexic studies show fall in the same readability tier. */
+    :root[data-dyslexia-font='on'] body,
+    :root[data-dyslexia-font='on'] .prose,
+    :root[data-dyslexia-font='on'] .editor-column {
+        font-family:
+            'Atkinson Hyperlegible',
+            'OpenDyslexic',
+            'Comic Sans MS',
+            Verdana,
+            ui-sans-serif,
+            system-ui,
+            sans-serif !important;
+        letter-spacing: 0.01em;
+    }
+
+    /* High-contrast preference. Cranks foreground/background contrast
+     * + thickens borders so low-vision users can use the app without
+     * forcing the OS into HC mode. */
+    :root[data-high-contrast='on'] {
+        --color-border: color-mix(in oklab, var(--color-foreground) 70%, transparent);
+        --color-ring: var(--color-foreground);
+    }
+    :root[data-high-contrast='on'] body {
+        color: var(--color-foreground);
+    }
+
+    /* Sidebar row density. Drives the row-height / padding multiplier
+     * applied via the `--sidebar-row-pad` custom property. */
+    :root[data-sidebar-density='compact'] {
+        --sidebar-row-pad-y: 0.125rem;
+        --sidebar-row-text: 0.8125rem;
+    }
+    :root[data-sidebar-density='cozy'],
+    :root:not([data-sidebar-density]) {
+        --sidebar-row-pad-y: 0.375rem;
+        --sidebar-row-text: 0.875rem;
+    }
+    :root[data-sidebar-density='spacious'] {
+        --sidebar-row-pad-y: 0.625rem;
+        --sidebar-row-text: 0.9375rem;
+    }
 }
 
 .editor-column {

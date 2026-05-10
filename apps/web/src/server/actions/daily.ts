@@ -133,6 +133,40 @@ function extractOpenTodos(doc: Y.Doc): string[] {
     }
   }
 
+  // Excalidraw scene: scan every text element for `[ ]` / `[x]` markers
+  // (with or without bullet/number prefixes). This is the canvas-first
+  // home for tasks now that Phase-3 made TipTap blocks read-only — a
+  // user creating tasks today writes them straight onto the scene as
+  // `[ ] do thing` lines, so rollover must understand that shape too.
+  try {
+    const excalidraw = doc.getMap('excalidraw');
+    const elements = excalidraw.get('elements') as
+      | Array<{ type?: string; text?: string; isDeleted?: boolean }>
+      | undefined;
+    if (Array.isArray(elements)) {
+      for (const el of elements) {
+        if (!el || el.isDeleted) continue;
+        if (el.type !== 'text') continue;
+        const raw = typeof el.text === 'string' ? el.text : '';
+        if (!raw) continue;
+        for (const line of raw.split(/\r?\n/)) {
+          const m = /^\s*(?:[-*•]|\d+[.)])?\s*\[(\s|x|X)\]\s*(.+?)\s*$/.exec(line);
+          if (!m) continue;
+          const checked = m[1] !== ' ';
+          if (checked) continue;
+          const text = (m[2] ?? '').trim();
+          if (!text) continue;
+          const norm = text.toLowerCase();
+          if (seen.has(norm)) continue;
+          seen.add(norm);
+          items.push(text);
+        }
+      }
+    }
+  } catch {
+    /* malformed scene — ignore, TipTap pass already collected what it could */
+  }
+
   return items.slice(0, 50);
 }
 

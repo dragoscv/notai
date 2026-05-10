@@ -90,6 +90,9 @@ export function AppShell({
       <a href="#app-main" className="a11y-skip-link">
         Skip to content
       </a>
+      <a href="#app-sidebar" className="a11y-skip-link" style={{ left: '10rem' }}>
+        Skip to sidebar
+      </a>
       <div
         className="bg-background flex h-dvh w-full overflow-hidden"
         onContextMenu={(e) => {

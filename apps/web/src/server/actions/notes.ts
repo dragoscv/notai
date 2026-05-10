@@ -236,6 +236,28 @@ export async function createNote(input: z.input<typeof createSchema> = {}) {
       position,
     })
     .returning();
+
+  // Auto-attach the folder's default tags, if any. Best-effort \u2014 tag
+  // failures don't block note creation.
+  if (note && data.folderId) {
+    try {
+      const [folder] = await db
+        .select({ defaultTagIds: folders.defaultTagIds })
+        .from(folders)
+        .where(and(eq(folders.id, data.folderId), eq(folders.ownerId, user.id)))
+        .limit(1);
+      const tagIds = folder?.defaultTagIds ?? [];
+      if (tagIds.length > 0) {
+        await db
+          .insert(noteTags)
+          .values(tagIds.map((tagId) => ({ noteId: note.id, tagId })))
+          .onConflictDoNothing();
+      }
+    } catch {
+      /* ignore \u2014 tag attach is best-effort */
+    }
+  }
+
   revalidatePath('/app');
   return note;
 }

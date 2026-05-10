@@ -129,6 +129,12 @@ export function peekBlockFragment(doc: Y.Doc, blockId: string): Y.XmlFragment | 
  * has blocks is a no-op. Safe to call from any client; if multiple
  * clients race, Yjs deduplicates the array push and at most one block
  * survives (we re-check length inside the transaction).
+ *
+ * Phase-1 of the TipTap removal: brand-new notes (no legacy fragment,
+ * no existing blocks) get ZERO TipTap text blocks — they open as a pure
+ * Excalidraw canvas, which is the new canonical surface. Legacy notes
+ * keep their content via the `__legacy__` block sentinel so nothing is
+ * lost while migration tooling is built out.
  */
 export function migrateLegacyDoc(doc: Y.Doc): void {
   const blocks = getBlocksArray(doc);
@@ -138,65 +144,23 @@ export function migrateLegacyDoc(doc: Y.Doc): void {
   const legacyAlt = doc.getXmlFragment(LEGACY_FRAGMENT_KEY_ALT);
   const hasLegacyContent = legacy.length > 0 || legacyAlt.length > 0;
 
+  if (!hasLegacyContent) return; // Pure-Excalidraw note: don't seed a block.
+
   doc.transact(() => {
     if (blocks.length > 0) return;
-    if (hasLegacyContent) {
-      blocks.push([
-        {
-          id: LEGACY_BLOCK_ID,
-          x: DEFAULT_BLOCK_X,
-          y: DEFAULT_BLOCK_Y,
-          width: DEFAULT_BLOCK_WIDTH,
-        },
-      ]);
-    } else {
-      const id = crypto.randomUUID();
-      const map = doc.getMap<Y.XmlFragment>(BLOCKS_CONTENT_MAP);
-      map.set(id, new Y.XmlFragment());
-      blocks.push([{ id, x: DEFAULT_BLOCK_X, y: DEFAULT_BLOCK_Y, width: DEFAULT_BLOCK_WIDTH }]);
-    }
+    blocks.push([
+      {
+        id: LEGACY_BLOCK_ID,
+        x: DEFAULT_BLOCK_X,
+        y: DEFAULT_BLOCK_Y,
+        width: DEFAULT_BLOCK_WIDTH,
+      },
+    ]);
   }, 'migrate-canvas-scene');
 }
 
-export function addBlock(
-  doc: Y.Doc,
-  partial: { x: number; y: number; width?: number },
-): SceneBlock {
-  const id = crypto.randomUUID();
-  const block: SceneBlock = {
-    id,
-    x: partial.x,
-    y: partial.y,
-    width: partial.width ?? DEFAULT_BLOCK_WIDTH,
-  };
-  doc.transact(() => {
-    const map = doc.getMap<Y.XmlFragment>(BLOCKS_CONTENT_MAP);
-    map.set(id, new Y.XmlFragment());
-    getBlocksArray(doc).push([block]);
-  }, 'add-block');
-  return block;
-}
-
-export function updateBlockAt(doc: Y.Doc, index: number, next: SceneBlock): void {
-  const arr = getBlocksArray(doc);
-  if (index < 0 || index >= arr.length) return;
-  doc.transact(() => {
-    arr.delete(index, 1);
-    arr.insert(index, [next]);
-  }, 'update-block');
-}
-
-export function deleteBlockAt(doc: Y.Doc, index: number): void {
-  const arr = getBlocksArray(doc);
-  if (index < 0 || index >= arr.length) return;
-  const block = arr.get(index);
-  doc.transact(() => {
-    arr.delete(index, 1);
-    if (block && block.id !== LEGACY_BLOCK_ID) {
-      doc.getMap(BLOCKS_CONTENT_MAP).delete(block.id);
-    }
-  }, 'delete-block');
-}
+// Phase-3 step-4 retired the block-layer writers. The remaining
+// public surface is migration-only: `migrateLegacyDoc`, the read-side\n// helpers (peekBlocksArray, peekBlockFragment, getBlocksArray,\n// getBlockFragment) used by `migrate-blocks-to-excalidraw.ts`, and\n// `extractAllPlaintext` for AI/embedding pipelines.
 
 /** Walk every block fragment (legacy + new) and return concatenated text. */
 export function extractAllPlaintext(doc: Y.Doc): string {

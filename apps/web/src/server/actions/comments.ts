@@ -109,6 +109,7 @@ export interface CommentRow {
   anchor:
     | { kind: 'note' }
     | { kind: 'block'; blockId: string }
+    | { kind: 'element'; elementId: string }
     | { kind: 'canvas'; x: number; y: number };
   resolvedAt: string | null;
   createdAt: string;
@@ -181,6 +182,7 @@ export async function listComments(noteId: string): Promise<CommentRow[]> {
 const anchorSchema = z.union([
   z.object({ kind: z.literal('note') }),
   z.object({ kind: z.literal('block'), blockId: z.string().min(1) }),
+  z.object({ kind: z.literal('element'), elementId: z.string().min(1) }),
   z.object({
     kind: z.literal('canvas'),
     x: z.number().finite(),
@@ -389,4 +391,52 @@ export async function deleteComment(input: z.input<typeof idSchema>) {
     throw new Error('Not allowed');
   }
   await db.delete(noteComments).where(eq(noteComments.id, id));
+}
+
+const rewireSchema = z.object({
+  noteId: z.string().min(1),
+  // Map of legacy `block.blockId` → new Excalidraw `elementId`.
+  mapping: z.record(z.string().min(1), z.string().min(1)),
+});
+
+/**
+ * After a client-side TipTap-block → Excalidraw migration, rewrite any
+ * comment anchored to a migrated block so it points at the new
+ * Excalidraw element. Idempotent: comments not in the mapping are left
+ * alone, and re-running with the same mapping is a no-op (the second
+ * time around the comment's anchor.kind is already 'element').
+ *
+ * Authorization: only the note owner OR a collaborator can rewire,
+ * matching the rest of the comments surface. We don't allow arbitrary
+ * users to relabel comments by ID, hence the `requireNoteAccess`
+ * gate plus the explicit noteId scope on every UPDATE.
+ */
+export async function rewireCommentsAfterMigration(
+  input: z.input<typeof rewireSchema>,
+): Promise<{ updated: number }> {
+  const me = await requireUser();
+  const { noteId, mapping } = rewireSchema.parse(input);
+  await requireNoteAccess(noteId, me.id);
+
+  const entries = Object.entries(mapping);
+  if (entries.length === 0) return { updated: 0 };
+
+  const rows = await db
+    .select({ id: noteComments.id, anchor: noteComments.anchor })
+    .from(noteComments)
+    .where(eq(noteComments.noteId, noteId));
+
+  let updated = 0;
+  for (const r of rows) {
+    const a = r.anchor as CommentRow['anchor'] | null;
+    if (!a || a.kind !== 'block') continue;
+    const elementId = mapping[a.blockId];
+    if (!elementId) continue;
+    await db
+      .update(noteComments)
+      .set({ anchor: { kind: 'element', elementId } })
+      .where(eq(noteComments.id, r.id));
+    updated += 1;
+  }
+  return { updated };
 }

@@ -71,6 +71,20 @@
       "when": 1779200000000,
       "tag": "0009_dashboard_views",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779300000000,
+      "tag": "0010_public_share",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779400000000,
+      "tag": "0011_folder_default_tags",
+      "breakpoints": true
     }
   ]
 }

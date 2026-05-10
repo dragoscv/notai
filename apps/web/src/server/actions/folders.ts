@@ -84,6 +84,57 @@ export async function renameFolder(input: z.input<typeof renameSchema>) {
   revalidatePath('/app');
 }
 
+const setFolderIconSchema = z.object({
+  id: z.string(),
+  /** Single emoji or short string. `null` clears the icon. */
+  icon: z.string().trim().max(8).nullable(),
+});
+
+/**
+ * Set or clear a folder's icon. We accept a free-form short string so
+ * the picker can drop any emoji without a fixed allow-list.
+ */
+export async function setFolderIcon(input: z.input<typeof setFolderIconSchema>) {
+  const user = await requireUser();
+  const { id, icon } = setFolderIconSchema.parse(input);
+  await db
+    .update(folders)
+    .set({ icon: icon ?? null, updatedAt: new Date() })
+    .where(and(eq(folders.id, id), eq(folders.ownerId, user.id)));
+  revalidatePath('/app');
+}
+
+const setDefaultTagsSchema = z.object({
+  id: z.string().min(1),
+  tagIds: z.array(z.string().min(1)).max(20),
+});
+
+/**
+ * Replace the folder's default-tag list. Tags are validated via the
+ * presence of their ids; ownership of the tags themselves is enforced
+ * by the existing tags table queries elsewhere.
+ */
+export async function setFolderDefaultTags(input: z.input<typeof setDefaultTagsSchema>) {
+  const user = await requireUser();
+  const { id, tagIds } = setDefaultTagsSchema.parse(input);
+  await db
+    .update(folders)
+    .set({ defaultTagIds: tagIds, updatedAt: new Date() })
+    .where(and(eq(folders.id, id), eq(folders.ownerId, user.id)));
+  revalidatePath('/app');
+}
+
+/** Read the current default-tag list for a folder. */
+export async function getFolderDefaultTags(id: string): Promise<string[]> {
+  const user = await requireUser();
+  const [row] = await db
+    .select({ defaultTagIds: folders.defaultTagIds })
+    .from(folders)
+    .where(and(eq(folders.id, id), eq(folders.ownerId, user.id)))
+    .limit(1);
+  return row?.defaultTagIds ?? [];
+}
+
 /**
  * Delete a folder. Child folders cascade (ON DELETE CASCADE) but notes
  * inside cascade to NULL — they survive and move to the root.

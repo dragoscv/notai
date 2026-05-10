@@ -1,11 +1,13 @@
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Sparkles, Send, Loader2, FileText, Square, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@notai/ui/components/button';
 import { Textarea } from '@notai/ui/components/textarea';
 import { cn } from '@notai/lib/utils';
+import { createNote } from '@/server/actions/notes';
 
 interface Hit {
   id: string;
@@ -54,6 +56,17 @@ export function AskClient() {
     async (raw: string) => {
       const q = raw.trim();
       if (!q || busy) return;
+      // Persist to a small ring buffer of recent questions so the
+      // EmptyState can offer them again next session. Capped at 10.
+      try {
+        const HISTORY_KEY = 'notai:ask:history';
+        const raw = window.localStorage.getItem(HISTORY_KEY);
+        const prior = raw ? (JSON.parse(raw) as string[]) : [];
+        const next = [q, ...prior.filter((x) => x !== q)].slice(0, 10);
+        window.localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
       setBusy(true);
       setQuestion('');
       const turnId = crypto.randomUUID();
@@ -213,6 +226,15 @@ export function AskClient() {
 }
 
 function EmptyState({ onPick }: { onPick: (q: string) => void }) {
+  const [history, setHistory] = React.useState<string[]>([]);
+  React.useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('notai:ask:history');
+      if (raw) setHistory(JSON.parse(raw) as string[]);
+    } catch {
+      /* ignore */
+    }
+  }, []);
   return (
     <div className="flex flex-col items-center justify-center pt-16 text-center">
       <div className="bg-primary/10 text-primary mb-4 grid size-12 place-items-center rounded-2xl">
@@ -235,6 +257,26 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
           </button>
         ))}
       </div>
+      {history.length > 0 && (
+        <div className="mt-8 w-full max-w-lg text-left">
+          <div className="text-muted-foreground mb-2 text-[11px] uppercase tracking-wide">
+            Recent questions
+          </div>
+          <ul className="space-y-1">
+            {history.map((q, i) => (
+              <li key={`${i}-${q}`}>
+                <button
+                  type="button"
+                  onClick={() => onPick(q)}
+                  className="hover:bg-muted w-full truncate rounded-lg px-2 py-1.5 text-left text-sm"
+                >
+                  {q}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -268,7 +310,8 @@ function Turn({ turn }: { turn: AskTurn }) {
             </p>
           )}
           {turn.status === 'done' && turn.answer && (
-            <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex justify-end gap-2">
+              <SaveAnswerButton question={turn.question} answer={turn.answer} hits={turn.hits} />
               <CopyButton text={stripCitations(turn.answer)} />
             </div>
           )}
@@ -280,6 +323,64 @@ function Turn({ turn }: { turn: AskTurn }) {
 
 function stripCitations(text: string): string {
   return text.replace(/\s*\[#\d+\]/g, '').trim();
+}
+
+function SaveAnswerButton({
+  question,
+  answer,
+  hits,
+}: {
+  question: string;
+  answer: string;
+  hits: Hit[];
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = React.useState(false);
+  const onSave = async () => {
+    if (busy) return;
+    setBusy(true);
+    const t = toast.loading('Saving answer\u2026');
+    try {
+      const note = await createNote({
+        title: question.trim().slice(0, 80) || 'Saved answer',
+        icon: '\u2728',
+      });
+      if (!note) throw new Error('Failed to create note');
+      const sourcesBlock =
+        hits.length === 0
+          ? ''
+          : '\n\n## Sources\n\n' +
+            hits
+              .map((h, i) => `[#${i + 1}] ${h.icon ?? '\uD83D\uDCDD'} ${h.title || 'Untitled'}`)
+              .join('\n');
+      const body = `# ${question.trim()}\n\n${answer.trim()}${sourcesBlock}`;
+      try {
+        window.localStorage.setItem(
+          'notai:pending-append',
+          JSON.stringify({ noteId: note.id, text: body, ts: Date.now() }),
+        );
+      } catch {
+        /* localStorage off \u2014 the note still opens */
+      }
+      toast.success('Answer saved', { id: t });
+      router.push(`/app/n/${note.id}`);
+    } catch (err) {
+      toast.error((err as Error).message, { id: t });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={() => void onSave()}
+      disabled={busy}
+      className="hover:bg-muted inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs disabled:opacity-60"
+    >
+      {busy ? <Loader2 className="size-3.5 animate-spin" /> : <FileText className="size-3.5" />}
+      Save to a new note
+    </button>
+  );
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -329,31 +430,76 @@ function Citations({ hits }: { hits: Hit[] }) {
 }
 
 /**
- * Render the assistant text and turn `[#n]` markers into clickable links
- * to the matching note. Splits on the citation regex so we don't have to
- * pull in a markdown renderer for this one feature.
+ * Render the assistant text paragraph-by-paragraph. Each paragraph
+ * gets a small chip-row above it listing the unique sources cited
+ * inside it (deduped, in citation order); inside the paragraph the
+ * inline `[#n]` chips remain. Source attribution is per-paragraph so
+ * the reader can scan which note backs each claim without leaving the
+ * answer.
  */
 function AnswerWithCitations({ text, hits }: { text: string; hits: Hit[] }) {
-  const parts = text.split(/(\[#\d+\])/g);
+  const paragraphs = text.split(/\n\s*\n+/);
   return (
-    <p className="whitespace-pre-wrap">
-      {parts.map((p, i) => {
-        const m = /^\[#(\d+)\]$/.exec(p);
-        if (!m) return <React.Fragment key={i}>{p}</React.Fragment>;
-        const n = Number(m[1]);
-        const hit = hits[n - 1];
-        if (!hit) return <React.Fragment key={i}>{p}</React.Fragment>;
+    <div className="space-y-3">
+      {paragraphs.map((para, pi) => {
+        const cited = uniqueCitedHits(para, hits);
+        const parts = para.split(/(\[#\d+\])/g);
         return (
-          <Link
-            key={i}
-            href={`/app/n/${hit.id}`}
-            title={hit.title}
-            className="bg-primary/15 text-primary hover:bg-primary/25 mx-0.5 inline-flex items-center rounded px-1 py-0 align-baseline text-[11px] font-medium"
-          >
-            #{n}
-          </Link>
+          <div key={pi}>
+            {cited.length > 0 && (
+              <div className="text-muted-foreground mb-1 flex flex-wrap items-center gap-1 text-[11px]">
+                <span>Sources:</span>
+                {cited.map((c) => (
+                  <Link
+                    key={c.n}
+                    href={`/app/n/${c.hit.id}`}
+                    title={c.hit.snippet}
+                    className="bg-muted hover:bg-primary/15 hover:text-primary inline-flex items-center gap-1 rounded-full px-1.5 py-0.5"
+                  >
+                    <span className="font-mono">#{c.n}</span>
+                    <span className="max-w-[14ch] truncate">{c.hit.title || 'Untitled'}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+            <p className="whitespace-pre-wrap">
+              {parts.map((p, i) => {
+                const m = /^\[#(\d+)\]$/.exec(p);
+                if (!m) return <React.Fragment key={i}>{p}</React.Fragment>;
+                const n = Number(m[1]);
+                const hit = hits[n - 1];
+                if (!hit) return <React.Fragment key={i}>{p}</React.Fragment>;
+                return (
+                  <Link
+                    key={i}
+                    href={`/app/n/${hit.id}`}
+                    title={hit.title}
+                    className="bg-primary/15 text-primary hover:bg-primary/25 mx-0.5 inline-flex items-center rounded px-1 py-0 align-baseline text-[11px] font-medium"
+                  >
+                    #{n}
+                  </Link>
+                );
+              })}
+            </p>
+          </div>
         );
       })}
-    </p>
+    </div>
   );
+}
+
+function uniqueCitedHits(paragraph: string, hits: Hit[]): Array<{ n: number; hit: Hit }> {
+  const seen = new Set<number>();
+  const out: Array<{ n: number; hit: Hit }> = [];
+  const re = /\[#(\d+)\]/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(paragraph)) != null) {
+    const n = Number(m[1]);
+    if (seen.has(n)) continue;
+    const hit = hits[n - 1];
+    if (!hit) continue;
+    seen.add(n);
+    out.push({ n, hit });
+  }
+  return out;
 }

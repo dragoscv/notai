@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
-import { db, noteVersions, notes, noteCollaborators, eq, and, or, desc } from '@notai/db';
+import { db, noteVersions, notes, noteCollaborators, eq, and, or, desc, gte } from '@notai/db';
 
 async function requireUserAccess(noteId: string) {
   const session = await auth();
@@ -78,4 +78,36 @@ export async function deleteVersion(input: { noteId: string; versionId: string }
     .delete(noteVersions)
     .where(and(eq(noteVersions.id, input.versionId), eq(noteVersions.noteId, input.noteId)));
   revalidatePath(`/app/n/${input.noteId}`);
+}
+
+/**
+ * Lazy hourly snapshot guarantee. The realtime server only snapshots
+ * when there's edit traffic; if a user opens History after a quiet
+ * day they'd see nothing recent. This grabs the current note state
+ * and records a snapshot when the latest one is missing or > 1 hour
+ * old. Safe to call whenever the History dialog opens.
+ */
+export async function ensureRecentSnapshot(noteId: string) {
+  await requireUserAccess(idSchema.parse(noteId));
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const [recent] = await db
+    .select({ id: noteVersions.id })
+    .from(noteVersions)
+    .where(and(eq(noteVersions.noteId, noteId), gte(noteVersions.createdAt, oneHourAgo)))
+    .limit(1);
+  if (recent) return { snapshotted: false };
+  const [n] = await db
+    .select({ yjsState: notes.yjsState, plaintext: notes.plaintext })
+    .from(notes)
+    .where(eq(notes.id, noteId))
+    .limit(1);
+  if (!n || !n.yjsState) return { snapshotted: false };
+  await db.insert(noteVersions).values({
+    noteId,
+    plaintext: (n.plaintext ?? '').slice(0, 100_000),
+    yjsState: n.yjsState,
+    sizeBytes: n.yjsState.byteLength,
+    label: 'auto',
+  });
+  return { snapshotted: true };
 }

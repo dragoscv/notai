@@ -5,6 +5,16 @@ import { listTags } from '@/server/actions/tags';
 import { listDashboardViews } from '@/server/actions/views';
 import { Button } from '@notai/ui/components/button';
 import { DashboardView } from '@/components/dashboard/dashboard-view';
+import { MorningBriefCard } from '@/components/dashboard/morning-brief-card';
+import { ThrowbackCard } from '@/components/dashboard/throwback-card';
+import { StaleTodosCard } from '@/components/dashboard/stale-todos-card';
+import { StreakBadge } from '@/components/dashboard/streak-badge';
+import { DailyPromptCard } from '@/components/dashboard/daily-prompt-card';
+import { DailyRecapCard } from '@/components/dashboard/daily-recap-card';
+import { SentimentHeatmap } from '@/components/dashboard/sentiment-heatmap';
+import { OpenLoopsCard } from '@/components/dashboard/open-loops-card';
+import { AutoArchiveNudge } from '@/components/dashboard/auto-archive-nudge';
+import { TrashPurgeNudge } from '@/components/dashboard/trash-purge-nudge';
 import { SidebarToggle } from '@/components/layout/sidebar-toggle';
 import { redirect } from 'next/navigation';
 
@@ -104,7 +114,41 @@ export default async function AppHome() {
             <EmptyState />
           </div>
         ) : (
-          <DashboardView views={views} notes={notes} folders={folders} tags={tags} />
+          <div className="flex h-full flex-col overflow-hidden">
+            <div className="px-4 pt-4 md:px-6">
+              <div className="mb-2 flex justify-end">
+                <StreakBadge />
+              </div>
+              <MorningBriefCard />
+            </div>
+            <div className="px-4 md:px-6">
+              <DailyPromptCard />
+            </div>
+            <div className="px-4 md:px-6">
+              <DailyRecapCard />
+            </div>
+            <div className="px-4 md:px-6">
+              <SentimentHeatmap />
+            </div>
+            <div className="px-4 md:px-6">
+              <OpenLoopsCard />
+            </div>
+            <div className="px-4 md:px-6">
+              <AutoArchiveNudge />
+            </div>
+            <div className="px-4 md:px-6">
+              <TrashPurgeNudge />
+            </div>
+            <div className="px-4 md:px-6">
+              <ThrowbackCard />
+            </div>
+            <div className="px-4 md:px-6">
+              <StaleTodosCard />
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <DashboardView views={views} notes={notes} folders={folders} tags={tags} />
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { X, Pin } from 'lucide-react';
+import { X, Pin, ExternalLink } from 'lucide-react';
 import { CanvasNote, useNoteDoc, useSharedTitle, useRegisterOpenSticky } from '@notai/editor';
 import { Button } from '@notai/ui/components/button';
 import { cn } from '@notai/lib/utils';
@@ -87,6 +87,27 @@ export function StickyWindow({ note, token, realtimeUrl, user }: StickyWindowPro
         <div data-tauri-drag-region="false" className="flex items-center">
           <SurfaceSwitcher value={surface} onChange={setSurface} />
         </div>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          className="size-6 hover:bg-black/10"
+          onClick={() => {
+            // Stickies are already full notes — "extract" really
+            // means "open this same note in the main editor". On
+            // desktop we hand off to the Tauri host so the main
+            // window focuses; in the browser a new tab is fine.
+            if (isTauri()) {
+              invoke('open_in_main', { noteId: note.id }).catch(() => {
+                window.open(`/app/n/${note.id}`, '_blank', 'noopener');
+              });
+            } else {
+              window.open(`/app/n/${note.id}`, '_blank', 'noopener');
+            }
+          }}
+          title="Open in main app"
+        >
+          <ExternalLink className="size-3" />
+        </Button>
         <Button
           size="icon-sm"
           variant="ghost"

@@ -42,6 +42,16 @@ const GROUPS: Group[] = [
       { keys: [MOD, 'Shift', 'Z'], label: 'Redo' },
     ],
   },
+  {
+    title: 'Canvas',
+    items: [
+      { keys: ['F'], label: 'Toggle focus mode (dim non-selected)' },
+      { keys: ['Esc'], label: 'Exit focus mode' },
+      { keys: [MOD, 'Shift', '↑'], label: 'Move bullet/todo line up' },
+      { keys: [MOD, 'Shift', '↓'], label: 'Move bullet/todo line down' },
+      { keys: ['Hold', '🎙'], label: 'Hold the mic FAB to record voice onto canvas' },
+    ],
+  },
 ];
 
 export function ShortcutsCheatsheet() {

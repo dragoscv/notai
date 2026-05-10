@@ -145,5 +145,12 @@
       },
       "detail": "Show pending production migrations and connection target without changing anything. No backup, no apply."
     }
+  ],
+  "statusbar.list.hiddenTasks": [
+    "db: migrate (local)",
+    "db: migrate (local, dry run)",
+    "db: migrate (production)",
+    "db: migrate (production, dry run)",
+    "docker: up"
   ]
 }

@@ -653,6 +653,35 @@
     }
     .ProseMirror .tiptap-math__output { display: inline-block; }
 
+    /* ───────────────────────── Calc (live arithmetic) ───────────────────────── */
+    /* Apple Math Notes equivalent. Type `5 * 12 = ` and a widget appears. */
+    .ProseMirror .tiptap-calc {
+        @apply ml-1 inline-flex items-center rounded-md px-1.5 font-mono text-[0.92em] tabular-nums;
+        cursor: copy;
+        user-select: none;
+        transition:
+            background-color 120ms ease,
+            color 120ms ease,
+            transform 120ms ease;
+    }
+    .ProseMirror .tiptap-calc--query {
+        background: color-mix(in oklab, var(--primary) 12%, transparent);
+        color: color-mix(in oklab, var(--primary) 80%, var(--foreground));
+    }
+    .ProseMirror .tiptap-calc--assign {
+        background: color-mix(in oklab, var(--muted-foreground) 14%, transparent);
+        color: var(--muted-foreground);
+    }
+    .ProseMirror .tiptap-calc:hover {
+        filter: brightness(1.06);
+        transform: translateY(-0.5px);
+    }
+    .ProseMirror .tiptap-calc--copied {
+        background: color-mix(in oklab, var(--primary) 28%, transparent);
+        color: var(--primary-foreground, var(--foreground));
+        transform: scale(1.04);
+    }
+
     /* ───────────────────────── Mermaid ───────────────────────── */
     .ProseMirror .tiptap-mermaid {
         @apply my-3 overflow-x-auto rounded-md border border-border bg-card/30 p-3;

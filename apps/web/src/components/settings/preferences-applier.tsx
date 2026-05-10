@@ -17,7 +17,18 @@ export function PreferencesApplier() {
     const html = document.documentElement;
     html.dataset.editorWidth = prefs.editorWidth;
     html.spellcheck = prefs.spellcheck;
-  }, [prefs.editorWidth, prefs.spellcheck]);
+    if (prefs.dyslexiaFont) html.dataset.dyslexiaFont = 'on';
+    else delete html.dataset.dyslexiaFont;
+    if (prefs.highContrast) html.dataset.highContrast = 'on';
+    else delete html.dataset.highContrast;
+    html.dataset.sidebarDensity = prefs.sidebarDensity;
+  }, [
+    prefs.editorWidth,
+    prefs.spellcheck,
+    prefs.dyslexiaFont,
+    prefs.highContrast,
+    prefs.sidebarDensity,
+  ]);
 
   return null;
 }

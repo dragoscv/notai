@@ -8,13 +8,14 @@ import {
   WifiOff,
   MessageSquare,
   MessageCircle,
+  Mic,
 } from 'lucide-react';
-import type { Editor } from '@tiptap/react';
 import {
   CanvasNote,
-  Toolbar,
   useNoteDoc,
   useSharedTitle,
+  migrateBlocksToExcalidraw,
+  appendTextToScene,
   type CanvasNoteHandle,
 } from '@notai/editor';
 import { Button } from '@notai/ui/components/button';
@@ -29,6 +30,7 @@ import { Spinner } from '@notai/ui/components/spinner';
 import { cn, getInitials } from '@notai/lib/utils';
 import type { Note } from '@notai/db/schema';
 import { updateNote, deleteNote } from '@/server/actions/notes';
+import { suggestEmojiForTitle } from '@/server/actions/suggest-emoji';
 import { toast } from 'sonner';
 import { SurfaceSwitcher, useSurface } from './surface-switcher';
 import { OpenStickiesButton } from './open-stickies-button';
@@ -36,14 +38,35 @@ import { isTauri, invoke } from '@/lib/tauri';
 import { ShareDialog } from './share-dialog';
 import { AssetUploader } from './asset-uploader';
 import { BacklinksPanel } from './backlinks-panel';
+import { RelatedNotesRail } from './related-notes-rail';
 import { RolloverBanner } from './rollover-banner';
+import { CanvasMigrationBanner } from './canvas-migration-banner';
 import { TagChips } from './tag-chips';
+import { NoteStats } from './note-stats';
+import { ReadingMode } from './reading-mode';
+import { WordCountChip } from './word-count-chip';
+import { NoteColorPicker } from './note-color-picker';
+import { SmartLinkChip } from './smart-link-chip';
+import { useHotkey } from '@notai/ui/hooks/use-hotkey';
+import { NoteLockOverlay } from './note-lock-overlay';
+import { CanvasQuickMath } from './canvas-quick-math';
+import { CanvasSnippets } from './canvas-snippets';
+import { StickyFromSelection } from './sticky-from-selection';
 import { VoiceRecorder } from './voice-recorder';
+import { VoiceModeButton } from './voice-mode-button';
+import { HoldToRecord } from './canvas-hold-to-record';
+import { FocusModeOverlay } from './focus-mode-overlay';
+import { NoteSearch } from './note-search';
+import { BulletReorder } from './bullet-reorder';
 import { runSlashAi } from '@/lib/slash-ai-client';
 import { NoteChatPanel } from './note-chat-panel';
 import { NoteCommentsPanel } from './note-comments-panel';
+import { MeetingModePanel } from './meeting-mode-panel';
 import type { CommentRow } from '@/server/actions/comments';
+import { rewireCommentsAfterMigration } from '@/server/actions/comments';
+import { summariseUrl, outlinePastedText } from '@/server/actions/smart-paste';
 import { NoteAiMenu } from './note-ai-menu';
+import { ApplyTemplateButton } from './apply-template-button';
 import { VersionHistory } from './version-history';
 import { searchBacklinkCandidates, createNoteFromBacklink } from '@/server/actions/backlinks';
 import { FocusMode } from './focus-mode';
@@ -81,7 +104,6 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
   const router = useRouter();
 
   const [title, setTitle] = useSharedTitle(doc, note.title);
-  const [editor, setEditor] = React.useState<Editor | null>(null);
   const canvasRef = React.useRef<CanvasNoteHandle>(null);
   const [surface, setSurface] = useSurface();
 
@@ -119,25 +141,30 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
     setChatOpen(false);
   }, []);
 
-  // Subscribe to focused-block editor changes so the toolbar always targets
-  // the active text block on the canvas. Depends on `synced` because we
-  // remount CanvasNote when sync arrives (see <CanvasNote key=... /> below);
-  // without re-running this effect on the new handle the toolbar would
-  // stay frozen on the pre-sync canvas instance.
+  // Meeting Mode panel: ambient capture + AI enhancement (Granola style).
+  // Mutually exclusive with chat/comments at the right rail.
+  const meetingStorageKey = `notai:meeting-panel-open:${note.id}`;
+  const [meetingOpen, setMeetingOpen] = React.useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(meetingStorageKey) === '1';
+  });
   React.useEffect(() => {
-    const handle = canvasRef.current;
-    if (!handle) return;
-    return handle.subscribeFocused(setEditor);
-  }, [doc, synced]);
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(meetingStorageKey, meetingOpen ? '1' : '0');
+  }, [meetingStorageKey, meetingOpen]);
+
+  // Phase-3 step-3 retired the TipTap focus subscription. The toolbar
+  // (and the focused-editor state that fed it) is gone; the canvas is
+  // the only authoring surface.
 
   const insertContent = React.useCallback((md: string | Record<string, unknown>) => {
     const handle = canvasRef.current;
     if (!handle) return;
-    if (!handle.insertContent(md)) {
-      handle.addTextBlock();
-      // After block creation, retry on next tick once it has focus.
-      setTimeout(() => handle.insertContent(md), 50);
-    }
+    // Phase-3 step-2: insertContent now drops content onto the
+    // Excalidraw scene as a text element. No fallback path needed —
+    // the handle returns false only when the canvas API isn't ready
+    // yet, which the caller treats as a no-op.
+    handle.insertContent(md);
   }, []);
 
   React.useEffect(() => {
@@ -149,6 +176,217 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
     }, 600);
     return () => clearTimeout(h);
   }, [title, note.id, note.title]);
+
+  // Auto-suggest an emoji icon when the user has typed a real title and
+  // hasn't picked an icon yet. One AI call per unique title; cached
+  // locally so re-typing the same title doesn't re-fire.
+  const emojiTriedRef = React.useRef<Set<string>>(new Set());
+  React.useEffect(() => {
+    if (note.icon) return; // Respect any user-picked icon.
+    const t = title.trim();
+    if (t.length < 4 || t.toLowerCase() === 'untitled') return;
+    if (emojiTriedRef.current.has(t)) return;
+    const h = setTimeout(() => {
+      emojiTriedRef.current.add(t);
+      suggestEmojiForTitle(t)
+        .then((emoji) => {
+          if (!emoji) return;
+          void updateNote({ id: note.id, icon: emoji }).catch(() => undefined);
+        })
+        .catch(() => undefined);
+    }, 2500);
+    return () => clearTimeout(h);
+  }, [title, note.id, note.icon]);
+
+  const togglePin = React.useCallback(async () => {
+    await updateNote({ id: note.id, isPinned: !note.isPinned });
+    toast.success(note.isPinned ? 'Unpinned' : 'Pinned');
+  }, [note.id, note.isPinned]);
+  useHotkey(
+    'mod+shift+p',
+    () => {
+      void togglePin();
+    },
+    { id: 'pin-toggle' },
+  );
+
+  // Quick-Capture handoff: if the user clicked "Append to <this note>"
+  // in the global capture overlay we stashed the payload in localStorage
+  // and routed here. Replay it onto the live Excalidraw scene once the
+  // doc has synced and the canvas API is ready, then clear the key.
+  React.useEffect(() => {
+    if (!synced) return;
+    let cancelled = false;
+    const tick = () => {
+      if (cancelled) return;
+      const handle = canvasRef.current;
+      const api = handle?.getExcalidrawApi();
+      if (!api) {
+        window.setTimeout(tick, 80);
+        return;
+      }
+      let raw: string | null = null;
+      try {
+        raw = window.localStorage.getItem('notai:pending-append');
+      } catch {
+        return;
+      }
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as { noteId?: string; text?: string; ts?: number };
+          if (parsed.noteId === note.id && parsed.text) {
+            // Stale beyond 5 minutes: discard rather than surprising the user.
+            if (typeof parsed.ts !== 'number' || Date.now() - parsed.ts <= 5 * 60 * 1000) {
+              appendTextToScene(api, parsed.text, { focus: true });
+              toast.success('Appended captured note.');
+            }
+            window.localStorage.removeItem('notai:pending-append');
+          }
+        } catch {
+          try {
+            window.localStorage.removeItem('notai:pending-append');
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+
+      // Drain the multi-target batch list. Each note picks up only its
+      // own slice; the rest stays for whichever note we visit next.
+      try {
+        const listRaw = window.localStorage.getItem('notai:pending-appends');
+        if (listRaw) {
+          const list = JSON.parse(listRaw) as Array<{
+            noteId?: string;
+            text?: string;
+            ts?: number;
+          }>;
+          if (Array.isArray(list)) {
+            const mine = list.filter(
+              (it) =>
+                it &&
+                it.noteId === note.id &&
+                typeof it.text === 'string' &&
+                it.text.length > 0 &&
+                (typeof it.ts !== 'number' || Date.now() - it.ts <= 5 * 60 * 1000),
+            );
+            const rest = list.filter((it) => it && it.noteId !== note.id);
+            if (mine.length > 0) {
+              for (const it of mine) {
+                if (it.text) appendTextToScene(api, it.text, { focus: false });
+              }
+              toast.success(
+                mine.length === 1
+                  ? 'Appended 1 captured note.'
+                  : `Appended ${mine.length} captured notes.`,
+              );
+            }
+            if (rest.length === 0) {
+              window.localStorage.removeItem('notai:pending-appends');
+            } else {
+              window.localStorage.setItem('notai:pending-appends', JSON.stringify(rest));
+            }
+          }
+        }
+      } catch {
+        try {
+          window.localStorage.removeItem('notai:pending-appends');
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+    tick();
+    return () => {
+      cancelled = true;
+    };
+  }, [synced, note.id]);
+
+  // Smart paste: when a single URL is pasted onto the canvas, fetch +
+  // summarise it server-side and drop a captioned text card. Drops a
+  // placeholder element first so the user gets immediate feedback,
+  // then swaps the text once the summary lands.
+  const handleUrlPaste = React.useCallback(async (url: string) => {
+    const api = canvasRef.current?.getExcalidrawApi();
+    if (!api) return;
+    const placeholderId = appendTextToScene(api, `Summarising ${url}…`, {
+      focus: true,
+    });
+    const toastId = toast.loading('Summarising the link…');
+    try {
+      const res = await summariseUrl({ url });
+      const body = `${res.title}\n\n${res.summary}\n\n— ${res.host}\n${res.url}`;
+      // Tombstone the placeholder by id, then drop the real card.
+      if (placeholderId) {
+        const elements = api.getSceneElements();
+        const next = elements.map((el) =>
+          el.id === placeholderId ? { ...el, isDeleted: true, updated: Date.now() } : el,
+        );
+        api.updateScene({ elements: next });
+      }
+      appendTextToScene(api, body, { focus: true });
+      toast.success('Summary added.', { id: toastId });
+    } catch (err) {
+      if (placeholderId) {
+        const elements = api.getSceneElements();
+        const next = elements.map((el) =>
+          el.id === placeholderId ? { ...el, isDeleted: true, updated: Date.now() } : el,
+        );
+        api.updateScene({ elements: next });
+      }
+      toast.error((err as Error).message || 'Smart paste failed', { id: toastId });
+    }
+  }, []);
+
+  // Smart paste — long text variant. When >= 500 chars of plain text
+  // hit the canvas, give the user a choice via the toast action API:
+  // paste verbatim, or run an AI outline pass. Returns true so
+  // CanvasNote suppresses the native paste; we drop the result
+  // ourselves once the user picks.
+  const handleLongTextPaste = React.useCallback((text: string): boolean => {
+    const api = canvasRef.current?.getExcalidrawApi();
+    if (!api) return false;
+    const insertVerbatim = () => {
+      const a = canvasRef.current?.getExcalidrawApi();
+      if (a) appendTextToScene(a, text, { focus: true });
+    };
+    const outlineNow = async () => {
+      const a = canvasRef.current?.getExcalidrawApi();
+      if (!a) return;
+      const placeholderId = appendTextToScene(a, 'Outlining your paste…', {
+        focus: true,
+      });
+      const toastId = toast.loading('Outlining with AI…');
+      try {
+        const outline = await outlinePastedText(text);
+        if (placeholderId) {
+          const elements = a.getSceneElements();
+          const next = elements.map((el) =>
+            el.id === placeholderId ? { ...el, isDeleted: true, updated: Date.now() } : el,
+          );
+          a.updateScene({ elements: next });
+        }
+        appendTextToScene(a, outline || text, { focus: true });
+        toast.success('Outline added.', { id: toastId });
+      } catch (err) {
+        if (placeholderId) {
+          const elements = a.getSceneElements();
+          const next = elements.map((el) =>
+            el.id === placeholderId ? { ...el, isDeleted: true, updated: Date.now() } : el,
+          );
+          a.updateScene({ elements: next });
+        }
+        toast.error((err as Error).message || 'Outline failed', { id: toastId });
+      }
+    };
+    toast.message('Big paste detected.', {
+      description: `${text.length.toLocaleString()} characters — outline with AI?`,
+      duration: 8000,
+      action: { label: 'Outline', onClick: () => void outlineNow() },
+      cancel: { label: 'As-is', onClick: insertVerbatim },
+    });
+    return true;
+  }, []);
 
   // Keep the window/tab title in sync: "Title - Notai"
   React.useEffect(() => {
@@ -187,10 +425,7 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
           <Button
             size="icon-sm"
             variant="ghost"
-            onClick={async () => {
-              await updateNote({ id: note.id, isPinned: !note.isPinned });
-              toast.success(note.isPinned ? 'Unpinned' : 'Pinned');
-            }}
+            onClick={togglePin}
             aria-label="Pin"
             title={note.isPinned ? 'Unpin' : 'Pin to top'}
           >
@@ -234,7 +469,10 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
               toast.success('Transcribed');
             }}
           />
-          <NoteAiMenu noteId={note.id} onInsert={insertContent} />
+          <VoiceModeButton canvasRef={canvasRef} />
+          <HoldToRecord canvasRef={canvasRef} />
+          <ApplyTemplateButton noteId={note.id} onInsert={insertContent} />
+          <NoteAiMenu noteId={note.id} onInsert={insertContent} canvasRef={canvasRef} />
           <Button
             size="icon-sm"
             variant={commentsOpen ? 'default' : 'ghost'}
@@ -259,6 +497,21 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
           >
             <MessageSquare />
           </Button>
+          <Button
+            size="icon-sm"
+            variant={meetingOpen ? 'default' : 'ghost'}
+            onClick={() => {
+              setMeetingOpen((v) => !v);
+              if (!meetingOpen) {
+                setChatOpen(false);
+                setCommentsOpen(false);
+              }
+            }}
+            aria-label="Toggle meeting mode"
+            title={meetingOpen ? 'Close meeting' : 'Meeting mode'}
+          >
+            <Mic />
+          </Button>
           <VersionHistory noteId={note.id} />
 
           <DropdownMenu>
@@ -268,6 +521,46 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={async () => {
+                  if (!doc) return;
+                  if (
+                    !confirm(
+                      'Convert TipTap text blocks on this note to Excalidraw text? This is a one-way migration. Rich formatting (headings, lists, math, mermaid, callouts) will become plain text.',
+                    )
+                  )
+                    return;
+                  try {
+                    const result = migrateBlocksToExcalidraw(doc);
+                    if (result.count === 0) {
+                      toast.success('No text blocks to migrate.');
+                      return;
+                    }
+                    toast.success(
+                      `Migrated ${result.count} block${result.count === 1 ? '' : 's'} to Excalidraw.`,
+                    );
+                    if (Object.keys(result.blockToElement).length > 0) {
+                      try {
+                        const { updated } = await rewireCommentsAfterMigration({
+                          noteId: note.id,
+                          mapping: result.blockToElement,
+                        });
+                        if (updated > 0) {
+                          toast.success(
+                            `Re-anchored ${updated} comment${updated === 1 ? '' : 's'}.`,
+                          );
+                        }
+                      } catch (err) {
+                        toast.error(`Comment re-anchor failed: ${(err as Error).message}`);
+                      }
+                    }
+                  } catch (err) {
+                    toast.error(`Migration failed: ${(err as Error).message}`);
+                  }
+                }}
+              >
+                Convert text blocks to Excalidraw…
+              </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onClick={async () => {
@@ -311,15 +604,17 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                   placeholder="Untitled"
                   className="placeholder:text-muted-foreground w-full bg-transparent font-serif text-3xl font-semibold tracking-tight outline-none"
                 />
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2 flex items-center gap-3">
                   <TagChips noteId={note.id} />
+                  <NoteStats doc={doc} />
+                  <WordCountChip canvasRef={canvasRef} />
+                  <SmartLinkChip plaintext={note.plaintext} />
+                  <NoteColorPicker noteId={note.id} currentColor={note.color} />
+                  <ReadingMode canvasRef={canvasRef} noteTitle={title} />
+                  <NoteLockOverlay noteId={note.id} />
                 </div>
                 <RolloverBanner noteId={note.id} noteTitle={title} canvasRef={canvasRef} />
-                {editor && (
-                  <div className="bg-background/80 sticky top-0 z-10 mt-2 py-1.5 backdrop-blur">
-                    <Toolbar editor={editor} />
-                  </div>
-                )}
+                <CanvasMigrationBanner noteId={note.id} doc={doc} />
               </div>
               <div
                 className="relative min-h-0 flex-1"
@@ -365,9 +660,22 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                   onMinimapCornerChange={(corner) =>
                     setSurface({ ...surface, minimap: { ...surface.minimap, corner } })
                   }
+                  onUrlPaste={handleUrlPaste}
+                  onLongTextPaste={handleLongTextPaste}
                 />
+                <FocusModeOverlay
+                  getApi={() => (canvasRef.current?.getExcalidrawApi() as never) ?? null}
+                />
+                <BulletReorder
+                  getApi={() => (canvasRef.current?.getExcalidrawApi() as never) ?? null}
+                />
+                <NoteSearch canvasRef={canvasRef} />
+                <CanvasQuickMath canvasRef={canvasRef} />
+                <CanvasSnippets canvasRef={canvasRef} />
+                <StickyFromSelection canvasRef={canvasRef} />
               </div>
               <BacklinksPanel noteId={note.id} />
+              <RelatedNotesRail noteId={note.id} />
             </>
           )}
         </div>
@@ -378,6 +686,14 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
           onOpenChange={setCommentsOpen}
           pendingAnchor={pendingCommentAnchor}
           onPendingAnchorClear={() => setPendingCommentAnchor(null)}
+        />
+        <MeetingModePanel
+          noteId={note.id}
+          open={meetingOpen}
+          onOpenChange={setMeetingOpen}
+          onInsertMarkdown={(md) => {
+            insertContent(`\n\n${md}\n\n`);
+          }}
         />
       </div>
     </div>

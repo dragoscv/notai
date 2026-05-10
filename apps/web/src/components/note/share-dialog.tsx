@@ -23,6 +23,7 @@ import {
   updateCollaboratorRole,
   type ShareRow,
 } from '@/server/actions/sharing';
+import { PublicShareSection } from './public-share-section';
 
 export function ShareDialog({
   noteId,
@@ -89,6 +90,8 @@ export function ShareDialog({
               : 'You have access to this note. Only the owner can invite others.'}
           </DialogDescription>
         </DialogHeader>
+
+        {isOwner && <PublicShareSection noteId={noteId} />}
 
         {isOwner && (
           <form onSubmit={onInvite} className="flex flex-col gap-2">

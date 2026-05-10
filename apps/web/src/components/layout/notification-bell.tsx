@@ -55,6 +55,7 @@ export function NotificationBell() {
     }
     setOpen(false);
   };
+  void onClickItem;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -106,9 +107,29 @@ export function NotificationBell() {
             </p>
           ) : (
             <ul className="divide-y">
-              {items.map((n) => (
-                <li key={n.id}>
-                  <NotificationItem n={n} onClick={() => onClickItem(n)} />
+              {groupNotifications(items).map((g) => (
+                <li key={g.key}>
+                  <NotificationItem
+                    n={g.head}
+                    extraCount={g.count - 1}
+                    onClick={() => {
+                      // Mark every notification in the group as read
+                      // when the user opens the link.
+                      const unreadIds = g.all.filter((x) => !x.readAt).map((x) => x.id);
+                      if (unreadIds.length) {
+                        void markRead({ ids: unreadIds }).catch(() => {});
+                        setItems((prev) =>
+                          prev.map((it) =>
+                            unreadIds.includes(it.id)
+                              ? { ...it, readAt: new Date().toISOString() }
+                              : it,
+                          ),
+                        );
+                        setUnread((c) => Math.max(0, c - unreadIds.length));
+                      }
+                      setOpen(false);
+                    }}
+                  />
                 </li>
               ))}
             </ul>
@@ -119,7 +140,15 @@ export function NotificationBell() {
   );
 }
 
-function NotificationItem({ n, onClick }: { n: NotificationRow; onClick: () => void }) {
+function NotificationItem({
+  n,
+  onClick,
+  extraCount = 0,
+}: {
+  n: NotificationRow;
+  onClick: () => void;
+  extraCount?: number;
+}) {
   const noteId = n.payload.noteId;
   const href = noteId
     ? `/app/n/${noteId}${n.payload.commentId ? `?comment=${n.payload.commentId}` : ''}`
@@ -141,7 +170,9 @@ function NotificationItem({ n, onClick }: { n: NotificationRow; onClick: () => v
     >
       <div className="flex items-baseline gap-2">
         <span className="text-xs font-medium">{n.payload.fromUserName ?? 'Someone'}</span>
-        <span className="text-muted-foreground text-[11px]">{verb}</span>
+        <span className="text-muted-foreground text-[11px]">
+          {extraCount > 0 ? `and ${extraCount} other${extraCount === 1 ? '' : 's'} ${verb}` : verb}
+        </span>
         <time
           className="text-muted-foreground ml-auto text-[10px]"
           dateTime={n.createdAt}
@@ -167,4 +198,35 @@ function timeAgo(iso: string) {
   if (ms < 86_400_000) return `${Math.round(ms / 3_600_000)}h`;
   if (ms < 7 * 86_400_000) return `${Math.round(ms / 86_400_000)}d`;
   return new Date(iso).toLocaleDateString();
+}
+
+interface NotificationGroup {
+  key: string;
+  head: NotificationRow;
+  all: NotificationRow[];
+  count: number;
+}
+
+/**
+ * Collapse runs of notifications targeting the same note + same kind
+ * into a single entry. Order is preserved \u2014 the first occurrence acts
+ * as the group head and later siblings only contribute to the count.
+ */
+function groupNotifications(items: NotificationRow[]): NotificationGroup[] {
+  const groups: NotificationGroup[] = [];
+  const indexByKey = new Map<string, number>();
+  for (const n of items) {
+    const noteId = n.payload.noteId ?? '_no_note';
+    const key = `${n.kind}:${noteId}`;
+    const existing = indexByKey.get(key);
+    if (existing !== undefined) {
+      const g = groups[existing]!;
+      g.all.push(n);
+      g.count += 1;
+      continue;
+    }
+    indexByKey.set(key, groups.length);
+    groups.push({ key, head: n, all: [n], count: 1 });
+  }
+  return groups;
 }

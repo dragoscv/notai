@@ -14,6 +14,899 @@ Each app in this monorepo is versioned independently:
 
 ## [Unreleased]
 
+## [@notai/web 0.2.0] - 2026-05-10
+
+### Added
+
+- **Bulk archive in Inbox-Zero**: alongside the existing bulk Trash
+  action, selected items can now be archived in one click via the
+  sticky toolbar.
+- **Quick filters in command palette**: \u2b50 Favorites and \ud83d\uddc2\ufe0f
+  Stickies pills join the existing \ud83d\udccc Pinned filter, all
+  combinable with the search query.
+- **Word-level diff in version history**: when a deleted line is
+  immediately followed by an added line, the diff view now shows
+  word-level changes inside that pair instead of two separate
+  red/green lines.
+- **Hourly snapshot guarantee**: opening Version History now
+  records a snapshot if the most recent one is more than an hour
+  old, so quiet days never leave the timeline empty.
+
+### Earlier in this release
+
+- **Continue this thought (AI)**: a new option in the note AI menu
+  takes the currently selected text element on the canvas (or the
+  most recent one if nothing is selected) and asks the model to
+  extend it by 1-3 sentences in the same voice. Result lands as a
+  fresh text element below the source.
+
+### Earlier in this release
+
+- **Footnote rendering in reading mode**: Markdown-style `[^1]`
+  citation markers and `[^1]: ...` definition lines on the canvas
+  are auto-collected, renumbered in document order, and rendered as
+  superscript anchors with an end-of-page footnotes list.
+- **Save note as personal template**: any note can be saved as a
+  private template via the sidebar context menu (More \u2192 Save as
+  template\u2026). Personal templates appear on the gallery page next
+  to official ones with a "Personal" badge and stay invisible to
+  other users.
+- **Mood heatmap on dashboard**: a 30-day grid coloured by a tiny
+  keyword-bag sentiment over your own notes \u2014 no AI calls, no
+  schema change, no data leaves your server.
+- **Version history diff**: the snapshot panel now has a "Compare
+  with current" toggle that renders an LCS line-level diff between
+  the selected snapshot and the live note.
+
+### Earlier in this release
+
+- **Smart link previews (favicon-only)**: when a note's plaintext
+  begins with `http(s)://...`, the workspace shows a compact chip
+  next to the tag row containing the site's favicon (via Google's
+  public S2 favicon service \u2014 no server-side fetching, no SSRF
+  risk) and the hostname. Clicking the chip opens the URL.
+
+### Earlier in this release
+
+- **Per-folder default tags**: every folder now carries a
+  `default_tag_ids` list (migration `0011_folder_default_tags`).
+  A new "Default tags\u2026" item in the folder context menu opens a
+  multi-select dialog; any note created inside the folder thereafter
+  is auto-tagged on insert (best-effort, never blocks creation).
+- **Daily journal prompt history**: the dashboard prompt card now
+  remembers the last 30 prompts you've seen in `localStorage`. A
+  small "History" button next to the refresh icon lists them \u2014
+  picking one starts a fresh note seeded with that prompt.
+
+### Earlier in this release
+
+- **Public read-only share link**: each note can now expose itself
+  as a public, unauthenticated read-only page at `/p/{token}`.
+  A new section in the Share dialog toggles the link, copies the
+  URL, and shows the expiry. Backed by migration `0010_public_share`,
+  which adds `public_share_token` (unique) and
+  `public_share_expires_at` to `notes`. Tokens are 144-bit URL-safe
+  random; expired or disabled tokens 404.
+
+### Earlier in this release
+
+- **End-of-day review**: a new `Mod+Shift+R` shortcut (or any caller
+  dispatching `notai:daily-review`) opens an AI-composed wrap-up of
+  every note touched today, with a list of those notes for quick
+  re-entry.
+- **Custom keyboard shortcuts**: a new Settings → Shortcuts section
+  lets you remap the five built-in hotkeys (command palette, quick
+  capture, daily note, pin/unpin, end-of-day review). Overrides
+  persist in `localStorage` and the underlying `useHotkey` hook
+  re-binds live, no reload required.
+- **Bulk select in Inbox-Zero**: every unfiled row now has a
+  checkbox; a sticky toolbar appears with "Select all", "Clear",
+  and "Move to Trash" actions for rapid inbox cleanup.
+
+### Earlier in this release
+
+- **Note merge undo**: the success toast after merging a note now has
+  an Undo button (8s window) that restores the soft-deleted source
+  via `restoreNote`. The appended text in the target stays put —
+  only the source comes back.
+- **Reading-time goal**: each note's Read button now tracks daily
+  reading-mode time in `localStorage` (per-day key) and shows a
+  sparkle when you cross 10 minutes for the day.
+- **Workspace search filter — Pinned only**: a small toggle pill in
+  the command palette restricts results to pinned notes; resets when
+  the palette closes.
+- **Keyboard nav polish**: a second skip-link ("Skip to sidebar")
+  joins the existing "Skip to content" link, and the sidebar `<aside>`
+  is now a proper jump target with `id="app-sidebar"` + `tabIndex={-1}`.
+- **PWA share target**: a dedicated `/share` route now backs the
+  Web Share API entry in `manifest.webmanifest` — picking Notai from
+  an OS share sheet creates a new note with the title/text/url
+  pre-filled and lands you in it.
+
+### Earlier in this release
+
+- **Word-count chip**: a tiny `123 words · 1 min read` indicator next
+  to the tag chips in every note, recalculated live from the canvas
+  contents (220 wpm reading speed).
+- **Pin keyboard shortcut**: `Mod+Shift+P` toggles the pinned state of
+  the current note, mirroring the visible pin button and surfacing a
+  quick toast.
+- **Sidebar density**: a new Appearance preference (Compact / Cozy /
+  Spacious) that drives the row padding and font size of notes in the
+  sidebar via CSS variables. Persists per browser like the other
+  appearance prefs.
+- **Note color labels**: every note can now carry a soft tint
+  (`amber`, `rose`, `sky`, `emerald`, `violet`, `slate`, or none),
+  picked from a small popover next to the title. The chosen color
+  shows up as a dot in the sidebar tree so you can scan a folder at
+  a glance.
+- **Auto-tag suggestions**: when a note has no tags and stays open
+  for ~30 seconds, the tag chip row quietly fetches up to three
+  AI-suggested tags. Each suggestion is one click to accept; we only
+  do this once per note per session so it never feels spammy.
+
+### Earlier in this release
+
+- **Copy as Markdown**: a new context-menu item under each note\u2019s
+  Export submenu that copies the rendered Markdown straight to the
+  clipboard \u2014 same content as the .md export, just paste-ready.
+- **Pomodoro timer**: a small pill in the bottom-left corner expands
+  into a 25/5/15 focus timer with phase auto-advance, cycle counter,
+  and a brief Web-Audio beep when a phase ends. State persists in
+  `localStorage` so the timer keeps counting across navigations and
+  refreshes \u2014 we only re-render locally; the deadline lives in
+  `endsAt`.
+- **Calendar export (.ics)**: Settings \u2192 Account scans every active
+  note for `YYYY-MM-DD` (optionally `T HH:MM`) dates and emits a
+  RFC 5545 .ics file. Subscribe to it from Apple/Google/Outlook
+  Calendar to see your notes\u2019 dates inline.
+- **Note merge**: right-click a sidebar note \u2192 \u201cMerge into\u2026\u201d. Pick
+  a target via the same trigram search the palette uses; the source
+  note is appended (with a \u201c--- Merged from \u2026 ---\u201d divider) and
+  soft-deleted, the target opens with the body queued in the existing
+  `notai:pending-append` handoff.
+
+### Skipped
+
+- Note templates \u2014 already shipped via the DB-backed Apply-Template
+  button (uses `listTemplates` + `applyTemplateToNote` with optional
+  AI fill), no new local-template menu needed.
+
+### Earlier in this release
+
+- **Rich previews in command palette**: hovering or arrowing onto a
+  search hit reveals a fuller plaintext snippet (~600 chars centred on
+  the match) right below the result list. The match is still
+  highlighted; navigation works exactly as before.
+- **Auto-emoji for note titles**: when a note has no icon yet and the
+  user types a title at least 4 characters long, Notai quietly asks
+  the AI to suggest a single emoji and saves it as the note icon. One
+  AI call per unique title; cached locally so re-typing the same
+  title doesn\u2019t re-fire.
+- **Snippets (`::name`)**: type `::todo`, `::sig`, `::today` etc. on
+  the canvas and Notai expands the token in place. Snippets are
+  managed in Settings \u2192 Snippets and stored in `localStorage` so they
+  load instantly without a server round-trip. `__TODAY__` and
+  `__NOW__` placeholders inside a snippet body are evaluated at
+  expansion time.
+- **Sticky-from-selection**: select two or more text elements on a
+  canvas and a small \u201cNew note from selection\u201d button appears in the
+  bottom-right corner. Clicking it spins up a fresh note pre-filled
+  with the joined text (sorted top-to-bottom) using the same handoff
+  the global Quick-Capture overlay already uses.
+- **Workspace import (.zip)**: Settings \u2192 Account now offers \u201cImport
+  .zip\u201d \u2014 drop the export from any Markdown-based tool and Notai
+  recreates one note per `.md` file, mirroring the folder structure.
+  Limits: 500 files, 1 MB per file, 5 MB total uncompressed.
+
+### Skipped
+
+- Mind-map mode toggle \u2014 already covered by the existing AI menu\u2019s
+  \u201cBuild mind map\u201d (which uses `insertMindMap` to render a radial
+  layout right onto the canvas, with regenerate-on-confirm).
+
+### Earlier in this release
+
+- **Reading mode**: a Read button next to the note title swaps the
+  canvas for a clean, scrollable typed page \u2014 every text element on
+  the canvas, sorted by `y`, rendered with prose typography. Esc to
+  exit. Heading levels (h1\u2013h3) are honoured via `customData.style`.
+- **Bookmarklet**: Settings \u2192 Integrations now ships a draggable
+  "Clip to Notai" bookmarklet that opens `/clip?url=...&title=...&selection=...`
+  and creates a fresh note from the active page (URL + selected text).
+  Cookie-auth, no PAT required.
+- **Smart Inbox AI gist**: Inbox-Zero gains an "AI gist for each"
+  button that batches up to 12 unfiled notes into one streamChat call
+  and shows a one-line summary under each item. Falls back to a
+  smart-truncated first line when the AI is unavailable.
+- **Quick math on canvas**: type any arithmetic expression ending in
+  `=` (e.g. `2*pi*5=`, `sqrt(144)=`) and Notai rewrites the text
+  element to `expr = result` automatically. Safe whitelist evaluator
+  \u2014 no `eval()` access to globals, no network access.
+- **Note locking (PIN)**: a small lock chip in the title row gates a
+  note behind a SHA-256-hashed PIN stored in `localStorage`. Casual
+  shoulder-surfing protection only; not a replacement for end-to-end
+  encryption.
+
+### Skipped
+
+- Pin-to-home (already covered by the existing "Pin on Today").
+
+### Deferred (still gated on Excalidraw text-edit hooks or DB work)
+
+- Sticky-from-selection, public share link, note revisions, audio
+  attachments, inline AI ghost-text, mind-map mode toggle, snippets
+  expansion, sentiment heatmap, quick-jump rich previews, per-folder
+  default tags.
+
+### Earlier in this release
+
+- **Find in note (\u2318F)**: in-canvas search overlay that lists every text
+  element matching the query; click a hit to scroll-to + select it.
+- **Onboarding tour**: 5-step welcome overlay shown to first-time users
+  with `mod+shift+n` / `mod+j` / `mod+k` shortcut hints. Persisted via
+  `notai:onboarding:completed-v1` in localStorage.
+- **Account export as Markdown .zip**: Settings \u2192 Account now offers a
+  "Download .zip" option that streams every owned note into a folder-
+  mirrored archive (one `.md` per note + a top-level README). Built
+  in-memory with `fflate`, base64-piped to the browser.
+- **Trash auto-purge nudge**: dashboard card surfaces how many trashed
+  notes are past the 30-day retention window and offers one-click
+  permanent delete; dismissal is sticky for the rest of the day.
+- **Embed worker status pill**: a small spinning chip in the sidebar
+  header appears whenever the embedding worker is behind on the user\u2019s
+  notes, so it\u2019s obvious why Related-notes / Ask might be incomplete.
+  Polls every 30s while pending, then stops.
+- **Dyslexia-friendly font + High-contrast** toggles in Settings \u2192
+  Appearance. Driven by `data-dyslexia-font` / `data-high-contrast`
+  attributes on `<html>` and pure-CSS rules in `globals.css`.
+- **Grouped notifications**: the bell tray now collapses runs of
+  notifications targeting the same note + same kind into a single
+  entry ("Alex and 3 others mentioned you"). Marking the group as read
+  marks every member.
+
+### Skipped (already shipped earlier)
+
+- Pin notes to home (the existing "Pin on Today" already does this).
+
+### Deferred
+
+- Sticky-from-selection (needs Excalidraw selection observer +
+  floating toolbar).
+- Public share link with read-only view (DB migration required).
+- Note revisions / time travel (Y.Doc history viewer).
+- Audio attachments (storage + DB schema work).
+- Inline AI ghost-text suggestions, mind-map mode toggle, snippets
+  expansion (still gated on Excalidraw text-edit hooks).
+
+### Earlier in this release
+
+- **Today\u2019s daily note hotkey**: \u2318/Ctrl+J anywhere in the app jumps to
+  (or creates) the canonical daily note for the user\u2019s timezone.
+  Mirrored as a "Today\u2019s daily note" entry in the command palette.
+  Mirrored as a "Today\u2019s daily note" entry in the command palette.
+- **Tag pages** at `/app/tags/[name]`: each tag chip now links to a
+  list of every note carrying that tag, sorted by recency. Mirror
+  surface to the existing sidebar tag filter; works with deep-links.
+- **Open loops** dashboard card: rolls up every unchecked `[ ] \u2026`
+  TODO from recently touched notes (max 10, max 3 per note) so the
+  loose threads sit in one scannable place.
+- **Sticky window \u2192 \"Open in main app\"** button: opens the same note
+  in the main editor window. On Tauri it asks the host to focus the
+  main window via `open_in_main`; in the browser it just spawns a new
+  tab.
+- **Auto-archive nudge**: dashboard card shows the count of notes
+  untouched for 90+ days and offers a one-click bulk archive (with an
+  Undo toast that restores everything).
+- **Related notes rail** under every note: pgvector cosine similarity
+  over `notes.embedding` surfaces up to 6 semantic neighbours
+  (distance \u2264 0.45). Hidden when the embed worker hasn\u2019t caught up
+  on a fresh note.
+- **Ask answers history**: the Ask page persists the last 10 asked
+  questions to localStorage and shows them as a "Recent questions"
+  list in the empty state for quick re-running.
+- **Folder icon picker**: right-click a folder in the sidebar to set
+  one of 15 emoji icons (or clear it). Icon is rendered in place of
+  the default folder glyph when set.
+- **Print / Save as PDF**: new context-menu item next to "Export as
+  Markdown" \u2014 spawns a hidden print frame with a clean serif layout
+  and triggers `window.print()` so the browser\u2019s native PDF dialog
+  does the actual rendering.
+- **Voice mode \u2192 outline**: the canvas hold-to-record FAB now offers
+  an "Outline" toast action when a transcript is 1\u2009000+ characters,
+  feeding it through the same `outlinePastedText` action used for
+  smart-paste.
+
+### Skipped (already shipped earlier)
+
+- Sticky note color picker (already in sticky-window).
+- Drag-to-reorder folders (sidebar-tree already uses @dnd-kit).
+- Quick Capture auto-suggest folder (already wired via
+  `suggestQuickCaptureDestination`).
+- Note templates (DB-backed `templates` table + `/app/templates`
+  exists).
+
+### Deferred
+
+- Snippets `::name` expansion on canvas (needs Excalidraw text-edit
+  hooks that aren\u2019t exposed publicly).
+- Mind-map mode toggle for arbitrary selections (existing AI mind-map
+  already covers tree generation).
+- Inline AI ghost-text suggestions while typing on canvas (same
+  Excalidraw text-edit hook gap as snippets).
+
+### Earlier in this release
+
+- **Note word-count + reading time** indicator next to the tag chips on
+  every note. Reads text elements straight off the Y.Doc (so the count
+  doesn't lag behind a server-side embed pass) and throttles to once a
+  second. Hidden when the note is empty.
+- **Two-step undo for Inbox Zero moves**: every "File here" toast now
+  carries an "Undo" action that puts the note back into the unfiled
+  pile (and re-inserts it at the top of the suggestion list).
+- **Bulk auto-file in Inbox Zero**: a header pill lights up when one or
+  more notes have a >=65% folder match. "File all" moves them in a
+  single pass and surfaces a single "Undo all" toast.
+- **Daily writing prompt** dashboard card: one short, curiosity-leaning
+  prompt per UTC day, generated via the user's BYOK chat model and
+  cached in localStorage so it sticks across reloads. "Write about
+  this" creates a fresh note seeded with the prompt as its title.
+  Falls back to a small rotating list when no AI provider is wired or
+  the request fails.
+- **Auto-tag suggestions** (Sparkles button next to the tag chip-input):
+  asks the user's chat model for 1\u20133 short, lowercase tags and renders
+  them as click-to-accept chips. Already-attached tags are filtered
+  out of the suggestion list.
+- **Smart bullet-list reorder**: \u2318/Ctrl+Shift+\u2191/\u2193 on a focused
+  Excalidraw text element now swaps the current line with its
+  neighbour \u2014 but only when both lines look like bullets, todos
+  (`[ ]`/`[x]`), or numbered list items. Prose paragraphs keep the
+  native arrow-key behaviour.
+- **AI Daily Recap** dashboard card: 2\u20134 short bullets summarising
+  what the user wrote today across up to 20 notes. Hidden on light
+  writing days (<30 words) so the dashboard never shames a slow day.
+  "Save as note" hands the body to the editor via the existing
+  `notai:pending-append` channel.
+- **Smart paste \u2192 outline**: pasting >=500 characters of plain text
+  onto the canvas now pops a toast with a choice ("Outline" /
+  "As-is"). The Outline path runs the user's chat model with a tight
+  bullet-only system prompt and drops the result onto the scene. URL
+  pastes still hit the existing summary-card path.
+- **Keyboard shortcut cheatsheet** now includes a "Canvas" group
+  documenting `F`/`Esc` focus mode, the bullet-reorder hotkey, and
+  the hold-to-record FAB.
+- **Calendar view** at `/app/calendar`: 6-row month grid with per-day
+  note counts (Mon-first, UTC). Click a day to see the notes touched
+  that day. Reachable from the command palette.
+
+- **Per-paragraph source attribution in Ask answers**: every paragraph
+  in an Ask response now renders a chip-row above it listing the
+  unique notes cited within that paragraph (deduped, in citation
+  order). Inline `[#n]` chips remain so a reader can scan which note
+  backs each individual claim. Mirrored across the Cmd-K Ask dialog
+  and the full `/app/ask` page so both surfaces look identical.
+- **Stale TODO digest** on the dashboard: scans `notes.plaintext` for
+  unchecked `[ ] …` lines in notes that haven't been touched in 14+
+  days and surfaces up to 6 of them in a single card. ADHD-friendly:
+  rediscovers things you meant to do but lost track of. One click
+  jumps to the source note. Renders nothing when nothing is stale.
+- **Random recall** Cmd-palette command: jumps to one note picked at
+  random from the user's 30+-day-old archive. Reuses the same SQL as
+  the dashboard Throwback card; no duplicate query path.
+- **Note-level focus mode**: press `F` on the canvas with one or more
+  elements selected to dim every other element to 20% opacity; press
+  `Esc` (or `F` again) to restore. Implemented via a non-undoable
+  `updateScene({ captureUpdate: 'NEVER' })` that swaps element
+  opacities against a snapshot taken at toggle-on, so the dim/restore
+  doesn't pollute the undo stack and an unmount automatically
+  restores. A small "Focus mode" pill appears at the top of the
+  canvas while active.
+- **Writing streak badge** on the dashboard: shows the user's current
+  consecutive-day writing streak (and best ever when it differs).
+  Computed in SQL by walking distinct `date_trunc('day', updated_at)`
+  values for the user's non-deleted notes. Hidden for first-day users
+  who have no streak yet.
+- **Hold-to-record voice on canvas**: a press-and-hold microphone FAB
+  next to the Voice Mode button. Press → 300 ms arming delay (so a
+  misclick is a no-op) → MediaRecorder starts; release → transcript
+  drops at the current viewport center of the Excalidraw scene. Uses
+  the existing `transcribeAudio` server action (BYOK + AI quota
+  enforced) and the new `appendTextToScene({ at })` option that bypasses
+  the "below the lowest element" placement heuristic when explicit
+  world coordinates are provided.
+- **Inbox Zero** (`/app/inbox-zero`): lists every unfiled note (up to
+  50, newest first) and suggests the closest folder per note via
+  pgvector cosine similarity against each folder's centroid (mean
+  embedding of its existing notes). One-click "File here" accepts the
+  suggestion; a chip-row of all folders lets you override. Surfaced
+  from the Cmd palette as "Inbox Zero — file unfiled notes".
+
+### Removed
+  `text-block.tsx`, `toolbar.tsx`, `slash-menu-extension.ts`,
+  `slash-menu-popover.tsx`, `backlink-extension.ts`, `backlink-popover.tsx`,
+  `callout-extension.ts`, `toggle-extension.ts`, `math-extension.tsx`,
+  `mermaid-extension.tsx`, `calc-extension.tsx`, and `ai-command-bar.tsx`.
+  Pulled all 25 `@tiptap/*` packages from `packages/editor/package.json`
+  and the orphaned `@tiptap/react` from `apps/web/package.json`. The
+  Excalidraw scene is now the single source of truth for note content.
+- **Phase 3 step 4 — block-layer writers retired**: `addBlock`,
+  `updateBlockAt`, and `deleteBlockAt` removed from `migrate-doc.ts`
+  and the `@notai/editor` public API. Read-side helpers
+  (`peekBlocksArray`, `peekBlockFragment`, `getBlocksArray`,
+  `getBlockFragment`, `extractAllPlaintext`) and `migrateLegacyDoc`
+  remain so the one-shot legacy → Excalidraw drain in
+  `migrate-blocks-to-excalidraw.ts` and the migration banner keep
+  working for users who still have pre-canvas notes.
+- Note workspace toolbar (`<Toolbar editor={editor} />`) and its
+  `subscribeFocused` plumbing — the canvas has no focusable TipTap
+  editor anymore, so the toolbar permanently rendered as `null`.
+
+### Added — Throwback card on the dashboard
+
+A small **Throwback** card now sits below the Morning Brief on
+`/app`. It surfaces a random note you haven't touched in 30+ days, with
+its icon, title, and a short snippet — one click jumps to the note,
+and a refresh icon picks a different one without reloading. The card
+silently renders nothing for users whose archive is too young (no
+empty-state spam during the first month).
+
+ADHD-friendly recall: the brain forgets, the app remembers, and a
+casual "remember this?" nudge is far more effective than expecting
+people to dig through their own archive.
+
+- **`apps/web/src/server/actions/throwback.ts` (new)**:
+  `getThrowbackNote()` returns a single `ThrowbackNote | null` from
+  the user's owned, non-trashed notes whose `updatedAt` is older than
+  30 days. Pulls up to 200 oldest candidates, picks one at random.
+- **`apps/web/src/components/dashboard/throwback-card.tsx` (new)**:
+  client component with a refresh button. `formatDaysAgo` helper
+  rounds to days / months / years for human display.
+- **`apps/web/src/app/app/page.tsx`**: mounted under
+  `<MorningBriefCard />` in the dashboard header column.
+
+### Added — Save Ask answers to a new note
+
+Both the `/app/ask` full page and the global ⌘⇧K Ask dialog gain a
+**Save to a new note** action that fires once the streamed answer
+completes. Click it and Notai creates a fresh note titled with the
+question, drops the full answer (citation chips intact) plus a
+**Sources** list onto the canvas via the existing
+`notai:pending-append` handoff, and routes you to the new note.
+
+This turns Ask from a transient lookup into a durable artefact: a
+research session you ran on Tuesday becomes a saved, searchable,
+linkable note on Wednesday — with the citations that backed every
+claim still inline.
+
+- **`apps/web/src/components/ask/ask-client.tsx`**: new local
+  `SaveAnswerButton` rendered alongside the existing `CopyButton`.
+  Shares the same body format as the dialog flow.
+- **`apps/web/src/components/layout/ask-dialog.tsx`**: imports
+  `createNote`, adds a `saveAnswerAsNote` callback (memoised on
+  `[question, answer, hits, savingNote, onOpenChange, router]`), and
+  renders a single button below the answer panel after streaming
+  completes (`!loading && answer`).
+- Both flows assemble the body as
+  `# <question>\n\n<answer>\n\n## Sources\n\n[#1] icon Title\n…` so
+  the note's plaintext index stays clean and the canvas-side render
+  matches what the user saw in Ask.
+
+### Added — Quick Capture: batched send routes each thought to its best home
+
+Quick Capture (⌘.) gains a **Send batch** button that lights up
+whenever the textarea contains two or more non-empty paragraphs (or
+two or more non-empty lines if no blank-line separators are used).
+Click it, and the server splits the input, runs a top-1 vector
+similarity lookup against your existing notes per item, and routes
+each thought to:
+
+- the best-matching existing note (cosine similarity ≥ 0.78), via the
+  same client-side append handoff used by Quick Capture's "Append
+  to…" chip — never mutating Y.Doc state from the server, so realtime
+  consumers stay race-free;
+- a single fresh capture note containing the leftover (orphan)
+  thoughts joined by blank lines.
+
+This turns Quick Capture into a multi-thought brain dump: type five
+ideas separated by blank lines, hit **Send batch**, and three land in
+the right existing notes while the other two start a new capture
+sticky — without you having to file anything manually.
+
+- **`apps/web/src/server/actions/quick-capture-batch.ts` (new)**:
+  `quickCaptureBatch({items})` returns `{appends:
+  Array<{noteId,noteTitle,text}>, newNote: {id,title,count} | null}`.
+  Embeds each item that's ≥40 chars (shorter fragments are too noisy,
+  go straight to the new-note bucket). Single per-item `<=>` query
+  against the user's owned + collaborated notes, ordered by distance,
+  with `LIMIT 1`. AI quota enforced once per batch (one charge for
+  the embed pass — server-side appends don't bump it again).
+- **`apps/web/src/components/layout/quick-capture.tsx`**: new
+  `splitIntoThoughts(text)` helper (paragraphs first, lines fallback),
+  `sendBatch` callback, and the **Send batch** button (only renders
+  when ≥2 thoughts detected). Multi-target appends land in a new
+  `notai:pending-appends` localStorage list; navigates to the new
+  note (or to the first append target if no new note was created).
+- **`apps/web/src/components/note/note-workspace.tsx`**: extended the
+  pending-append watcher to also drain `notai:pending-appends` —
+  filters the list down to entries matching the current note id,
+  drops them onto the canvas via `appendTextToScene`, and writes the
+  remainder back so the next note we visit picks up its own slice.
+  Stale entries (>5 min) are discarded.
+
+### Added — Command palette: graph view, templates, "summarise clipboard URL"
+
+The ⌘K palette gains three quick actions in the **Quick actions**
+group:
+
+- **Open note graph** — jumps to the new `/app/graph` view.
+- **Browse templates** — opens the template gallery.
+- **Summarise URL from clipboard…** — reads the clipboard, validates
+  it as an `https?://` URL, runs the same `summariseUrl` action that
+  Smart Paste uses, creates a fresh note titled with the page title,
+  and drops the captioned summary onto the canvas via the existing
+  `notai:pending-append` handoff. One keystroke from "I have a link
+  open in another tab" to "I have a saved, summarised note for it".
+
+- **`apps/web/src/components/layout/command-palette.tsx`**: three new
+  `CommandItem`s plus a local `summariseClipboardUrl` helper. URL
+  validation: `^https?:\/\/\S+$` regex + a `new URL()` parse. Friendly
+  toasts for clipboard-permission-denied / non-URL clipboard / invalid
+  URL paths. Falls back gracefully when `localStorage` is unavailable
+  (note still opens, just without the pre-filled body).
+
+### Added — AI templates: drop a skeleton, optionally have AI fill it from your existing content
+
+The note toolbar gains a **Template** button next to the AI menu.
+Clicking it opens a dialog that lists every published template from the
+gallery (`/app/templates`) with two per-template actions:
+
+- **Use as-is** drops the template's plaintext skeleton onto the canvas
+  as a single text element so the user can fill in the placeholders.
+- **Fill with AI** sends the user's existing note content to the model
+  along with the template skeleton; the model maps existing material
+  into the template's sections (preserving the structure exactly) and
+  leaves placeholders empty where there is no evidence to map. Same
+  drop path as **Use as-is**.
+
+This turns the existing template gallery (which was create-fresh-note
+only) into a *restructure* tool: take a brain-dumped note, apply
+&ldquo;Weekly Review&rdquo; with AI fill, get the same content
+re-organised under Wins / Stuck on / What I learned / Next week's
+focus — without losing anything you already wrote.
+
+- **`apps/web/src/server/actions/apply-template.ts` (new)**:
+  `applyTemplateToNote({noteId, slug, mode})` returns
+  `{markdown, templateTitle}`. `mode='blank'` returns the template
+  skeleton verbatim (no AI quota). `mode='ai-fill'` enforces AI quota,
+  reads the note's `plaintext` (truncated to 12 KB), and runs a single
+  `streamChat` pass with a strict structure-preserving system prompt;
+  falls back to the blank skeleton if the note has no plaintext yet.
+  Bumps `templates.uses` for both modes.
+- **`apps/web/src/components/note/apply-template-button.tsx` (new)**:
+  the toolbar control. Lazy-loads `listTemplates()` on first open;
+  renders each template as a card with icon / category / description
+  and the two action buttons. Drops the result via the shared
+  `insertContent` callback (which now routes through `appendTextToScene`
+  thanks to Phase-3 step-2).
+- **`apps/web/src/components/note/note-workspace.tsx`**: mounted
+  between `VoiceModeButton` and `NoteAiMenu`.
+
+### Changed — Phase 3 step 2 of the canvas migration: TipTap block layer no longer renders
+
+Following step 1 (legacy blocks read-only), step 2 stops rendering the
+`BlockFrame` layer entirely. Notes that still have un-migrated TipTap
+blocks now show a single visible affordance — the existing migration
+banner — which converts the legacy data into native canvas text
+elements in one click. Until the user converts, legacy block data
+still lives in the Y.Doc (so nothing is lost), but the canvas itself
+is now the single source of truth for editing.
+
+- **`packages/editor/src/canvas-note.tsx`**: removed `BlockFrame`,
+  `useBlocksArray`, `useBlockFragment`, the per-block hover chrome
+  (drag/comment/delete handles), and the entire `data-blocks-layer`
+  div. The imperative handle's `addTextBlock` method is gone;
+  `insertContent` now drops content onto the Excalidraw scene via the
+  shared `appendTextToScene` primitive (with a best-effort
+  `flattenJsonToPlaintext` fallback for legacy callers that still pass
+  TipTap-shaped JSON). The component shrinks from ~1270 lines to ~990.
+- **`apps/web/src/components/note/note-workspace.tsx`**: simplified
+  the `insertContent` callback — no more retry-after-block-creation
+  fallback, since the canvas is always ready to receive a text element
+  once the Excalidraw API is mounted.
+- See `docs/excalidraw-migration-plan.md` for steps 3–4 (deleting the
+  unused `@tiptap/*` packages from `packages/editor` once no notes in
+  the wild still hold un-migrated block data).
+
+### Added — Voice mode: long takes split into paragraphs by pause
+
+A new **Voice mode** button in the note toolbar (next to the existing
+Voice button). One click starts recording, a second click stops; while
+recording, the button shows a live `mm:ss` timer. On stop, audio is
+sent to Whisper with `response_format=verbose_json` so segment-level
+timestamps come back, and the client groups segments into paragraphs
+wherever the silence gap exceeds **1.4 s** (with a 480-character
+hard cap as a fallback splitter for monologues without pauses). Each
+paragraph is dropped onto the canvas as its own text element, stacked
+naturally below existing content. ADHD-friendly: one continuous take
+in, structured paragraphs out, no manual editing.
+
+- **`apps/web/src/server/actions/transcribe.ts`**: new `transcribeAudioSegments(form)` action. Goes around the standard `TranscribeProvider` interface (which only returns `string | null`) and hits Whisper directly with `verbose_json` + `timestamp_granularities[]=segment`. Returns `{ segments: { start, end, text }[], text }`. Counts toward the user's AI quota.
+- **`apps/web/src/server/ai/dispatch.ts`**: new `getTranscribeKey(userId)` helper that returns the raw OpenAI key + Whisper model so the action above can call the API directly without breaking the provider abstraction for the simple-text path.
+- **`apps/web/src/components/note/voice-mode-button.tsx` (new)**: the toolbar control. Falls back to splitting joined plaintext on `\n\n` + sentence boundaries if Whisper didn't return segment timestamps (older models). Toasts gracefully if the canvas API isn't ready and copies the transcript to the clipboard instead.
+- **`apps/web/src/components/note/note-workspace.tsx`**: rendered next to `<VoiceRecorder />`, sharing the existing `canvasRef`.
+
+### Added — Calc named cells across the canvas
+
+Variables defined in one text element are now reachable from any other
+text element on the same canvas. Type `tax = 0.19` in one place,
+`price = 100` somewhere else, and `price * (1 + tax) =` anywhere will
+resolve. The pre-pass runs twice so spatial layout (top-down vs.
+right-to-left) doesn't matter — name a value below where you use it
+and it still resolves. Local assignments inside one element shadow the
+shared scope without polluting it.
+
+- **`packages/editor/src/excalidraw-calc.ts`**: new `collectSharedScope(elements, math)` runs before `buildDesired`. Two iterations over every non-result text element, evaluating `name = expr` lines into a single workspace-level `scope` map. `computeResults(text, math, sharedScope?)` clones that scope as the starting environment for each element so per-element evaluation still works exactly as before — just with names from siblings already present.
+- Existing diff-and-apply / `customData.calcResultOf` reconciliation is unchanged, so undo history stays clean and result elements never collide with user-authored content.
+
+### Added — Note graph view
+
+A new **Graph** entry in the sidebar (`/app/graph`) renders every note
+in the workspace as a node and every `[[Title]]` reference as an edge.
+Layout is a tiny in-page Fruchterman-Reingold simulation (no extra
+dep) computed once on mount; node radius scales with combined
+in/out-degree, and hovering a node dims the rest of the graph to
+highlight that node's direct neighbours plus a sidebar listing of the
+linked notes. Click any node to jump straight into it.
+
+- **`apps/web/src/server/actions/note-graph.ts` (new)**: `getNoteGraph()` returns `{ nodes, edges }`. Edges are derived from the `notes.plaintext` mirror by regex-matching `[[Title]]` and resolving against a case-insensitive title→id map (the canvas writes Excalidraw scene text into `plaintext`, so canvas-authored backlinks show up alongside legacy TipTap-authored ones). Capped at 500 most-recently-updated accessible notes (owner or collaborator). Self-references and dangling titles are dropped.
+- **`apps/web/src/app/app/graph/page.tsx` (new)** + **`apps/web/src/components/graph/note-graph-view.tsx` (new)**: SVG-only renderer. Two empty-state branches: "no notes yet" and "no links yet" (with a one-line nudge to type `[[`). Hover card shows the up-to-eight neighbours by title.
+- **`apps/web/src/components/layout/sidebar.tsx`**: new `Network`-icon entry between **Ask Notai** and **Favorites**.
+
+### Added — Smart paste: drop a URL, get a summary card
+
+Pasting a single URL onto the canvas now fetches the page server-side,
+runs the user's BYOK model over the readable text, and drops a clean
+text card with the page title, a 2-4 sentence summary, the host, and
+the source link — replacing the raw URL Excalidraw would have inserted.
+A placeholder ("Summarising …") appears immediately so the action feels
+instant; if the fetch fails the placeholder is tombstoned and the user
+sees an error toast.
+
+- **`apps/web/src/server/actions/smart-paste.ts` (new)**: `summariseUrl({ url })`. Validates the URL with Zod, blocks obviously private network targets (loopback, RFC1918, link-local, IPv6 ULA/link-local) to avoid SSRF, fetches with an 8s timeout + restricted Accept header, strips script/style/nav/header/footer/aside/svg + tags, decodes common HTML entities, then prompts the model for strict-JSON `{title, summary}`. Falls back to the `<title>` tag if the model returns an empty title. Counts toward the user's AI quota.
+- **`packages/editor/src/canvas-note.tsx`**: new `onUrlPaste?: (url: string) => void` prop. Attaches a capturing `paste` listener on the canvas host that intercepts clean single-URL pastes (ignores pastes targeting any input/textarea/contentEditable so the existing Excalidraw text editor still works).
+- **`apps/web/src/components/note/note-workspace.tsx`**: `handleUrlPaste` drops a placeholder via `appendTextToScene`, calls `summariseUrl`, then tombstones the placeholder and drops the formatted card.
+
+### Changed — Phase 3 step 1: legacy text blocks are now read-only
+
+The migration to a canvas-canonical note has reached its enforcement
+phase. Notes that still contain TipTap text blocks render those blocks
+as **read-only** — the canvas around them is the only writable surface.
+The migration banner has been rotated to a more urgent amber palette
+("These text blocks are read-only — convert to keep editing"); the
+underlying conversion is still one click and still rewires comment
+anchors to the new Excalidraw element ids.
+
+- **`packages/editor/src/canvas-note.tsx`**: `blocksInteractive` now also gates on `!hasLegacyBlocks`, and a new `blocksReadOnly` (`readOnly || hasLegacyBlocks`) is threaded into every `BlockFrame`. New notes are unaffected (they have zero blocks); only un-migrated notes are downgraded.
+- **`apps/web/src/components/note/canvas-migration-banner.tsx`**: amber palette + new copy ("Convert to keep editing"). Rotated the dismissal localStorage key (`notai:canvas-migration-readonly-dismissed:<noteId>`) so previous "soft banner" dismissals don't suppress this stronger one.
+- See `docs/excalidraw-migration-plan.md` Phase 3 step 1 for the full rollout plan; steps 2-4 (deleting the BlockFrame layer, dropping `@tiptap/*` from `packages/editor`, bundle audit) follow once telemetry confirms residual edits have stopped.
+
+### Added — Inline citations in the Ask dialog
+
+The command-palette **Ask my notes** dialog (Cmd+Shift+K) now renders
+`[#n]` markers in the streamed answer as clickable amber chips that
+navigate to the matching note (and close the dialog on click). The
+full Ask page already had this; the dialog was the odd one out.
+
+- **`apps/web/src/components/layout/ask-dialog.tsx`**: new `AnswerWithCitations` mirror of the page-level renderer.
+
+### Added — Ask follow-ups on the morning brief
+
+The home dashboard's morning brief now hides a small **"Ask about
+this"** affordance under the source chips. Click it, type a question,
+get a focused answer that's grounded only in the brief markdown plus
+the listed sources — no extra retrieval, no global vector search,
+under 120 words. Counts toward the user's AI quota.
+
+- **`apps/web/src/server/actions/morning-brief.ts`**: new `askMorningBriefFollowup({ question, briefMarkdown, sources })` server action. Strict prompt: "answer concisely and only from the brief and listed sources; if the answer isn't there, say so plainly".
+- **`apps/web/src/components/dashboard/morning-brief-card.tsx`**: collapsed-by-default composer with an inline answer panel.
+
+### Changed — Daily roll-forward writes onto the canvas
+
+The "you have N open tasks from yesterday" banner on each daily note
+no longer tries to insert into a TipTap block (which is now read-only
+per Phase 3 step 1). It writes a single Excalidraw text element with a
+`## Carried over from <date>` heading + one `[ ] task` line per item.
+The existing checklist overlay on the canvas already understands those
+lines and toggles them on click, so checking off a rolled-over task
+works exactly like checking off any other.
+
+- **`apps/web/src/components/note/rollover-banner.tsx`**: replaced the TipTap-JSON insert path with `appendTextToScene(api, body, { focus: true })`. Surfaces a "canvas not ready" toast if the user clicks before sync completes.
+- **`apps/web/src/server/actions/daily.ts`**: `extractOpenTodos` now also walks the Excalidraw scene's text elements for `[ ]` / `[x]` markers (with bullet/number prefixes accepted), so tasks the user creates *on the canvas* — the new normal — are picked up by tomorrow's roll-forward. TipTap-block walker stays in place for backward compatibility.
+
+### Added — Range calc on the canvas
+
+Selecting two or more text elements on the canvas now floats a chip-bar
+showing **sum / mean / min / max** of every number found across the
+selection (with thousands separators stripped, scientific-style decimals
+preserved). Clicking a chip drops the result as a fresh highlighted
+text element below the selection's bounding box, ready to drag or
+caption. Disabled on read-only mirrors.
+
+- **`packages/editor/src/excalidraw-range-calc.tsx` (new)**: `ExcalidrawRangeCalcOverlay`. One observer subscription via `api.onChange`. Re-parses on every selection change; the chip-bar position is recomputed on viewport changes (zoom / scroll) so it stays glued to the selection.
+- **Number parser**: accepts `1,234`, `1 234`, `1_000`, `3.14`, etc. Tags inserted results with `customData.calcRangeResult` so future tooling (export, undo helpers) can find them.
+- Mounted in `canvas-note.tsx` next to the existing per-line Calc reconciler.
+
+### Added — Mind map regenerate-in-place
+
+Generating a mind map on a canvas that already has one now prompts the
+user to confirm replacement, then tombstones the previous map's
+elements (containers, text, arrows tagged with `customData.mindMapNode
+/ mindMapText / mindMapEdge`) before laying down the fresh one. Same
+viewport-centred layout, no stacking maps on top of each other.
+
+- **`packages/editor/src/mind-map.ts`**: new `hasMindMap(api)` predicate plus `insertMindMap(api, map, { replace: true })`. Replacement marks the previous mind-map elements `isDeleted: true` so they round-trip through Excalidraw's gc.
+- **`apps/web/src/components/note/note-ai-menu.tsx`**: detects existing mind maps, asks for confirmation, swaps the toast copy ("Regenerating…" / "Mind map regenerated.").
+
+### Added — Brief sources + save-to-today on the morning brief
+
+The home-page morning brief now lists the up-to-six notes it drew from
+as clickable chips beneath the body, and a new **Save to today** action
+appends the rendered brief into today's daily note (creating the daily
+if it doesn't exist). Reuses the same `notai:pending-append` handoff
+the Quick-Capture flow uses, so the brief lands cleanly on the live
+Excalidraw scene with no realtime races.
+
+- **`apps/web/src/server/actions/morning-brief.ts`**: returns `sources: { id, title }[]` (top six) alongside the markdown.
+- **`apps/web/src/components/dashboard/morning-brief-card.tsx`**: clickable source chips → `Link` to each note. New "Save to today" button calls `getOrCreateDailyNote()`, stashes the brief in `localStorage`, routes to the daily; the receiver in `note-workspace.tsx` replays it onto the canvas as a fresh text element with a `## Morning brief — Mon Jan 13` header.
+
+### Added — Morning brief on the home dashboard
+
+A calm, ADHD-friendly executive-assistant card that opens the home
+page with a clear focus for the day. No agent loop, no tool calls,
+no autonomy — just a tight Markdown brief drawn from the user's pinned,
+today-pinned, and recently-modified notes plus any open `[ ]` action
+items it can see in the plaintext. Capped at 220 words. Per-day cached
+in `localStorage` so reloading the home page never reburns the AI quota.
+
+- **`apps/web/src/server/actions/morning-brief.ts` (new)**: `generateMorningBrief()` server action. Pulls the last 36 hours of activity plus all pinned notes (capped at 18 sources), shapes a compact corpus (snippets ≤ 600 chars, plus up to 3 unfinished todos per note tagged with `[Today] / [Pinned] / [Nh ago]`), and prompts the model with a strict ruleset (no greetings, no emoji, sentence-case headings, ≤ 220 words). Owner-only — collaborator notes are intentionally excluded so the brief stays personal.
+- **`apps/web/src/components/dashboard/morning-brief-card.tsx` (new)**: client card with auto-load-once-per-day, manual refresh, and collapse/expand persisted to `localStorage`. Renders the markdown with the same `whitespace-pre-wrap` treatment used in the rest of the AI surfaces — no extra renderer dependency.
+- **`apps/web/src/app/app/page.tsx`**: mounts the card above the dashboard view when the user has at least one note. Empty-state still shows the warm sticky-note collage.
+
+### Added — Quick-Capture knows where things belong
+
+When a captured thought is long enough to be substantive, the Quick-Capture
+overlay now suggests up to 2 existing notes that look like a good home
+for it (semantic similarity over the user's own embeddings). Clicking
+**Append to <Note>** routes to the note and the captured text lands as
+a fresh element on the live Excalidraw scene — no race with the
+realtime provider, no server-side Y.Doc surgery.
+
+- **`apps/web/src/server/actions/suggest-destination.ts` (new)**: `suggestQuickCaptureDestination({ text, topK })`. pgvector cosine over `notes.embedding`, ACL via owner-or-collaborator, deleted-notes excluded, similarity threshold ≥ 0.78 (anything below is too noisy to surface).
+- **`packages/editor/src/append-to-scene.ts` (new)**: `appendTextToScene(api, text, { focus })`. Wraps to ~64 chars per line, places the new text below the lowest existing element (or at the viewport top-left for empty scenes), selects + animates `scrollToContent`. `customData.quickCaptureAppend` tag for downstream filtering.
+- **`apps/web/src/components/layout/quick-capture.tsx`**: 700 ms debounced suggestion fetch (no spam while the user types). Renders chips beneath the textarea. The append handoff stashes `{noteId, text, ts}` under `notai:pending-append` and routes via the Next.js router.
+- **`apps/web/src/components/note/note-workspace.tsx`**: post-sync replay loop polls for the canvas API, validates the pending payload (right note id, fresh within 5 minutes), calls `appendTextToScene`, clears the storage key, toasts. Stale or mismatched payloads silently expire so a stuck key never stalls the UI.
+
+### Added — One-click AI mind map (`@notai/web`)
+
+The note's AI menu has a new **Generate mind map** entry. It reads the
+note's plaintext, asks the model for a strict-JSON tree (Zod-validated
+on return), and lays the result out radially on the live Excalidraw
+canvas with bound arrows so dragging keeps the edges sticky. Auto-pans
+the viewport to the new map.
+
+- **`apps/web/src/server/actions/mind-map.ts` (new)**: `generateMindMap(noteId)` server action. JSON-only system prompt, depth ≤ 3, fan-out caps (7 / 5), strips ```json fences``` if the model adds them, parses + validates with Zod (`MindMapSchema`). Owner/collaborator gated, BYOK-aware, AI quota enforced.
+- **`packages/editor/src/mind-map.ts` (new)**: `insertMindMap(api, map)` — radial layout (root at viewport centre, level-1 in a full circle, deeper levels recurse inside their parent's wedge). Per-level font size + palette. Creates rounded `rectangle` containers with bound `text` children + `arrow` edges with proper `startBinding`/`endBinding` so user drags preserve the graph. New nodes get selected and `scrollToContent` animates the viewport onto them.
+- **Wiring** in `note-ai-menu.tsx`: button enabled only when `canvasRef` is provided. Reuses the existing menu chrome — no extra UI surface.
+
+### Added — Excalidraw-native Calc (Apple Math Notes parity)
+
+Inline arithmetic on the canvas itself. Type any text element ending
+with `=` (e.g. `2400 * 1.19 =` or `revenue = 12000`) and a teal,
+auto-updating result element appears next to it. Edit the source text
+and the result re-renders within ~180 ms.
+
+- **Plugin** (`packages/editor/src/excalidraw-calc.ts`): `useExcalidrawCalc(api, enabled)` hook subscribes to Excalidraw's `onChange` and reconciles a side-set of result elements via `customData.calcResultOf`. Per-element `mathjs` scope so assignments stay local. Diff-and-apply with a stable signature so the scene is only mutated when results actually change — no re-render loops, no history pollution.
+- **Wiring** (`apps/web/src/components/note/canvas-note.tsx`): hook activates whenever a canvas is editable; sticky read-only mirrors stay inert.
+- **Dependencies**: `mathjs` 14 added to the workspace catalog and to `@notai/editor`. Lazy-imported so the bundle cost is only paid the first time a user types math.
+- **Calc inside legacy TipTap text blocks** (`packages/editor/src/calc-extension.tsx`): the same widget pattern as a ProseMirror plugin so existing notes keep parity until they're migrated.
+
+### Added — Meeting Mode (Granola-style ambient capture)
+
+A right-rail panel that records tab + microphone audio in 60-second
+chunks, streams them through the existing Whisper transcription
+pipeline, and asks the user's chosen LLM to merge the running
+transcript with their raw bullet-point notes into a clean meeting
+recap (TL;DR / Decisions / Action items with owners + due dates /
+Notes / Open questions). Insert into the current note in one click.
+
+- **Server action** (`apps/web/src/server/actions/meeting.ts`): `enhanceMeetingNotes({noteId, transcript, rawNotes?, language?})`. Note-access check via `noteCollaborators` left-join (collaborators allowed). AI quota enforced. Streams via `streamChat()` with the user's BYOK key. Returns `{markdown}`.
+- **Panel** (`apps/web/src/components/note/meeting-mode-panel.tsx`): Tab audio (`getDisplayMedia({audio:true,video:true})` then video tracks discarded — browsers require the video request to grant tab audio) + mic mixed via `AudioContext` + `MediaStreamDestination`. `MediaRecorder('audio/webm;codecs=opus')` with 60-s chunks. Pause/resume, auto-stop on revoked tab share, raw-notes textarea persisted to localStorage per note. Preview pane with Discard / Insert.
+- **Toggle** in `note-workspace.tsx`: `Mic` header button, mutually exclusive with chat and comments. State persisted to `localStorage` per note.
+
+### Changed — Excalidraw is the canonical note surface
+
+Foundation for the full TipTap-removal arc. New empty notes open as a
+pure Excalidraw canvas (no auto-seeded text block); existing notes
+keep their TipTap blocks intact.
+
+- **`packages/editor/src/migrate-doc.ts`**: `migrateLegacyDoc()` no longer creates an empty TipTap block for brand-new notes. Legacy notes still get their `__legacy__` block sentinel — zero data loss.
+- **`packages/editor/src/migrate-blocks-to-excalidraw.ts` (new)**: per-note migration `migrateBlocksToExcalidraw(doc)`. Walks each block, extracts plaintext (rich formatting collapses — documented trade-off; Phase 2 reimplements headings/lists/math/mermaid/callouts as Excalidraw-native), creates positioned `text` elements, removes the blocks. Idempotent.
+- **Note menu** in `note-workspace.tsx`: "Convert text blocks to Excalidraw…" item with confirm dialog and toast feedback.
+- **Phase 2 (not in this release)**: structured-block reimplementation on Excalidraw, then deletion of `text-block.tsx` and `@tiptap/*` from `@notai/editor`. Tracked separately.
+
+### Added — Heading presets on Excalidraw text (Phase 2 kickoff)
+
+First Phase-2 piece of the Excalidraw migration: a floating
+H1 / H2 / H3 / Body pill bar appears at the top of the canvas whenever
+exactly one text element is selected. Click promotes the element to
+the chosen heading level.
+
+- **`packages/editor/src/excalidraw-headings.tsx` (new)**: `ExcalidrawHeadingsToolbar` + `useSelectedText` selection observer. Style stored as `customData.style` (`'h1' | 'h2' | 'h3' | 'body'`) plus `fontSize` (32 / 24 / 20 / 16). Existing un-tagged elements get inferred from font size so the toolbar never misrepresents legacy content.
+- **Wiring** in `canvas-note.tsx`: mounted next to the Excalidraw canvas, suppressed on read-only mirrors and shared-link viewers via the same `enabled` flag pattern used by Calc.
+- Sets `customData.style` so future outline-extraction / search-ranking / AI summarization passes can treat headings as structural anchors instead of plain text.
+
+### Added — Backlinks on Excalidraw text
+
+Type `[[Note title]]` inside any canvas text element and a clickable
+chip pops up beneath the element resolving to the matching note.
+Cross-canvas links work the same as in legacy TipTap blocks: clicks
+bubble up to `note-workspace.tsx`'s router-push handler via the shared
+`<a data-backlink="<id>">` convention.
+
+- **`packages/editor/src/excalidraw-backlinks.tsx` (new)**: read-only overlay over the Excalidraw scene, no custom element types. Per-overlay title→id resolution cache so a 50-link note doesn't fire 50 lookups per `onChange` tick. Unresolved titles render as a muted "?" chip with a hint, so you can fix the typo or create the note.
+- Resolves through the existing `searchBacklinks` callback used by the TipTap layer — one source of truth.
+
+### Added — Lists & checkboxes on Excalidraw text
+
+Bullet, numbered, and checklist toggles in the format toolbar plus
+click-to-toggle interactive checkboxes drawn over `[ ]` / `[x]` lines.
+
+- **Format toolbar** (`excalidraw-headings.tsx`): three new pills (`•` / `1.` / `☐`) cycle the selected text element's lines through plain ↔ bullet ↔ numbered ↔ checklist. Idempotent: clicking the active mode strips the prefix.
+- **`packages/editor/src/excalidraw-checklist.tsx` (new)**: scans every text element for `[ ]` / `[x]` / `- [ ]` / `- [x]` lines and renders an absolutely-positioned interactive checkbox at each one. Click toggles the underlying plaintext. Sits on top of the source `[ ]` glyphs so the rendered box is the only mark visible; works at any zoom because it scales with `viewport.zoom`.
+- All three (lists, numbered, checklist) round-trip through migration, plain-text export, and copy-paste — no custom Excalidraw element types added.
+
+### Added — Code & callout presets on Excalidraw text
+
+Two more pills in the format toolbar bring code and callout styling
+parity with TipTap.
+
+- **Code** (`</>` pill): toggles the selected text element to monospace (`fontFamily: 3` / Cascadia) and tags `customData.kind = 'code'`. A future syntax-highlighting renderer can opt in by reading the tag — no detection required.
+- **Callout** (`❝` pill): wraps the selected text element in a tinted, rounded `rectangle` element (`customData.kind = 'callout'`) grouped together with the text. Toggling again removes the rectangle and ungroups, leaving the original text untouched. Move the group, both move; resize the box, the text stays where it sits.
+- Both toggles ship in `excalidraw-headings.tsx` so the canvas has a single floating format bar instead of three separate widgets.
+
+### Changed — Comments support Excalidraw elements as anchors
+
+Foundation for Phase-2 of the Excalidraw migration. The comments
+schema now accepts `{kind: 'element', elementId}` alongside the
+existing `note` / `block` / `canvas` anchors.
+
+- **`packages/db/src/schema/notes.ts`**: `noteComments.anchor` jsonb `$type` widened to include the element variant. Pure type change — no SQL migration needed because the column is already `jsonb`.
+- **`apps/web/src/server/actions/comments.ts`**: `CommentRow.anchor` and the Zod `anchorSchema` accept the new shape; existing comments still validate.
+- **`rewireCommentsAfterMigration({noteId, mapping})` (new)**: idempotent server action that takes a `blockId → elementId` map (returned by the canvas migration) and `UPDATE`s every comment whose anchor was `{kind:'block', blockId}` to point at the new Excalidraw element. Note-access gated like the rest of the comments surface.
+- **Migration helper** (`packages/editor/src/migrate-blocks-to-excalidraw.ts`) now returns `{count, blockToElement}`; the "Convert text blocks to Excalidraw…" menu item calls `rewireCommentsAfterMigration` automatically and toasts the number of comments re-anchored.
+
+### Added — Live KaTeX & Mermaid previews on Excalidraw
+
+Type `$$ E = mc^2 $$` or a fenced ` ```mermaid` block inside any
+canvas text element and a live, lazy-rendered preview appears beneath
+it. Source stays editable on the canvas — same dual-view pattern
+Notion / Reflect / Bear ship for math.
+
+- **`packages/editor/src/excalidraw-math-mermaid.tsx` (new)**: read-only overlay over the scene. Detects `$$…$$` (KaTeX display math) and ```` ```mermaid…``` ```` blocks per text element. Lazy-imports `katex` (+ its CSS) and `mermaid` only when a user actually types one — zero baseline bundle cost. Per-source render cache (capped at 512 entries) avoids re-rendering on every `onChange` tick. Mermaid runs at `securityLevel: 'strict'` so the user-authored source can't inject HTML.
+- **Wiring** in `canvas-note.tsx`: mounted alongside the other Phase-2 overlays. Disabled on sticky mirrors (`enabled={!stickyMode}`) so the lightweight side-panes don't pull KaTeX/Mermaid into their bundle.
+- This closes the last structured-block parity gap before Phase 3 strips TipTap from notes entirely.
+
+### Added — Canvas migration nudge banner (Phase 3 kickoff)
+
+Notes that still have TipTap text blocks now show a dismissible
+"Convert to canvas" banner. One click runs the migration + comments
+re-anchor in a single flow. Phase-3 user-agency over the destructive
+final step before we remove the TipTap surface from notes entirely.
+
+- **`packages/editor/src/use-blocks-count.ts` (new)**: reactive `useBlocksCount(doc)` hook subscribing to the Y.Array AND its parent map (so a late-installed array still triggers re-render). Returns `-1` until the doc syncs so the banner doesn't flicker on slow connections.
+- **`apps/web/src/components/note/canvas-migration-banner.tsx` (new)**: dismissal persisted to `localStorage` per note. "Convert" calls `migrateBlocksToExcalidraw(doc)` plus `rewireCommentsAfterMigration({noteId, mapping})`, with toasts at every step. Auto-hides once the note is pure-Excalidraw.
+- **Wiring** in `note-workspace.tsx`: mounted next to the daily-rollover banner above the canvas, so the prompt is unmissable without being modal.
+
 ### Added — Quick capture (P0-7)
 
 P0-7 of the competitive backlog. A friction-free way to dump a thought

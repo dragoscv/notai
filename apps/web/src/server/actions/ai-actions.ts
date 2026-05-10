@@ -71,3 +71,36 @@ export async function rewriteForClarity(noteId: string) {
     'Rewrite this note for clarity. Keep all facts, fix grammar, add headings if helpful.',
   );
 }
+
+const continueSchema = z.object({
+  noteId: z.string().min(1),
+  prefix: z.string().min(1).max(4000),
+});
+
+/**
+ * "Continue this thought" \u2014 takes a snippet from the canvas and asks
+ * the model to extend it by 1-3 sentences in the same voice. Used by
+ * the inline "continue writing" button on a selected text element.
+ */
+export async function continueWriting(input: { noteId: string; prefix: string }) {
+  const session = await auth();
+  const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
+  if (!userId) throw new Error('Not signed in');
+  await requireQuota(userId, 'ai');
+  const { noteId, prefix } = continueSchema.parse(input);
+  await requireUserAccess(idSchema.parse(noteId));
+  let result = '';
+  for await (const delta of streamChat({
+    system:
+      "You continue someone's in-progress writing. Match their tone, voice, and " +
+      'level of formality. Add 1-3 sentences only. No commentary, no quotes, no ' +
+      'meta. Continue directly from where they stopped.',
+    user: prefix,
+    temperature: 0.6,
+    userId,
+  })) {
+    result += delta;
+  }
+  await incrementAiUsage(userId, 1);
+  return result.trim();
+}

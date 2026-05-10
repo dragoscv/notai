@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 import { useTheme } from 'next-themes';
 import {
   User as UserIcon,
@@ -13,6 +13,10 @@ import {
   Check,
   Loader2,
   PenLine,
+  Wand2,
+  Plus,
+  Trash2,
+  KeyRound,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -32,8 +36,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@notai/ui/components/avatar
 import { Separator } from '@notai/ui/components/separator';
 import { cn, getInitials } from '@notai/lib/utils';
 import { useAppPreferences, type AppPreferences } from '@/lib/preferences';
+import { useSnippets, setSnippets } from '@/lib/snippets';
+import { ShortcutsEditor } from './shortcuts-editor';
 import { signOutAction } from '@/server/actions/auth';
 import { updateProfile, exportUserNotes, deleteAccount } from '@/server/actions/account';
+import { exportAllNotesAsZip } from '@/server/actions/export-zip';
+import { importWorkspaceZip } from '@/server/actions/import-zip';
+import { exportCalendarIcs } from '@/server/actions/export-ics';
 
 export interface SettingsUser {
   id: string;
@@ -42,7 +51,7 @@ export interface SettingsUser {
   image?: string | null;
 }
 
-type Section = 'profile' | 'appearance' | 'notes' | 'account';
+type Section = 'profile' | 'appearance' | 'notes' | 'snippets' | 'shortcuts' | 'account';
 
 interface SettingsDialogProps {
   user: SettingsUser;
@@ -54,6 +63,8 @@ const NAV: Array<{ id: Section; label: string; icon: ReactNode }> = [
   { id: 'profile', label: 'Profile', icon: <UserIcon className="size-4" /> },
   { id: 'appearance', label: 'Appearance', icon: <Palette className="size-4" /> },
   { id: 'notes', label: 'Notes', icon: <NotebookPen className="size-4" /> },
+  { id: 'snippets', label: 'Snippets', icon: <Wand2 className="size-4" /> },
+  { id: 'shortcuts', label: 'Shortcuts', icon: <KeyRound className="size-4" /> },
   { id: 'account', label: 'Account', icon: <ShieldAlert className="size-4" /> },
 ];
 
@@ -124,6 +135,8 @@ export function SettingsDialog({ user, open, onOpenChange }: SettingsDialogProps
             {section === 'profile' && <ProfileSection user={user} />}
             {section === 'appearance' && <AppearanceSection />}
             {section === 'notes' && <NotesSection />}
+            {section === 'snippets' && <SnippetsSection />}
+            {section === 'shortcuts' && <ShortcutsSection />}
             {section === 'account' && (
               <AccountSection user={user} onClose={() => onOpenChange(false)} />
             )}
@@ -263,6 +276,50 @@ function AppearanceSection() {
           Controls the maximum width of the note content column.
         </p>
       </div>
+
+      <div className="space-y-2">
+        <Label>Sidebar density</Label>
+        <SegmentedControl<AppPreferences['sidebarDensity']>
+          value={prefs.sidebarDensity}
+          onChange={(v) => setPrefs({ sidebarDensity: v })}
+          options={[
+            { value: 'compact', label: 'Compact' },
+            { value: 'cozy', label: 'Cozy' },
+            { value: 'spacious', label: 'Spacious' },
+          ]}
+        />
+        <p className="text-muted-foreground text-xs">
+          Tightens or relaxes the spacing of rows in the sidebar.
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-0.5">
+          <Label htmlFor="dyslexia-font">Dyslexia-friendly font</Label>
+          <p className="text-muted-foreground text-xs">
+            Switches the UI to a hyper-legible serif/sans stack with looser letter-spacing.
+          </p>
+        </div>
+        <Switch
+          id="dyslexia-font"
+          checked={prefs.dyslexiaFont}
+          onCheckedChange={(v) => setPrefs({ dyslexiaFont: v })}
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-0.5">
+          <Label htmlFor="high-contrast">High contrast</Label>
+          <p className="text-muted-foreground text-xs">
+            Strengthens borders and focus rings against the current theme.
+          </p>
+        </div>
+        <Switch
+          id="high-contrast"
+          checked={prefs.highContrast}
+          onCheckedChange={(v) => setPrefs({ highContrast: v })}
+        />
+      </div>
     </div>
   );
 }
@@ -353,10 +410,101 @@ function NotesSection() {
   );
 }
 
+/* -------------------------------- Snippets ------------------------------- */
+
+function SnippetsSection() {
+  const snippets = useSnippets();
+  const [draft, setDraft] = useState<Array<{ name: string; body: string }>>(() => snippets);
+  useEffect(() => {
+    setDraft(snippets);
+  }, [snippets]);
+
+  const persist = (next: Array<{ name: string; body: string }>) => {
+    setDraft(next);
+    setSnippets(next);
+  };
+
+  return (
+    <div className="space-y-6">
+      <SectionHeading
+        title="Snippets"
+        description="Type ::name on the canvas and Notai expands it. Use __TODAY__ or __NOW__ inside a body for live values."
+      />
+
+      <div className="space-y-2">
+        {draft.map((s, i) => (
+          <div key={i} className="bg-card/50 flex items-start gap-2 rounded-md border p-2">
+            <div className="flex w-32 shrink-0 flex-col gap-1">
+              <Label className="text-[10px] uppercase tracking-wider opacity-70">Name</Label>
+              <Input
+                value={s.name}
+                onChange={(e) => {
+                  const copy = [...draft];
+                  copy[i] = { ...copy[i]!, name: e.target.value };
+                  setDraft(copy);
+                }}
+                onBlur={() => persist(draft)}
+                placeholder="todo"
+                className="h-8 font-mono text-xs"
+              />
+            </div>
+            <div className="flex flex-1 flex-col gap-1">
+              <Label className="text-[10px] uppercase tracking-wider opacity-70">Expands to</Label>
+              <textarea
+                value={s.body}
+                onChange={(e) => {
+                  const copy = [...draft];
+                  copy[i] = { ...copy[i]!, body: e.target.value };
+                  setDraft(copy);
+                }}
+                onBlur={() => persist(draft)}
+                rows={2}
+                className="bg-background min-h-[2rem] w-full rounded-md border px-2 py-1 font-mono text-xs"
+              />
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mt-5"
+              onClick={() => persist(draft.filter((_, j) => j !== i))}
+              aria-label={`Delete snippet ${s.name}`}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
+        ))}
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => persist([...draft, { name: '', body: '' }])}
+        >
+          <Plus className="size-3.5" /> Add snippet
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------- Shortcuts ------------------------------ */
+
+function ShortcutsSection() {
+  return (
+    <div className="space-y-4">
+      <SectionHeading title="Shortcuts" description="Customize Notai's keyboard shortcuts." />
+      <ShortcutsEditor />
+    </div>
+  );
+}
+
 /* -------------------------------- Account -------------------------------- */
 
 function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => void }) {
   const [exporting, startExport] = useTransition();
+  const [exportingZip, startExportZip] = useTransition();
+  const [importing, startImport] = useTransition();
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const [exportingIcs, startExportIcs] = useTransition();
   const [signingOut, startSignOut] = useTransition();
   const [confirmEmail, setConfirmEmail] = useState('');
   const [deleting, startDelete] = useTransition();
@@ -384,9 +532,93 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
     });
   };
 
+  const exportZip = () => {
+    startExportZip(async () => {
+      try {
+        const { filename, base64, noteCount } = await exportAllNotesAsZip();
+        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: 'application/zip' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        toast.success(`Exported ${noteCount} note${noteCount === 1 ? '' : 's'} as Markdown.`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Export failed');
+      }
+    });
+  };
+
   const doSignOut = () => {
     startSignOut(async () => {
       await signOutAction();
+    });
+  };
+
+  const exportIcs = () => {
+    startExportIcs(async () => {
+      try {
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        const { filename, content, eventCount } = await exportCalendarIcs(origin);
+        if (eventCount === 0) {
+          toast.info(
+            'No dates found in your notes yet. Add `2025-12-05` style dates to your notes.',
+          );
+          return;
+        }
+        const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        toast.success(`Exported ${eventCount} event${eventCount === 1 ? '' : 's'} as .ics`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Calendar export failed');
+      }
+    });
+  };
+
+  const onImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Zip is too large (max 20 MB).');
+      return;
+    }
+    startImport(async () => {
+      const t = toast.loading('Importing notes…');
+      try {
+        const buf = await file.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        let binary = '';
+        const CHUNK = 0x8000;
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+        }
+        const base64 = btoa(binary);
+        const summary = await importWorkspaceZip({ filename: file.name, base64 });
+        const parts: string[] = [];
+        if (summary.notesCreated > 0)
+          parts.push(`${summary.notesCreated} note${summary.notesCreated === 1 ? '' : 's'}`);
+        if (summary.foldersCreated > 0)
+          parts.push(`${summary.foldersCreated} folder${summary.foldersCreated === 1 ? '' : 's'}`);
+        const message = parts.length > 0 ? `Imported ${parts.join(', ')}.` : 'Nothing imported.';
+        toast.success(message, { id: t });
+        if (summary.errors.length > 0) {
+          toast.warning(`${summary.errors.length} issue(s): ${summary.errors[0]}`);
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Import failed', { id: t });
+      }
     });
   };
 
@@ -428,6 +660,77 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
               <Download className="size-4" />
             )}
             Export
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium">Export as Markdown (.zip)</p>
+            <p className="text-muted-foreground text-xs">
+              One markdown file per note, mirroring your folder structure. Best for moving to
+              another tool.
+            </p>
+          </div>
+          <Button type="button" variant="outline" onClick={exportZip} disabled={exportingZip}>
+            {exportingZip ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4" />
+            )}
+            Download .zip
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium">Import workspace from .zip</p>
+            <p className="text-muted-foreground text-xs">
+              Drop a zip of `.md` files (folders preserved). Max 500 files / 5 MB total.
+            </p>
+          </div>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".zip,application/zip"
+            onChange={onImportFile}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => importInputRef.current?.click()}
+            disabled={importing}
+          >
+            {importing ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4 rotate-180" />
+            )}
+            Import .zip
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium">Calendar export (.ics)</p>
+            <p className="text-muted-foreground text-xs">
+              Find every `YYYY-MM-DD` date in your notes and export them as a calendar file.
+              Subscribe to it in Apple/Google/Outlook calendar to see your notes\u2019 dates inline.
+            </p>
+          </div>
+          <Button type="button" variant="outline" onClick={exportIcs} disabled={exportingIcs}>
+            {exportingIcs ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4" />
+            )}
+            Download .ics
           </Button>
         </div>
       </div>

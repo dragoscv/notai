@@ -54,7 +54,14 @@ export default async function TemplatesPage() {
                         {t.icon ?? '📄'}
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate font-medium">{t.title}</p>
+                        <p className="truncate font-medium">
+                          {t.title}
+                          {t.isPersonal && (
+                            <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                              Personal
+                            </span>
+                          )}
+                        </p>
                         <p className="text-muted-foreground line-clamp-2 text-xs">
                           {t.description}
                         </p>

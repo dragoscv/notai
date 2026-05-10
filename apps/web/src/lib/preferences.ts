@@ -19,12 +19,21 @@ export interface AppPreferences {
   spellcheck: boolean;
   /** Sort order for the notes list in the sidebar. */
   noteSort: 'updated' | 'created' | 'alphabetical';
+  /** Switch UI body font to a dyslexia-friendly stack (Atkinson Hyperlegible / Comic Neue fallback). */
+  dyslexiaFont: boolean;
+  /** Force higher-contrast colour palette regardless of theme. */
+  highContrast: boolean;
+  /** Sidebar row density. */
+  sidebarDensity: 'compact' | 'cozy' | 'spacious';
 }
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
   editorWidth: 'comfortable',
   spellcheck: true,
   noteSort: 'updated',
+  dyslexiaFont: false,
+  highContrast: false,
+  sidebarDensity: 'cozy',
 };
 
 function readFromStorage(): AppPreferences {

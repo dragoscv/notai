@@ -25,7 +25,7 @@
         { "src": "/icons/icon-1024.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any maskable" }
     ],
     "share_target": {
-        "action": "/app?share=1",
+        "action": "/share",
         "method": "GET",
         "params": {
             "title": "title",
