@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { verifyApiKey } from '@/server/actions/api-keys';
 import { dispatchNoteEvent } from '@/server/actions/webhooks';
 import { logApiRequest } from '@/server/api-log';
+import { rateLimit, tooManyRequests } from '@/lib/rate-limit';
 import { apiCreateNote } from '@/server/notes-api';
 import { db, notes, eq, and, isNull, desc } from '@notai/db';
 
@@ -16,7 +17,12 @@ export const runtime = 'nodejs';
  * POST /api/v1/notes
  *   Body: { title?, plaintext?, icon?, folderId? }
  *   Creates a new note owned by the API key holder.
+ *
+ * Rate limit: 60 requests/minute per key (read), 30 requests/minute per key (write).
  */
+
+const READ_LIMIT = { name: 'v1-notes-read', windowSec: 60, max: 60 };
+const WRITE_LIMIT = { name: 'v1-notes-write', windowSec: 60, max: 30 };
 
 const createSchema = z.object({
   title: z.string().max(200).optional(),
@@ -30,6 +36,18 @@ export async function GET(req: Request) {
   const auth = await verifyApiKey(req.headers.get('authorization'));
   if (!auth) return jsonError(401, 'unauthorized');
   if (!auth.scopes.includes('notes:read')) return jsonError(403, 'missing scope notes:read');
+  const rl = await rateLimit({ ...READ_LIMIT, key: auth.apiKeyId });
+  if (!rl.ok) {
+    logApiRequest({
+      apiKeyId: auth.apiKeyId,
+      userId: auth.userId,
+      path: '/api/v1/notes',
+      method: 'GET',
+      status: 429,
+      durationMs: Date.now() - started,
+    });
+    return tooManyRequests(rl);
+  }
   const rows = await db
     .select({
       id: notes.id,
@@ -59,6 +77,18 @@ export async function POST(req: Request) {
   const auth = await verifyApiKey(req.headers.get('authorization'));
   if (!auth) return jsonError(401, 'unauthorized');
   if (!auth.scopes.includes('notes:write')) return jsonError(403, 'missing scope notes:write');
+  const rl = await rateLimit({ ...WRITE_LIMIT, key: auth.apiKeyId });
+  if (!rl.ok) {
+    logApiRequest({
+      apiKeyId: auth.apiKeyId,
+      userId: auth.userId,
+      path: '/api/v1/notes',
+      method: 'POST',
+      status: 429,
+      durationMs: Date.now() - started,
+    });
+    return tooManyRequests(rl);
+  }
   let body: unknown;
   try {
     body = await req.json();

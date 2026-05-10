@@ -3,9 +3,13 @@ import { z } from 'zod';
 import { verifyApiKey } from '@/server/actions/api-keys';
 import { dispatchNoteEvent } from '@/server/actions/webhooks';
 import { logApiRequest } from '@/server/api-log';
+import { rateLimit, tooManyRequests } from '@/lib/rate-limit';
 import { apiGetNote, apiUpdateNote, apiArchiveNote } from '@/server/notes-api';
 
 export const runtime = 'nodejs';
+
+const READ_LIMIT = { name: 'v1-note-read', windowSec: 60, max: 60 };
+const WRITE_LIMIT = { name: 'v1-note-write', windowSec: 60, max: 30 };
 
 const updateSchema = z.object({
   title: z.string().max(200).optional(),
@@ -18,6 +22,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const auth = await verifyApiKey(req.headers.get('authorization'));
   if (!auth) return err(401, 'unauthorized');
   if (!auth.scopes.includes('notes:read')) return err(403, 'missing scope notes:read');
+  const rl = await rateLimit({ ...READ_LIMIT, key: auth.apiKeyId });
+  if (!rl.ok) {
+    logApiRequest({
+      apiKeyId: auth.apiKeyId,
+      userId: auth.userId,
+      path: '/api/v1/notes/[id]',
+      method: 'GET',
+      status: 429,
+      durationMs: Date.now() - started,
+    });
+    return tooManyRequests(rl);
+  }
   const { id } = await params;
   const note = await apiGetNote(auth.userId, id);
   if (!note) return err(404, 'not found');
@@ -37,6 +53,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const auth = await verifyApiKey(req.headers.get('authorization'));
   if (!auth) return err(401, 'unauthorized');
   if (!auth.scopes.includes('notes:write')) return err(403, 'missing scope notes:write');
+  const rl = await rateLimit({ ...WRITE_LIMIT, key: auth.apiKeyId });
+  if (!rl.ok) {
+    logApiRequest({
+      apiKeyId: auth.apiKeyId,
+      userId: auth.userId,
+      path: '/api/v1/notes/[id]',
+      method: 'PATCH',
+      status: 429,
+      durationMs: Date.now() - started,
+    });
+    return tooManyRequests(rl);
+  }
   const { id } = await params;
   let body: unknown;
   try {
@@ -65,6 +93,18 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const auth = await verifyApiKey(req.headers.get('authorization'));
   if (!auth) return err(401, 'unauthorized');
   if (!auth.scopes.includes('notes:write')) return err(403, 'missing scope notes:write');
+  const rl = await rateLimit({ ...WRITE_LIMIT, key: auth.apiKeyId });
+  if (!rl.ok) {
+    logApiRequest({
+      apiKeyId: auth.apiKeyId,
+      userId: auth.userId,
+      path: '/api/v1/notes/[id]',
+      method: 'DELETE',
+      status: 429,
+      durationMs: Date.now() - started,
+    });
+    return tooManyRequests(rl);
+  }
   const { id } = await params;
   const ok = await apiArchiveNote(auth.userId, id);
   if (!ok) return err(404, 'not found');

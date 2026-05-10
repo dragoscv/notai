@@ -22,7 +22,7 @@ export function buildOpenApiSpec(baseUrl: string): OpenApiSpec {
       title: 'Notai REST API',
       version: '1.0.0',
       description:
-        'Programmatic access to your Notai notes. Authenticate with a bearer API key from Settings → API keys. All requests are scoped to the key holder; keys carry the `notes:read` and/or `notes:write` scopes. Webhook events fire on create/update/archive — configure under Settings → Webhooks.',
+        'Programmatic access to your Notai notes. Authenticate with a bearer API key from Settings → API keys. All requests are scoped to the key holder; keys carry the `notes:read` and/or `notes:write` scopes. Webhook events fire on create/update/archive — configure under Settings → Webhooks.\n\n**Rate limits (per API key):** 60 reads/min and 30 writes/min per endpoint family. Exceeding either returns `429 too_many_requests` with a `Retry-After` header (seconds) and `X-RateLimit-Remaining` / `X-RateLimit-Reset` headers.',
     },
     servers: [
       { url: `${baseUrl}/api/v1`, description: 'Production' },
@@ -85,6 +85,24 @@ export function buildOpenApiSpec(baseUrl: string): OpenApiSpec {
           description: 'Invalid JSON or schema validation failure.',
           content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
         },
+        TooManyRequests: {
+          description: 'Rate limit exceeded for this API key.',
+          headers: {
+            'Retry-After': {
+              description: 'Seconds until you may retry.',
+              schema: { type: 'integer', minimum: 1 },
+            },
+            'X-RateLimit-Remaining': {
+              description: 'Requests remaining in the current window (always 0 on 429).',
+              schema: { type: 'integer' },
+            },
+            'X-RateLimit-Reset': {
+              description: 'Unix epoch seconds when the window resets.',
+              schema: { type: 'integer' },
+            },
+          },
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+        },
       },
     },
     security: [{ bearerAuth: [] }],
@@ -111,6 +129,7 @@ export function buildOpenApiSpec(baseUrl: string): OpenApiSpec {
             },
             '401': { $ref: '#/components/responses/Unauthorized' },
             '403': { $ref: '#/components/responses/Forbidden' },
+            '429': { $ref: '#/components/responses/TooManyRequests' },
           },
         },
         post: {
@@ -140,6 +159,7 @@ export function buildOpenApiSpec(baseUrl: string): OpenApiSpec {
             '400': { $ref: '#/components/responses/BadRequest' },
             '401': { $ref: '#/components/responses/Unauthorized' },
             '403': { $ref: '#/components/responses/Forbidden' },
+            '429': { $ref: '#/components/responses/TooManyRequests' },
           },
         },
       },
@@ -173,6 +193,7 @@ export function buildOpenApiSpec(baseUrl: string): OpenApiSpec {
             '401': { $ref: '#/components/responses/Unauthorized' },
             '403': { $ref: '#/components/responses/Forbidden' },
             '404': { $ref: '#/components/responses/NotFound' },
+            '429': { $ref: '#/components/responses/TooManyRequests' },
           },
         },
         patch: {
@@ -202,6 +223,7 @@ export function buildOpenApiSpec(baseUrl: string): OpenApiSpec {
             '401': { $ref: '#/components/responses/Unauthorized' },
             '403': { $ref: '#/components/responses/Forbidden' },
             '404': { $ref: '#/components/responses/NotFound' },
+            '429': { $ref: '#/components/responses/TooManyRequests' },
           },
         },
         delete: {
@@ -224,6 +246,7 @@ export function buildOpenApiSpec(baseUrl: string): OpenApiSpec {
             '401': { $ref: '#/components/responses/Unauthorized' },
             '403': { $ref: '#/components/responses/Forbidden' },
             '404': { $ref: '#/components/responses/NotFound' },
+            '429': { $ref: '#/components/responses/TooManyRequests' },
           },
         },
       },

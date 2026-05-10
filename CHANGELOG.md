@@ -16,6 +16,13 @@ Each app in this monorepo is versioned independently:
 
 ### Added
 
+- **Per-API-key rate limiting on the v1 REST API** — every
+  `/api/v1/notes/*` route now enforces 60 reads/min and 30 writes/min
+  per key (in-memory sliding window). Exceeding either returns
+  `429 too_many_requests` with `Retry-After`, `X-RateLimit-Remaining`
+  and `X-RateLimit-Reset` headers. Limits and the 429 response shape
+  are documented in the OpenAPI spec.
+
 - **Public OpenAPI 3.1 spec + interactive reference** — the v1 REST
   surface (`/api/v1/notes`) is now described by a hand-maintained
   OpenAPI document served at `/api/v1/openapi` (cached 5 min,
