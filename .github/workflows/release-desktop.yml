@@ -81,7 +81,12 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - { os: macos-latest, target: 'macos-universal', args: '--target universal-apple-darwin' }
+          # Pinned to macos-14: macos-latest has rolled to macOS 15
+          # (Sequoia) where Tauri's bundle_dmg.sh fails ~5s in because
+          # Finder/osascript permission policy changed and the helper
+          # exits non-zero with no useful stderr. macos-14 still drives
+          # Finder fine and produces working universal DMGs.
+          - { os: macos-14, target: 'macos-universal', args: '--target universal-apple-darwin' }
           - { os: ubuntu-22.04, target: 'linux-x86_64', args: '' }
           - { os: windows-2025, target: 'windows-x86_64', args: '' }
     runs-on: ${{ matrix.platform.os }}
