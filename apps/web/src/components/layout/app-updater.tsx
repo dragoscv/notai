@@ -2,14 +2,8 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 import { isTauri, invoke } from '@/lib/tauri';
+import { showUpdateAvailableToast, type UpdateInfo } from './update-toast';
 
-interface UpdateInfo {
-  version: string;
-  current_version: string;
-  notes?: string | null;
-}
-
-const TOAST_ID = 'updater-available';
 const POLL_MS = 60 * 60 * 1000; // re-check every hour while the app is open
 
 /**
@@ -33,31 +27,11 @@ export function AppUpdater() {
       let unlisten: (() => void) | null = null;
       let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-      const showAvailableToast = (info: UpdateInfo) => {
-        toast(`Notai v${info.version} is available`, {
-          id: TOAST_ID,
-          description: info.notes
-            ? truncate(info.notes, 240)
-            : `You're on v${info.current_version}.`,
-          duration: Infinity,
-          action: {
-            label: 'Install & restart',
-            onClick: () => {
-              toast.loading('Downloading update…', { id: TOAST_ID });
-              invoke('install_update').catch((e) => {
-                toast.error(`Update failed: ${String(e)}`, { id: TOAST_ID, duration: 8000 });
-              });
-            },
-          },
-          cancel: { label: 'Later', onClick: () => toast.dismiss(TOAST_ID) },
-        });
-      };
-
       const runCheck = async () => {
         try {
           const info = await invoke<UpdateInfo | null>('check_for_update');
           if (cancelled || !info) return;
-          showAvailableToast(info);
+          showUpdateAvailableToast(info);
         } catch {
           // offline, GitHub rate-limit, or command missing — silent.
         }
@@ -67,7 +41,7 @@ export function AppUpdater() {
         try {
           const { listen } = await import('@tauri-apps/api/event');
           const un = await listen<UpdateInfo>('updater://available', (ev) => {
-            if (ev.payload) showAvailableToast(ev.payload);
+            if (ev.payload) showUpdateAvailableToast(ev.payload);
           });
           if (cancelled) un();
           else unlisten = un;
@@ -124,9 +98,4 @@ export function AppUpdater() {
   }, []);
 
   return null;
-}
-
-function truncate(s: string, max: number): string {
-  if (s.length <= max) return s;
-  return `${s.slice(0, max - 1).trimEnd()}…`;
 }

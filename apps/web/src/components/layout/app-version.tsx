@@ -4,12 +4,7 @@ import { toast } from 'sonner';
 import { RefreshCw, AlertTriangle, Check } from 'lucide-react';
 import { isTauri, invoke } from '@/lib/tauri';
 import { cn } from '@notai/lib/utils';
-
-interface UpdateInfo {
-  version: string;
-  current_version: string;
-  notes?: string | null;
-}
+import { showUpdateAvailableToast, showUpToDateToast, type UpdateInfo } from './update-toast';
 
 const WEB_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.0.0';
 const REALTIME_VERSION = process.env.NEXT_PUBLIC_REALTIME_VERSION ?? '0.0.0';
@@ -62,7 +57,13 @@ export function AppVersion({ collapsed }: { collapsed?: boolean }) {
     setState('checking');
     try {
       const info = await invoke<UpdateInfo | null>('check_for_update');
-      setState(info ? 'available' : 'uptodate');
+      if (info) {
+        setState('available');
+        showUpdateAvailableToast(info);
+      } else {
+        setState('uptodate');
+        showUpToDateToast(desktopVersion ?? WEB_VERSION);
+      }
     } catch (err) {
       toast.error(`Update check failed: ${String(err)}`, { duration: 5000 });
       setState('idle');
@@ -94,7 +95,7 @@ export function AppVersion({ collapsed }: { collapsed?: boolean }) {
         : 'text-muted-foreground/70 hover:text-foreground';
   const tooltip =
     state === 'available'
-      ? 'Update available — click the install toast to apply'
+      ? 'Update available — click to install'
       : state === 'uptodate'
         ? 'You are on the latest version'
         : state === 'checking'
