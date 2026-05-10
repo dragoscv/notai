@@ -515,6 +515,29 @@ Apply with `pnpm db:migrate (local)` or `pnpm db:migrate (production)`.
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.23] - 2026-05-10
+
+### Fixed
+
+- Sidebar update icon now opens the install confirmation toast directly
+  on click. Previously the icon only re-checked for an update and
+  flipped its own visual state — the actual `Install & restart` toast
+  was rendered exclusively by the mount-time / hourly poll in
+  `AppUpdater`, so once the toast had been dismissed (or the user
+  navigated past the moment it fired) clicking the warning triangle
+  did nothing visible.
+  - Extracted `showUpdateAvailableToast` / `showUpToDateToast` into a
+    shared helper `apps/web/src/components/layout/update-toast.ts` so
+    the toast renders identically from both surfaces.
+  - `AppVersion.onCheck` now calls the helper directly: an available
+    update opens the sticky `Install & restart` / `Later` toast, and
+    "up to date" shows a brief success toast.
+  - Tooltip on the warning icon updated to "Update available — click to
+    install" to match the new behavior.
+  - This is shipped as a desktop release so existing installs that
+    haven't reloaded the webview pick up the fix immediately via the
+    auto-updater; web/Vercel users get it on next reload regardless.
+
 ## [@notai/desktop 0.1.22] - 2026-05-10
 
 ### Added — Dashboard sort, filter, drag-reorder & saved views
