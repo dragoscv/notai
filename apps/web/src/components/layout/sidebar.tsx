@@ -39,6 +39,7 @@ import { useSidebar } from '@/components/layout/app-shell';
 import { DesktopAppPromo } from '@/components/layout/desktop-app-promo';
 import { SettingsDialog, useSettingsOpenRequests } from '@/components/settings/settings-dialog';
 import { NotificationBell } from '@/components/layout/notification-bell';
+import { AppVersion } from '@/components/layout/app-version';
 
 interface SidebarProps {
   user: { id: string; name?: string | null; email?: string | null; image?: string | null };
@@ -171,6 +172,8 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
           </Button>
         </div>
       </div>
+
+      <AppVersion collapsed={collapsed} />
 
       {/* Search trigger */}
       <div className={cn('pb-3', collapsed ? 'px-2' : 'px-3')}>

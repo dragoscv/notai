@@ -1,5 +1,12 @@
 import type { NextConfig } from 'next';
 import withSerwistInit from '@serwist/next';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const pkg = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8')) as {
+  version?: string;
+};
+const APP_VERSION = pkg.version ?? '0.0.0';
 
 const withSerwist = withSerwistInit({
   swSrc: 'src/app/sw.ts',
@@ -15,6 +22,10 @@ const nextConfig: NextConfig = {
   // Standalone build keeps the optional self-hosted Docker image small.
   // Vercel ignores this flag.
   output: 'standalone',
+
+  env: {
+    NEXT_PUBLIC_APP_VERSION: APP_VERSION,
+  },
 
   // Next.js 16 — top-level flags
   reactCompiler: true,

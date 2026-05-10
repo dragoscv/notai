@@ -515,6 +515,40 @@ Apply with `pnpm db:migrate (local)` or `pnpm db:migrate (production)`.
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.20] - 2026-05-10
+
+### Added — App version display + manual update check
+
+The sidebar now shows the current web and desktop app versions in
+small muted text under the Notai logo, plus a "Check for updates"
+link (desktop only) so users can trigger an update check on demand
+instead of waiting for the hourly poll.
+
+This also explains the most common "why didn't I auto-update?"
+question: the in-app updater poll runs hourly, and the GitHub
+`releases/latest` redirect only resolves to a desktop release when
+the most recent published release across the whole monorepo is a
+desktop one. If a `realtime-server` release was the latest, the
+desktop endpoint returned 404 and the update check failed silently
+on older builds. v0.1.18+ already prompts on success; this version
+adds a manual fallback for the silent-failure case.
+
+- **`apps/web/src/components/layout/app-version.tsx`**: new
+  client component. Reads web version from
+  `process.env.NEXT_PUBLIC_APP_VERSION` (injected by next.config.ts
+  from `apps/web/package.json`), reads desktop version via
+  `@tauri-apps/api/app#getVersion()` when running under Tauri,
+  exposes a "Check for updates" action that invokes the existing
+  `check_for_update` command and shows a sonner toast when no
+  update is available.
+- **`apps/web/src/components/layout/sidebar.tsx`**: render
+  `<AppVersion>` immediately under the brand block.
+- **`apps/web/next.config.ts`**: read `package.json` at build time
+  and expose `NEXT_PUBLIC_APP_VERSION` via `env` so the version is
+  inlined into the client bundle.
+- **`apps/web/package.json`**: bumped to 0.1.1 so the displayed
+  web version reflects the change.
+
 ## [@notai/desktop 0.1.19] - 2026-05-10
 
 ### Fixed — Start-minimized only applies to autostart launches
