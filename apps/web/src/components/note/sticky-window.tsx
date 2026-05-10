@@ -40,6 +40,24 @@ export function StickyWindow({ note, token, realtimeUrl, user }: StickyWindowPro
     document.title = `${title || 'Untitled'} - Notai`;
   }, [title]);
 
+  // Lock this window to its own /sticky/{id} route. The Tauri host blocks
+  // browser-level navigation away from this URL (see src-tauri/src/lib.rs
+  // on_navigation), but Next.js client-side router pushes go through
+  // history.pushState and bypass that hook. If anything in the canvas
+  // (a stray backlink click, an external integration) does a soft nav,
+  // snap back immediately so the sticky never starts showing /app.
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const expected = `/sticky/${note.id}`;
+    const enforce = () => {
+      if (window.location.pathname !== expected) {
+        window.location.replace(expected);
+      }
+    };
+    window.addEventListener('popstate', enforce);
+    return () => window.removeEventListener('popstate', enforce);
+  }, [note.id]);
+
   const palette = (note.color && COLORS[note.color]) || COLORS.default!;
   const surfaceDataAttr = surface.surface;
   const surfaceStyle = { '--paper-spacing': `${surface.spacing}px` } as React.CSSProperties;

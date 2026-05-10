@@ -57,11 +57,21 @@ fn spawn_sticky(app: &AppHandle, note_id: &str) -> Result<(), String> {
         let _ = existing.show();
         let _ = existing.unminimize();
         let _ = existing.set_focus();
+        ensure_on_visible_monitor(&existing);
         return Ok(());
     }
 
     let url = format!("{}/sticky/{}", app_url(), note_id);
     let parsed = url::Url::parse(&url).map_err(|e| e.to_string())?;
+
+    // Lock this webview to its own /sticky/{id} route. Without this, an
+    // accidental refresh after an error, a backlink click inside the
+    // canvas, or any auth-flow loop could navigate the sticky to /app
+    // and the user would suddenly see the entire workspace inside what
+    // is supposed to be a tiny widget. We allow the sticky path itself
+    // (with any query/hash for RSC + view transitions), the auth flow
+    // (sign-in redirects), and Next.js asset/RSC traffic.
+    let allowed_path = format!("/sticky/{}", note_id);
 
     // Position + size are persisted by `tauri-plugin-window-state` — it hooks
     // into `WebviewWindowBuilder::build()` and auto-restores saved state for
@@ -76,8 +86,24 @@ fn spawn_sticky(app: &AppHandle, note_id: &str) -> Result<(), String> {
         .resizable(true)
         .visible(true)
         .focused(true)
+        .on_navigation(move |url| {
+            let path = url.path().trim_end_matches('/');
+            let allowed = allowed_path.trim_end_matches('/');
+            path == allowed
+                || path.starts_with("/signin")
+                || path.starts_with("/api/auth/")
+                || path.starts_with("/_next/")
+        })
         .build()
         .map_err(|e| e.to_string())?;
+
+    // After the window-state plugin restores the saved geometry, double-
+    // check that at least a chunk of the window actually overlaps a
+    // currently-connected monitor. After sleep/wake or unplugging a
+    // second display, a saved position can land entirely off-screen and
+    // the user has no way to drag it back (no titlebar). Snap to the
+    // primary monitor's centre when that happens.
+    ensure_on_visible_monitor(&window);
 
     let _ = window;
     Ok(())
@@ -159,7 +185,7 @@ fn spawn_quick_capture(app: &AppHandle) -> Result<(), String> {
     }
     let url = format!("{}/app/quick-capture", app_url());
     let parsed = url::Url::parse(&url).map_err(|e| e.to_string())?;
-    WebviewWindowBuilder::new(app, label, WebviewUrl::External(parsed))
+    let window = WebviewWindowBuilder::new(app, label, WebviewUrl::External(parsed))
         .title("Capture")
         .inner_size(360.0, 420.0)
         .min_inner_size(260.0, 200.0)
@@ -169,8 +195,17 @@ fn spawn_quick_capture(app: &AppHandle) -> Result<(), String> {
         .resizable(true)
         .visible(true)
         .focused(true)
+        .on_navigation(|url| {
+            // Quick-capture window stays on its capture route + auth flow.
+            let path = url.path().trim_end_matches('/');
+            path == "/app/quick-capture"
+                || path.starts_with("/signin")
+                || path.starts_with("/api/auth/")
+                || path.starts_with("/_next/")
+        })
         .build()
         .map_err(|e| e.to_string())?;
+    ensure_on_visible_monitor(&window);
     Ok(())
 }
 
@@ -215,6 +250,67 @@ fn sanitize(s: &str) -> String {
     s.chars()
         .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
         .collect()
+}
+
+/// If the (just-restored or just-created) window is sitting entirely
+/// off-screen — typical after the user wakes from sleep with a different
+/// monitor configuration than when the position was saved — recentre it
+/// on the primary monitor. Without this, a borderless sticky has no way
+/// to be dragged back into view.
+fn ensure_on_visible_monitor(window: &tauri::WebviewWindow) {
+    use tauri::PhysicalPosition;
+
+    let pos = match window.outer_position() {
+        Ok(p) => p,
+        Err(_) => return,
+    };
+    let size = match window.outer_size() {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+    let monitors = match window.available_monitors() {
+        Ok(m) if !m.is_empty() => m,
+        _ => return,
+    };
+
+    let win_w = size.width as i32;
+    let win_h = size.height as i32;
+    let win_x = pos.x;
+    let win_y = pos.y;
+
+    // Require at least 100×100 px of overlap with some monitor before we
+    // consider the window "visible". A window peeking only 10 px onto a
+    // display is effectively unreachable.
+    const MIN_OVERLAP: i32 = 100;
+    let visible = monitors.iter().any(|m| {
+        let mx = m.position().x;
+        let my = m.position().y;
+        let mw = m.size().width as i32;
+        let mh = m.size().height as i32;
+        let ox = (win_x + win_w).min(mx + mw) - win_x.max(mx);
+        let oy = (win_y + win_h).min(my + mh) - win_y.max(my);
+        ox >= MIN_OVERLAP && oy >= MIN_OVERLAP
+    });
+
+    if visible {
+        return;
+    }
+
+    let target = window
+        .primary_monitor()
+        .ok()
+        .flatten()
+        .or_else(|| monitors.into_iter().next());
+
+    if let Some(m) = target {
+        let mx = m.position().x;
+        let my = m.position().y;
+        let mw = m.size().width as i32;
+        let mh = m.size().height as i32;
+        let new_x = mx + ((mw - win_w).max(0)) / 2;
+        let new_y = my + ((mh - win_h).max(0)) / 2;
+        let _ = window.set_position(PhysicalPosition::new(new_x, new_y));
+    }
 }
 
 /// Dispatch a single `notai://…` URL to the right window.

@@ -1,0 +1,2 @@
+    Checking notai-desktop v0.1.0 (E:\gh\notai\apps\desktop\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 35.07s
