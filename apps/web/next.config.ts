@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import withSerwistInit from '@serwist/next';
+import withBundleAnalyzer from '@next/bundle-analyzer';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -69,7 +70,10 @@ const nextConfig: NextConfig = {
       "frame-ancestors 'self'",
       "frame-src 'none'",
       "object-src 'none'",
-      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+      // Scalar API Reference loads its bundle from jsdelivr; jsdelivr is
+      // a long-lived CDN with SRI-pinned URLs available if we ever want
+      // to upgrade. Keep it scoped to script-src only.
+      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com",
       // Excalidraw 0.18 fetches its custom canvas fonts (Excalifont, Virgil,
@@ -114,4 +118,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSerwist(nextConfig);
+export default withBundleAnalyzer({ enabled: process.env.ANALYZE === 'true' })(
+  withSerwist(nextConfig),
+);

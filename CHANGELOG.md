@@ -16,6 +16,27 @@ Each app in this monorepo is versioned independently:
 
 ### Added
 
+- **Distributed rate limiter** \u2014 the in-memory limiter now upgrades
+  to Upstash Redis via REST when `UPSTASH_REDIS_REST_URL` and
+  `UPSTASH_REDIS_REST_TOKEN` are set. Counters are shared across all
+  Vercel instances; an INCR + EXPIRE-NX + PTTL pipeline runs in one
+  HTTP round-trip with an 800 ms hard timeout, and any failure
+  silently falls back to the per-instance memory bucket so an Upstash
+  outage cannot take the API down.
+- **Bundle analyzer** \u2014 `pnpm --filter @notai/web analyze` now runs
+  `next build` with `@next/bundle-analyzer` enabled (gated by
+  `ANALYZE=true`), producing the standard interactive treemap reports
+  for the client/server/edge bundles.
+
+### Fixed
+
+- **CSP for Scalar API reference** \u2014 the new
+  `/developers/api/reference` page loads its bundle from
+  `cdn.jsdelivr.net`; that host is now whitelisted in `script-src` so
+  the interactive docs render under the production CSP.
+
+### Added
+
 - **Per-API-key rate limiting on the v1 REST API** — every
   `/api/v1/notes/*` route now enforces 60 reads/min and 30 writes/min
   per key (in-memory sliding window). Exceeding either returns

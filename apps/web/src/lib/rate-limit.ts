@@ -45,6 +45,11 @@ export interface RateLimitResult {
 }
 
 export async function rateLimit(opts: RateLimitOptions): Promise<RateLimitResult> {
+  if (UPSTASH_URL && UPSTASH_TOKEN) {
+    const upstash = await rateLimitUpstash(opts);
+    if (upstash) return upstash;
+    // Fall through to memory on Upstash failure so the API stays up.
+  }
   const now = Date.now();
   gc(now);
   const fullKey = `rl:${opts.name}:${opts.key}`;
@@ -70,6 +75,54 @@ export async function rateLimit(opts: RateLimitOptions): Promise<RateLimitResult
     resetAt: bucket.resetAt,
     retryAfterSec: ok ? 0 : Math.ceil((bucket.resetAt - now) / 1000),
   };
+}
+
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, '') ?? '';
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN ?? '';
+
+/**
+ * Shared-state rate limiter via Upstash Redis REST API. Uses an
+ * INCR + EXPIRE-NX + TTL pipeline (3 round-trip-free ops in one HTTP
+ * request) so every Vercel instance shares the same counter.
+ *
+ * Returns null on any failure so the caller can fall back to memory —
+ * we never want a logging/limiter outage to take the API down.
+ */
+async function rateLimitUpstash(opts: RateLimitOptions): Promise<RateLimitResult | null> {
+  const now = Date.now();
+  const fullKey = `rl:${opts.name}:${opts.key}`;
+  try {
+    const res = await fetch(`${UPSTASH_URL}/pipeline`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${UPSTASH_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify([
+        ['INCR', fullKey],
+        ['EXPIRE', fullKey, String(opts.windowSec), 'NX'],
+        ['PTTL', fullKey],
+      ]),
+      // Don't let a slow Upstash hang an API request.
+      signal: AbortSignal.timeout(800),
+    });
+    if (!res.ok) return null;
+    const out = (await res.json()) as Array<{ result?: number | string; error?: string }>;
+    const incr = Number(out[0]?.result ?? 0);
+    const pttlRaw = Number(out[2]?.result ?? -1);
+    if (!Number.isFinite(incr) || incr <= 0) return null;
+    const ttlMs = pttlRaw > 0 ? pttlRaw : opts.windowSec * 1000;
+    const resetAt = now + ttlMs;
+    const ok = incr <= opts.max;
+    return {
+      ok,
+      remaining: Math.max(0, opts.max - incr),
+      resetAt,
+      retryAfterSec: ok ? 0 : Math.ceil(ttlMs / 1000),
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** Best-effort client IP from the request headers. */

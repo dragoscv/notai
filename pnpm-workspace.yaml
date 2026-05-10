@@ -12,6 +12,7 @@ catalog:
   '@hocuspocus/server': ^2.15.0
   '@hookform/resolvers': ^3.10.0
   '@neondatabase/serverless': ^0.10.4
+  '@next/bundle-analyzer': ^16.0.0
   '@playwright/test': ^1.49.1
   '@sentry/nextjs': ^8.45.1
   '@sentry/node': ^8.45.1
