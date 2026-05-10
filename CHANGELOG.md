@@ -515,6 +515,30 @@ Apply with `pnpm db:migrate (local)` or `pnpm db:migrate (production)`.
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.17] - 2026-05-10
+
+### Fixed
+
+- **Sticky-note windows could navigate away from `/sticky/{id}`.** After an
+  error and refresh, an auth-flow loop, or any stray Next.js client-side
+  navigation, the borderless widget could end up showing the entire `/app`
+  workspace inside what is supposed to be a tiny sticky. The Tauri host now
+  installs an `on_navigation` filter on every sticky and quick-capture
+  webview that only allows the window's own route, the sign-in flow
+  (`/signin`, `/api/auth/`), and Next.js asset/RSC traffic (`/_next/`).
+  A complementary `popstate` guard inside `StickyWindow` snaps `location`
+  back if a soft client-side push slips through (Next.js' `history.pushState`
+  bypasses Tauri's nav hook).
+- **Sticky landed off-screen after sleep / wake / unplugging a monitor.**
+  `tauri-plugin-window-state` faithfully restored the saved position even
+  when the secondary display it pointed at was no longer connected, leaving
+  the borderless widget unreachable (no titlebar to drag). New
+  `ensure_on_visible_monitor` helper checks every connected monitor for at
+  least 100×100 px of overlap with the window rect and recentres on the
+  primary display when none qualifies. Runs immediately after `build()`
+  in `spawn_sticky` and `spawn_quick_capture`, plus when re-focusing an
+  already-open sticky.
+
 ## [@notai/desktop 0.1.16] - 2026-05-08
 
 ### Fixed
