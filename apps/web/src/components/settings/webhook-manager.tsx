@@ -1,11 +1,18 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, Trash2, Copy, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Copy, Loader2, Activity, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@notai/ui/components/button';
 import { Switch } from '@notai/ui/components/switch';
-import { createWebhook, deleteWebhook, setWebhookActive } from '@/server/actions/webhooks';
+import {
+  createWebhook,
+  deleteWebhook,
+  setWebhookActive,
+  listWebhookDeliveries,
+  redeliverWebhook,
+  type DeliveryRow,
+} from '@/server/actions/webhooks';
 
 export interface SerializedHook {
   id: string;
@@ -102,50 +109,161 @@ export function WebhookManager({ initial }: { initial: SerializedHook[] }) {
       ) : (
         <ul className="divide-y rounded-2xl border">
           {hooks.map((h) => (
-            <li key={h.id} className="flex items-center gap-3 p-4">
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{h.url}</div>
-                <div className="text-muted-foreground text-xs">
-                  {h.events}
-                  {h.lastSuccessAt
-                    ? ` \u00b7 ok ${new Date(h.lastSuccessAt).toLocaleString()}`
-                    : ''}
-                  {h.failureCount > 0 ? ` \u00b7 ${h.failureCount} failure(s)` : ''}
-                </div>
-              </div>
-              <Switch
-                checked={h.isActive}
-                onCheckedChange={async (next) => {
-                  try {
-                    await setWebhookActive({ id: h.id, active: next });
-                    setHooks((rows) =>
-                      rows.map((r) => (r.id === h.id ? { ...r, isActive: next } : r)),
-                    );
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : 'Failed');
-                  }
-                }}
-              />
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={async () => {
-                  if (!window.confirm('Delete this webhook?')) return;
-                  try {
-                    await deleteWebhook(h.id);
-                    setHooks((rows) => rows.filter((r) => r.id !== h.id));
-                    toast.success('Deleted');
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : 'Failed');
-                  }
-                }}
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </li>
+            <HookRow
+              key={h.id}
+              hook={h}
+              onToggle={async (next) => {
+                try {
+                  await setWebhookActive({ id: h.id, active: next });
+                  setHooks((rows) =>
+                    rows.map((r) => (r.id === h.id ? { ...r, isActive: next } : r)),
+                  );
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Failed');
+                }
+              }}
+              onDelete={async () => {
+                if (!window.confirm('Delete this webhook?')) return;
+                try {
+                  await deleteWebhook(h.id);
+                  setHooks((rows) => rows.filter((r) => r.id !== h.id));
+                  toast.success('Deleted');
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Failed');
+                }
+              }}
+            />
           ))}
         </ul>
       )}
     </div>
+  );
+}
+
+function HookRow({
+  hook,
+  onToggle,
+  onDelete,
+}: {
+  hook: SerializedHook;
+  onToggle: (next: boolean) => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [rows, setRows] = React.useState<DeliveryRow[] | null>(null);
+
+  const refresh = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await listWebhookDeliveries(hook.id);
+      setRows(data);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not load');
+    } finally {
+      setLoading(false);
+    }
+  }, [hook.id]);
+
+  const toggleOpen = async () => {
+    const next = !open;
+    setOpen(next);
+    if (next && rows === null) await refresh();
+  };
+
+  return (
+    <li className="flex flex-col">
+      <div className="flex items-center gap-3 p-4">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium">{hook.url}</div>
+          <div className="text-muted-foreground text-xs">
+            {hook.events}
+            {hook.lastSuccessAt
+              ? ` \u00b7 ok ${new Date(hook.lastSuccessAt).toLocaleString()}`
+              : ''}
+            {hook.failureCount > 0 ? ` \u00b7 ${hook.failureCount} failure(s)` : ''}
+          </div>
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={toggleOpen}
+          aria-expanded={open}
+          title="View deliveries"
+        >
+          <Activity className="size-4" />
+        </Button>
+        <Switch checked={hook.isActive} onCheckedChange={onToggle} />
+        <Button size="sm" variant="ghost" onClick={onDelete}>
+          <Trash2 className="size-4" />
+        </Button>
+      </div>
+      {open && (
+        <div className="bg-muted/20 border-t px-4 py-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-muted-foreground text-xs font-medium">Recent deliveries</span>
+            <Button size="sm" variant="ghost" onClick={refresh} disabled={loading}>
+              {loading ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="size-3.5" />
+              )}
+              Refresh
+            </Button>
+          </div>
+          {rows === null ? (
+            <p className="text-muted-foreground text-xs">Loading\u2026</p>
+          ) : rows.length === 0 ? (
+            <p className="text-muted-foreground text-xs">No deliveries yet.</p>
+          ) : (
+            <ul className="bg-background divide-y rounded-lg border">
+              {rows.map((d) => {
+                const ok = d.statusCode != null && d.statusCode >= 200 && d.statusCode < 300;
+                return (
+                  <li key={d.id} className="flex items-center gap-3 px-3 py-2 text-xs">
+                    <span
+                      className={`inline-block w-12 rounded px-1.5 py-0.5 text-center font-mono ${
+                        ok
+                          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                          : 'bg-red-500/15 text-red-700 dark:text-red-400'
+                      }`}
+                    >
+                      {d.statusCode ?? 'err'}
+                    </span>
+                    <span className="font-mono">{d.event}</span>
+                    <span className="text-muted-foreground">
+                      {new Date(d.deliveredAt).toLocaleString()}
+                    </span>
+                    <span className="text-muted-foreground ml-auto">
+                      {d.durationMs != null ? `${d.durationMs} ms` : ''}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const r = await redeliverWebhook(d.id);
+                          toast.success(
+                            r.statusCode
+                              ? `Re-delivered (HTTP ${r.statusCode})`
+                              : 'Re-delivered (no response)',
+                          );
+                          await refresh();
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : 'Failed');
+                        }
+                      }}
+                    >
+                      <RefreshCw className="size-3" />
+                      Resend
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+    </li>
   );
 }

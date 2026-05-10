@@ -88,6 +88,7 @@ export interface DeliveryRow {
   statusCode: number | null;
   deliveredAt: Date;
   durationMs: number | null;
+  responseBody: string | null;
 }
 
 export async function listWebhookDeliveries(endpointId: string): Promise<DeliveryRow[]> {
@@ -107,11 +108,52 @@ export async function listWebhookDeliveries(endpointId: string): Promise<Deliver
       statusCode: webhookDeliveries.statusCode,
       deliveredAt: webhookDeliveries.deliveredAt,
       durationMs: webhookDeliveries.durationMs,
+      responseBody: webhookDeliveries.responseBody,
     })
     .from(webhookDeliveries)
     .where(eq(webhookDeliveries.endpointId, endpointId))
     .orderBy(desc(webhookDeliveries.deliveredAt))
     .limit(50);
+}
+
+/**
+ * Re-fire a previous delivery using its persisted payload. Useful when
+ * the receiver was down or returned a transient 5xx and the user wants
+ * to retry without waiting for the next event. Re-signs with the
+ * current timestamp so replay-protection on the receiver continues to
+ * work.
+ */
+export async function redeliverWebhook(deliveryId: string): Promise<{ statusCode: number | null }> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Not signed in');
+  const [row] = await db
+    .select({
+      id: webhookDeliveries.id,
+      event: webhookDeliveries.event,
+      payload: webhookDeliveries.payload,
+      endpointId: webhookDeliveries.endpointId,
+      url: webhookEndpoints.url,
+      secret: webhookEndpoints.secret,
+      ownerId: webhookEndpoints.userId,
+    })
+    .from(webhookDeliveries)
+    .innerJoin(webhookEndpoints, eq(webhookEndpoints.id, webhookDeliveries.endpointId))
+    .where(eq(webhookDeliveries.id, deliveryId))
+    .limit(1);
+  if (!row || row.ownerId !== session.user.id) throw new Error('Not found');
+  const body = JSON.stringify(row.payload);
+  const newId = await deliverOne(
+    { id: row.endpointId, url: row.url, secret: row.secret },
+    row.event,
+    body,
+  );
+  const [fresh] = await db
+    .select({ statusCode: webhookDeliveries.statusCode })
+    .from(webhookDeliveries)
+    .where(eq(webhookDeliveries.id, newId))
+    .limit(1);
+  revalidatePath('/app/settings/webhooks');
+  return { statusCode: fresh?.statusCode ?? null };
 }
 
 /**
@@ -143,13 +185,17 @@ export async function dispatchNoteEvent(
   );
 }
 
+// Replay-safe signature: HMAC-SHA256 over `${unixSeconds}.${body}` (Stripe-style).
+// Receivers should reject deliveries whose `X-Notai-Timestamp` differs from
+// their own clock by more than ~5 minutes.
 async function deliverOne(
   ep: { id: string; url: string; secret: string },
   event: string,
   body: string,
-): Promise<void> {
+): Promise<string> {
   const id = randomBytes(8).toString('hex');
-  const sig = createHmac('sha256', ep.secret).update(body).digest('hex');
+  const ts = Math.floor(Date.now() / 1000).toString();
+  const sig = createHmac('sha256', ep.secret).update(`${ts}.${body}`).digest('hex');
   const started = Date.now();
   let statusCode: number | null = null;
   let responseBody: string | null = null;
@@ -162,7 +208,8 @@ async function deliverOne(
         'Content-Type': 'application/json',
         'User-Agent': 'Notai-Webhook/1.0',
         'X-Notai-Event': event,
-        'X-Notai-Signature': `sha256=${sig}`,
+        'X-Notai-Timestamp': ts,
+        'X-Notai-Signature': `t=${ts},v1=${sig}`,
         'X-Notai-Delivery-Id': id,
       },
       body,
@@ -200,4 +247,5 @@ async function deliverOne(
           },
     )
     .where(eq(webhookEndpoints.id, ep.id));
+  return id;
 }

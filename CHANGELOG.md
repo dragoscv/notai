@@ -16,6 +16,15 @@ Each app in this monorepo is versioned independently:
 
 ### Added
 
+- **Webhook redelivery + replay protection**. Outgoing webhook
+  deliveries now sign `${unixSeconds}.${body}` with HMAC-SHA256 and
+  include both `X-Notai-Timestamp` and `X-Notai-Signature: t=…,v1=…`
+  (Stripe-style). Receivers should reject deliveries whose timestamp
+  drifts more than ~5 min from their clock to prevent replay. The
+  webhook settings page now expands each row to show the last 50
+  deliveries with status + timing, and exposes a per-delivery
+  "Resend" button backed by a new `redeliverWebhook(deliveryId)`
+  server action.
 - **Public API status page** at `/developers/status` \u2014 24h totals,
   error rate, average + p95 latency, a 7-day daily traffic chart, and
   a top-routes table. Reads aggregated metrics only from
