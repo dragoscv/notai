@@ -101,7 +101,7 @@ if (!existsSync(path.join(repoRoot, 'package.json'))) {
 console.log(bold(cyan('▶ pre-push checks')));
 console.log(
   dim(
-    `  Bypass with --no-verify (CI will still run the same checks). Logs collapsed; failures expand.`,
+    `  Bypass with --no-verify at your own risk — quality is no longer re-checked in CI. Logs collapsed; failures expand.`,
   ),
 );
 
