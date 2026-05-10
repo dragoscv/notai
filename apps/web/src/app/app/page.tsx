@@ -1,17 +1,23 @@
 import { Pin, PenLine, Plus, Sparkles, StickyNote } from 'lucide-react';
 import { listNotes, createNote } from '@/server/actions/notes';
+import { listFolders } from '@/server/actions/folders';
+import { listTags } from '@/server/actions/tags';
+import { listDashboardViews } from '@/server/actions/views';
 import { Button } from '@notai/ui/components/button';
-import { NoteCardGrid } from '@/components/note/note-card-grid';
+import { DashboardView } from '@/components/dashboard/dashboard-view';
 import { SidebarToggle } from '@/components/layout/sidebar-toggle';
 import { redirect } from 'next/navigation';
 
 export const metadata = { title: 'Home' };
 
 export default async function AppHome() {
-  const notes = await listNotes();
-  const pinned = notes.filter((n) => n.isPinned);
-  const recent = notes.filter((n) => !n.isPinned).slice(0, 12);
-  const isEmpty = pinned.length === 0 && recent.length === 0;
+  const [notes, views, folders, tags] = await Promise.all([
+    listNotes({ archived: false }),
+    listDashboardViews(),
+    listFolders(),
+    listTags(),
+  ]);
+  const isEmpty = notes.length === 0;
 
   async function createAndOpen(formData: FormData) {
     'use server';
@@ -92,20 +98,14 @@ export default async function AppHome() {
         </form>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-6">
-        {pinned.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-muted-foreground mb-3 flex items-center gap-2 text-sm font-medium">
-              <Pin className="size-3.5" /> Pinned
-            </h2>
-            <NoteCardGrid notes={pinned} />
-          </section>
+      <div className="flex-1 overflow-hidden">
+        {isEmpty ? (
+          <div className="overflow-y-auto p-6">
+            <EmptyState />
+          </div>
+        ) : (
+          <DashboardView views={views} notes={notes} folders={folders} tags={tags} />
         )}
-
-        <section>
-          {!isEmpty && <h2 className="text-muted-foreground mb-3 text-sm font-medium">Recent</h2>}
-          {isEmpty ? <EmptyState /> : <NoteCardGrid notes={recent} />}
-        </section>
       </div>
     </div>
   );

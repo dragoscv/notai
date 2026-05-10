@@ -6,6 +6,7 @@ import { auth } from '@/auth';
 import {
   db,
   notes,
+  noteTags,
   eq,
   and,
   desc,
@@ -16,8 +17,13 @@ import {
   isNull,
   isNotNull,
   lt,
+  gte,
+  inArray,
+  ilike,
+  sql,
 } from '@notai/db';
 import { requireQuota } from '@/server/plans';
+import { type ViewSpec, type FilterSpec } from '@/lib/view-spec';
 
 /** Position gap between siblings so reorders don't have to renumber neighbours. */
 const POSITION_STEP = 1000;
@@ -45,6 +51,109 @@ export async function listNotes(filter?: { archived?: boolean; favorite?: boolea
     // pinned notes still float to the top visually. The outer query
     // keeps it sorted by position so UI can just bucket into folders.
     .orderBy(desc(notes.isPinned), asc(notes.position), desc(notes.updatedAt));
+
+  return rows.map((n) => ({ ...n, previewHtml: buildPreviewHtml(n.plaintext) }));
+}
+
+function withinCutoff(value: FilterSpec['updatedWithin']): Date | null {
+  if (value === 'any') return null;
+  const now = Date.now();
+  const ms =
+    value === 'today'
+      ? 24 * 60 * 60 * 1000
+      : value === '7d'
+        ? 7 * 24 * 60 * 60 * 1000
+        : 30 * 24 * 60 * 60 * 1000;
+  return new Date(now - ms);
+}
+
+/**
+ * Dashboard query — same shape as `listNotes` but accepts a {@link ViewSpec}
+ * so the dashboard can apply sort + filters server-side using existing
+ * indexes. The legacy `listNotes()` signature is kept for the sidebar
+ * tree which has no use for filters.
+ */
+export async function listNotesForView(spec: ViewSpec) {
+  const user = await requireUser();
+  const f = spec.filters;
+
+  // Status filter is a logical OR across pinned/favorite/archived/pinnedOnToday;
+  // when nothing is selected we default to "exclude archived" to match the
+  // existing dashboard behaviour.
+  const statusConds = [];
+  if (f.status.includes('pinned')) statusConds.push(eq(notes.isPinned, true));
+  if (f.status.includes('favorite')) statusConds.push(eq(notes.isFavorite, true));
+  if (f.status.includes('archived')) statusConds.push(eq(notes.isArchived, true));
+  if (f.status.includes('pinnedOnToday')) statusConds.push(eq(notes.isPinnedOnToday, true));
+  const archivedClause = f.status.includes('archived') ? undefined : eq(notes.isArchived, false);
+
+  const folderClauses = (() => {
+    if (f.folderIds.length === 0) return undefined;
+    const ids = f.folderIds.filter((x): x is string => x !== null);
+    const includesRoot = f.folderIds.includes(null);
+    const conds = [];
+    if (ids.length > 0) conds.push(inArray(notes.folderId, ids));
+    if (includesRoot) conds.push(isNull(notes.folderId));
+    return conds.length === 1 ? conds[0] : or(...conds);
+  })();
+
+  // Tag filter joins via subquery: notes whose id appears in note_tags for
+  // ANY selected tag (logical OR). Empty array = no filter.
+  const tagClause =
+    f.tagIds.length > 0
+      ? inArray(
+          notes.id,
+          db
+            .select({ id: noteTags.noteId })
+            .from(noteTags)
+            .where(inArray(noteTags.tagId, f.tagIds)),
+        )
+      : undefined;
+
+  // Has-collaborators flag: only when explicitly true (false would mean
+  // "exclude shared", which we don't expose).
+  const collabClause = f.hasCollaborators
+    ? inArray(notes.id, db.select({ id: noteCollaborators.noteId }).from(noteCollaborators))
+    : undefined;
+
+  const cutoff = withinCutoff(f.updatedWithin);
+  const dateClause = cutoff ? gte(notes.updatedAt, cutoff) : undefined;
+
+  const searchClause = f.search.trim()
+    ? or(ilike(notes.title, `%${f.search.trim()}%`), ilike(notes.plaintext, `%${f.search.trim()}%`))
+    : undefined;
+
+  const where = and(
+    eq(notes.ownerId, user.id),
+    isNull(notes.deletedAt),
+    archivedClause,
+    statusConds.length > 0 ? or(...statusConds) : undefined,
+    folderClauses,
+    tagClause,
+    collabClause,
+    dateClause,
+    searchClause,
+    f.kinds.length > 0 ? inArray(notes.kind, f.kinds) : undefined,
+    f.colors.length > 0 ? inArray(notes.color, f.colors) : undefined,
+  );
+
+  const orderBy = (() => {
+    const cols = [];
+    if (spec.pinnedFirst) cols.push(desc(notes.isPinned));
+    if (spec.sort === 'updated') cols.push(desc(notes.updatedAt));
+    else if (spec.sort === 'created') cols.push(desc(notes.createdAt));
+    else if (spec.sort === 'opened')
+      cols.push(sql`coalesce(${notes.lastOpenedAt}, ${notes.updatedAt}) desc`);
+    else if (spec.sort === 'alphabetical') cols.push(asc(notes.title));
+    else cols.push(asc(notes.position), desc(notes.updatedAt));
+    return cols;
+  })();
+
+  const rows = await db
+    .select()
+    .from(notes)
+    .where(where)
+    .orderBy(...orderBy);
 
   return rows.map((n) => ({ ...n, previewHtml: buildPreviewHtml(n.plaintext) }));
 }
@@ -150,6 +259,26 @@ export async function updateNote(input: z.input<typeof updateSchema>) {
     .where(and(eq(notes.id, id), eq(notes.ownerId, user.id)));
   revalidatePath('/app');
   revalidatePath(`/app/n/${id}`);
+}
+
+/**
+ * Flip the dashboard-only "pin on Today" flag. Separate from `isPinned`
+ * (which drives the sidebar's global Pinned section) so users can curate
+ * their daily landing without polluting the sidebar.
+ */
+export async function togglePinnedOnToday(id: string) {
+  const user = await requireUser();
+  const [row] = await db
+    .select({ pinned: notes.isPinnedOnToday })
+    .from(notes)
+    .where(and(eq(notes.id, id), eq(notes.ownerId, user.id)))
+    .limit(1);
+  if (!row) throw new Error('Note not found');
+  await db
+    .update(notes)
+    .set({ isPinnedOnToday: !row.pinned, updatedAt: new Date() })
+    .where(and(eq(notes.id, id), eq(notes.ownerId, user.id)));
+  revalidatePath('/app');
 }
 
 /**

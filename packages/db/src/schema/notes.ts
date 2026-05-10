@@ -107,6 +107,14 @@ export const notes = pgTable(
     isFavorite: boolean('is_favorite').notNull().default(false),
 
     /**
+     * Separate from `isPinned` (which drives the global Pinned section
+     * in the sidebar) — `isPinnedOnToday` only affects the dashboard
+     * landing page, where users curate which notes float to the top of
+     * their daily view without polluting the sidebar's pinned list.
+     */
+    isPinnedOnToday: boolean('is_pinned_on_today').notNull().default(false),
+
+    /**
      * Soft delete. Set when the user moves a note to Trash; a daily cron
      * permanently purges rows where `deletedAt` is older than 30 days.
      * Notes with this set never appear in normal queries.
@@ -144,6 +152,7 @@ export const notes = pgTable(
     index('notes_owner_updated_idx').on(t.ownerId, t.updatedAt.desc()),
     index('notes_owner_pinned_idx').on(t.ownerId, t.isPinned, t.updatedAt.desc()),
     index('notes_owner_folder_pos_idx').on(t.ownerId, t.folderId, t.position),
+    index('notes_owner_today_pinned_idx').on(t.ownerId, t.isPinnedOnToday, t.position),
     index('notes_plaintext_trgm_idx').using('gin', sql`${t.plaintext} gin_trgm_ops`),
     index('notes_owner_deleted_idx').on(t.ownerId, t.deletedAt),
   ],

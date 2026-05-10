@@ -64,6 +64,13 @@
       "when": 1779100000000,
       "tag": "0008_comments",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779200000000,
+      "tag": "0009_dashboard_views",
+      "breakpoints": true
     }
   ]
 }

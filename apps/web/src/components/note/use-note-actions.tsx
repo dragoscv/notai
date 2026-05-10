@@ -51,7 +51,7 @@ import {
   ContextMenuTrigger,
 } from '@notai/ui/components/context-menu';
 import type { Note } from '@notai/db/schema';
-import { updateNote, deleteNote, duplicateNote } from '@/server/actions/notes';
+import { updateNote, deleteNote, duplicateNote, togglePinnedOnToday } from '@/server/actions/notes';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { usePrompt } from '@/components/ui/prompt-dialog';
 import { IconPicker } from '@/components/ui/icon-picker';
@@ -199,6 +199,17 @@ export function useNoteActions() {
             ) : (
               <>
                 <Pin className="size-4" /> Pin to top
+              </>
+            )}
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={() => togglePinnedOnToday(note.id)}>
+            {note.isPinnedOnToday ? (
+              <>
+                <PinOff className="size-4" /> Unpin from Today
+              </>
+            ) : (
+              <>
+                <Pin className="size-4" /> Pin on Today
               </>
             )}
           </ContextMenuItem>

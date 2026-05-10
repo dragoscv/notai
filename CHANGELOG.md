@@ -515,6 +515,76 @@ Apply with `pnpm db:migrate (local)` or `pnpm db:migrate (production)`.
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.22] - 2026-05-10
+
+### Added — Dashboard sort, filter, drag-reorder & saved views
+
+The dashboard landing page (`/app`) is now a fully configurable workspace
+with server-persisted saved views, smart filters, animated drag-and-drop
+reordering (mouse + touch + keyboard), and a Today-only pin separate from
+the global pin.
+
+**View bar** (sticky top of the dashboard):
+- View dropdown with all saved presets, "Make default", "Rename", "Delete",
+  and "Save as new view…".
+- Sort dropdown: Recently updated / created / opened, Alphabetical, Custom
+  (drag to reorder); plus a "Pinned first" toggle modifier.
+- Filters popover: full-text search, status (pinned / on Today / favorite /
+  archived), kind (note / sticky), updated-within (any / today / 7d / 30d),
+  folder multi-select, tag multi-select, color, and "Has collaborators".
+- Active-filter count badge; "Save view" / "Update view" / "Save as new"
+  appear only when the active spec is dirty.
+
+**Drag-and-drop**:
+- `@dnd-kit/core` with three sensors — `PointerSensor` (4 px desktop),
+  `TouchSensor` (250 ms long-press, 8 px tolerance — standard mobile
+  pattern that doesn't hijack scroll), and `KeyboardSensor` for a11y.
+- Drag handle is hover-only on devices with hover, always visible on
+  touch devices via `@media (hover: none)`.
+- Dragging while sort is non-custom auto-switches to custom order with a
+  toast (the user's drag isn't silently discarded).
+- Light haptic via `navigator.vibrate?.(10)` on supporting devices.
+
+**Pin on Today** (`notes.is_pinned_on_today` boolean):
+- Separate from the global `isPinned` flag (which still drives the
+  sidebar's Pinned section). Cards pinned on Today float into a dedicated
+  "Pinned on Today" section above the rest.
+- Toggle from the right-click context menu on any note card.
+
+**Saved views**:
+- New `user_views` table (`scope`, `name`, `sort`, `pinned_first`,
+  `filters` jsonb, `is_default`, `position`). Cap of 20 views per user.
+- First saved view becomes the default automatically.
+- Active view persisted to localStorage (`notai:dashboard-active-view`).
+
+**Animations**:
+- Framer Motion `<motion.div layout>` per card for grid reflow on sort/
+  filter changes; spring `initial/animate/exit` for add/remove pop;
+  `<AnimatePresence mode="popLayout">` to keep transitions smooth.
+
+**Migration**: `0009_dashboard_views.sql` adds
+`notes.is_pinned_on_today` + `notes_owner_today_pinned_idx` and creates
+the `user_views` table with two indexes.
+
+Files:
+- `packages/db/src/schema/notes.ts` — added `isPinnedOnToday`.
+- `packages/db/src/schema/views.ts` — new `userViews` table.
+- `packages/db/drizzle/0009_dashboard_views.sql` — migration.
+- `apps/web/src/lib/view-spec.ts` — Zod `viewSpecSchema` + `filterSchema`.
+- `apps/web/src/server/actions/views.ts` — `listDashboardViews`,
+  `saveDashboardView`, `deleteDashboardView`, `setDefaultDashboardView`,
+  `renameDashboardView`.
+- `apps/web/src/server/actions/notes.ts` — added `togglePinnedOnToday`
+  and `listNotesForView` (server-side filter + sort using existing
+  indexes); `listNotes` legacy signature kept for the sidebar.
+- `apps/web/src/components/dashboard/*` — `dashboard-view.tsx`,
+  `dashboard-view-bar.tsx`, `sortable-note-grid.tsx`,
+  `sortable-note-card.tsx`.
+- `apps/web/src/app/app/page.tsx` — refactored to load views + folders
+  + tags in parallel and render `<DashboardView>`.
+- `apps/web/src/components/note/use-note-actions.tsx` — added
+  "Pin on Today" / "Unpin from Today" context-menu item.
+
 ## [@notai/desktop 0.1.21] - 2026-05-10
 
 ### Changed — Compact single-line version footer with icon-only update check
