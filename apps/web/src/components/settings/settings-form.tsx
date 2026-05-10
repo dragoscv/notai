@@ -107,8 +107,8 @@ export function SettingsForm() {
         />
         <Row
           id="start-minimized"
-          label="Start minimized to tray"
-          description="Hide the main window on launch. You can open it anytime from the tray icon."
+          label="Start minimized to tray on Windows startup"
+          description="Only applies when Notai launches automatically at login. Manual launches and updates always open the main window."
           checked={startMinimized}
           onCheckedChange={(v) => {
             setStartMinimized(v);

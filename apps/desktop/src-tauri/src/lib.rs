@@ -569,17 +569,23 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // Start minimized? Either from the launcher (`--minimized`, used
-            // by the autostart entry) or from the persisted setting in the
-            // `tauri-plugin-store` file. When requested we hide the main
-            // window immediately after setup — it stays alive in the
-            // background and the tray icon brings it back.
-            let started_with_minimized_flag =
+            // Decide whether the main window should boot hidden. The
+            // autostart entry registered below always passes `--minimized`,
+            // so its presence is what marks "Windows just logged in and
+            // launched us in the background" vs. "the user (or the
+            // installer/updater) just opened the app". On a manual launch
+            // we always show the window — even if `start_minimized` is on,
+            // because that setting is scoped to autostart launches only.
+            // The window is configured `visible: false` so we never see a
+            // pre-hide flicker; we just call `.show()` here when needed.
+            let started_via_autostart =
                 std::env::args().any(|a| a == "--minimized");
-            let start_minimized_setting = read_start_minimized(app.handle());
-            if started_with_minimized_flag || start_minimized_setting {
-                if let Some(w) = app.get_webview_window("main") {
-                    let _ = w.hide();
+            let hide_on_boot =
+                started_via_autostart && read_start_minimized(app.handle());
+            if let Some(w) = app.get_webview_window("main") {
+                if !hide_on_boot {
+                    let _ = w.show();
+                    let _ = w.set_focus();
                 }
             }
 

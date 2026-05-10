@@ -515,6 +515,31 @@ Apply with `pnpm db:migrate (local)` or `pnpm db:migrate (production)`.
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.19] - 2026-05-10
+
+### Fixed — Start-minimized only applies to autostart launches
+
+The "Start minimized to tray" setting was hiding the main window on
+every launch — including manual opens and post-install/post-update
+launches. It now only kicks in when Windows starts the app via the
+autostart entry (which is the only path that passes `--minimized`).
+The setting label now reads "Start minimized to tray on Windows
+startup" to match.
+
+Also fixes the brief flash where the window appeared for a moment
+before being hidden: the main window is now configured `visible:
+false` and explicitly `.show()`n only when we don't intend to hide
+it, so autostart launches go straight into the tray with no flicker.
+
+- **`apps/desktop/src-tauri/tauri.conf.json`**: main window
+  `visible: false`.
+- **`apps/desktop/src-tauri/src/lib.rs`**: setup hook now hides only
+  when both the autostart `--minimized` flag is present AND the
+  `start_minimized` setting is true; otherwise calls `show()` +
+  `set_focus()`.
+- **`apps/web/src/components/settings/settings-form.tsx`**: clearer
+  copy explaining the autostart-only scope.
+
 ## [@notai/desktop 0.1.18] - 2026-05-10
 
 ### Changed — Confirm before installing updates
