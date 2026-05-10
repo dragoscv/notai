@@ -16,6 +16,15 @@ Each app in this monorepo is versioned independently:
 
 ### Added
 
+- **Public OpenAPI 3.1 spec + interactive reference** — the v1 REST
+  surface (`/api/v1/notes`) is now described by a hand-maintained
+  OpenAPI document served at `/api/v1/openapi` (cached 5 min,
+  CORS-open). A new `/developers/api/reference` page renders an
+  interactive try-it-yourself UI via Scalar API Reference, and the
+  existing `/developers/api` docs page links to both. Spec covers
+  all five operations (list, create, get, update, archive) with
+  bearer scopes documented per-endpoint.
+
 - **Per-API-key usage analytics** — every call to `/api/v1/notes/*`
   is now logged to a new `api_request_log` table (path, method,
   status, duration). The API key manager grows an inline activity

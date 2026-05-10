@@ -17,6 +17,16 @@ export default function ApiDocsPage() {
         that can send an HTTP request. Authentication is by API key, generated in{' '}
         <Link href="/app/settings/api-keys">Settings &rarr; API keys</Link>.
       </p>
+      <p>
+        <Link href="/developers/api/reference">
+          <strong>Open the interactive API reference &rarr;</strong>
+        </Link>{' '}
+        \u00b7 Machine-readable spec at{' '}
+        <Link href="/api/v1/openapi">
+          <code>/api/v1/openapi</code>
+        </Link>{' '}
+        (OpenAPI 3.1 JSON).
+      </p>
 
       <h2>Authentication</h2>
       <pre>
