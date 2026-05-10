@@ -77,6 +77,7 @@ import {
   moveNote,
   exportNoteMarkdown,
 } from '@/server/actions/notes';
+import { exportNoteDoc } from '@/server/actions/export';
 import {
   createFolder,
   renameFolder,
@@ -884,6 +885,24 @@ function NoteRow({
     }
   };
 
+  const exportDoc = async () => {
+    try {
+      const { filename, content, mimeType } = await exportNoteDoc(note.id);
+      const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Exported as Word document');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Export failed');
+    }
+  };
+
   const exportPdf = async () => {
     try {
       const { content } = await exportNoteMarkdown(note.id);
@@ -989,6 +1008,9 @@ function NoteRow({
               </ContextMenuItem>
               <ContextMenuItem onSelect={exportPdf}>
                 <Printer className="size-4" /> Print / Save as PDF
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={exportDoc}>
+                <Download className="size-4" /> Export as Word (.doc)
               </ContextMenuItem>
               <ContextMenuItem onSelect={saveAsTemplate}>
                 <BookmarkPlus className="size-4" /> Save as template\u2026

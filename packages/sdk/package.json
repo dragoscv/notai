@@ -1,0 +1,34 @@
+{
+  "name": "@notai/sdk",
+  "version": "0.1.0",
+  "description": "Official TypeScript client for the Notai REST API.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/notai-app/notai",
+    "directory": "packages/sdk"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist .turbo",
+    "prepublishOnly": "pnpm clean && pnpm build"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "typescript": "catalog:"
+  }
+}

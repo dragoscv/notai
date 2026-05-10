@@ -25,6 +25,8 @@ export interface AppPreferences {
   highContrast: boolean;
   /** Sidebar row density. */
   sidebarDensity: 'compact' | 'cozy' | 'spacious';
+  /** Editor body typography preset. Drives the font stack on note titles + canvas text. */
+  editorTypography: 'serif' | 'sans' | 'rounded' | 'mono';
 }
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
@@ -34,6 +36,7 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
   dyslexiaFont: false,
   highContrast: false,
   sidebarDensity: 'cozy',
+  editorTypography: 'serif',
 };
 
 function readFromStorage(): AppPreferences {

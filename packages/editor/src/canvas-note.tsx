@@ -170,9 +170,123 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
   // call sites still wiring them in, but Phase-3 step-2 retired the
   // TipTap block layer that consumed them. Reference once to satisfy
   // `noUnusedParameters` without changing the public API.
-  void user;
   void createBacklink;
   void aiContext;
+
+  /* ---------- Realtime presence ---------- */
+  // Push our own pointer state to Yjs awareness (throttled to ~30fps)
+  // and reflect peer pointers into Excalidraw's `collaborators` map.
+  // Keys must be the awareness clientID stringified \u2014 Excalidraw uses
+  // them as React keys for cursor SVGs.
+  const lastPointerSentRef = React.useRef(0);
+  const onPointerUpdate = React.useCallback(
+    (payload: { pointer: { x: number; y: number } }) => {
+      const aw = (
+        provider as unknown as {
+          awareness?: { setLocalStateField: (k: string, v: unknown) => void };
+        }
+      ).awareness;
+      if (!aw) return;
+      const now = performance.now();
+      if (now - lastPointerSentRef.current < 33) return; // ~30fps
+      lastPointerSentRef.current = now;
+      aw.setLocalStateField('presence', {
+        user: { name: user.name, color: user.color },
+        pointer: payload.pointer,
+        ts: Date.now(),
+      });
+    },
+    [provider, user.name, user.color],
+  );
+
+  React.useEffect(() => {
+    if (!api) return;
+    const aw = (
+      provider as unknown as {
+        awareness?: {
+          clientID: number;
+          getStates: () => Map<number, Record<string, unknown>>;
+          on: (ev: string, fn: () => void) => void;
+          off: (ev: string, fn: () => void) => void;
+        };
+      }
+    ).awareness;
+    if (!aw) return;
+    const sync = () => {
+      const collaborators = new Map<
+        string,
+        {
+          username?: string;
+          pointer?: { x: number; y: number };
+          color?: { background: string; stroke: string };
+        }
+      >();
+      for (const [clientId, state] of aw.getStates()) {
+        if (clientId === aw.clientID) continue;
+        const presence = (
+          state as {
+            presence?: {
+              user?: { name?: string; color?: string };
+              pointer?: { x: number; y: number };
+            };
+          }
+        ).presence;
+        if (!presence?.pointer) continue;
+        collaborators.set(String(clientId), {
+          username: presence.user?.name ?? 'Anon',
+          pointer: presence.pointer,
+          color: presence.user?.color
+            ? { background: presence.user.color, stroke: presence.user.color }
+            : undefined,
+        });
+      }
+      try {
+        (
+          api as unknown as { updateScene: (s: { collaborators: Map<string, unknown> }) => void }
+        ).updateScene({
+          collaborators,
+        });
+      } catch {
+        /* Excalidraw may be unmounting */
+      }
+    };
+    aw.on('change', sync);
+    sync();
+    return () => aw.off('change', sync);
+  }, [api, provider]);
+
+  /* ---------- Right-click → comment on selected element ---------- */
+  // Excalidraw doesn't expose a context-menu hook, so we listen on the
+  // host and resolve the currently-selected element via the imperative
+  // API. If the user right-clicks with exactly one element selected,
+  // we suppress the native menu and open the comments panel anchored
+  // to that element id. Falls through to Excalidraw's own menu when
+  // selection is empty/multi or no callback is wired.
+  React.useEffect(() => {
+    if (!host || !api || !onCommentBlock || readOnly) return;
+    const handler = (e: MouseEvent) => {
+      try {
+        const state = (
+          api as unknown as {
+            getAppState: () => { selectedElementIds?: Record<string, boolean> };
+          }
+        ).getAppState();
+        const selected = Object.keys(state.selectedElementIds ?? {}).filter(
+          (k) => state.selectedElementIds?.[k],
+        );
+        if (selected.length !== 1) return;
+        const id = selected[0];
+        if (!id) return;
+        e.preventDefault();
+        e.stopPropagation();
+        onCommentBlock(id);
+      } catch {
+        /* fall through to native */
+      }
+    };
+    host.addEventListener('contextmenu', handler, true);
+    return () => host.removeEventListener('contextmenu', handler, true);
+  }, [host, api, onCommentBlock, readOnly]);
   void onCommentBlock;
 
   // Excalidraw-native Calc: live arithmetic on text elements ("5 * 12 = "
@@ -733,6 +847,7 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
             initialData={initialData}
             excalidrawAPI={(r: ExcalidrawImperativeAPI) => setApi(r)}
             onChange={handleExcalidrawChange}
+            onPointerUpdate={onPointerUpdate}
             viewModeEnabled={readOnly}
             zenModeEnabled={stickyMode}
             theme={resolvedTheme}

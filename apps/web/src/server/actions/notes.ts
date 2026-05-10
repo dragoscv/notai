@@ -283,6 +283,51 @@ export async function updateNote(input: z.input<typeof updateSchema>) {
   revalidatePath(`/app/n/${id}`);
 }
 
+const setCoverSchema = z.object({
+  noteId: z.string().min(1),
+  url: z.string().url().max(2048),
+  position: z.number().int().min(0).max(100).optional(),
+});
+
+/**
+ * Attach a cover image (Notion/Craft-style banner) to the note. URL must
+ * already point at an asset the user uploaded via `startAssetUpload` —
+ * we do not fetch arbitrary URLs server-side (SSRF surface). The
+ * vertical focal point lets the user pick which slice of a tall image
+ * is visible inside the fixed-height banner.
+ */
+export async function setNoteCover(input: z.input<typeof setCoverSchema>) {
+  const user = await requireUser();
+  const { noteId, url, position } = setCoverSchema.parse(input);
+  await db
+    .update(notes)
+    .set({
+      coverUrl: url,
+      ...(position != null ? { coverPosition: position } : {}),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(notes.id, noteId), eq(notes.ownerId, user.id)));
+  revalidatePath(`/app/n/${noteId}`);
+}
+
+export async function setNoteCoverPosition(input: { noteId: string; position: number }) {
+  const user = await requireUser();
+  const position = Math.max(0, Math.min(100, Math.round(input.position)));
+  await db
+    .update(notes)
+    .set({ coverPosition: position, updatedAt: new Date() })
+    .where(and(eq(notes.id, input.noteId), eq(notes.ownerId, user.id)));
+}
+
+export async function removeNoteCover(noteId: string) {
+  const user = await requireUser();
+  await db
+    .update(notes)
+    .set({ coverUrl: null, coverPosition: 50, updatedAt: new Date() })
+    .where(and(eq(notes.id, noteId), eq(notes.ownerId, user.id)));
+  revalidatePath(`/app/n/${noteId}`);
+}
+
 /**
  * Flip the dashboard-only "pin on Today" flag. Separate from `isPinned`
  * (which drives the sidebar's global Pinned section) so users can curate

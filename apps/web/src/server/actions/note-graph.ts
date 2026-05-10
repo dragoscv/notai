@@ -120,3 +120,31 @@ export async function getNoteGraph(): Promise<NoteGraph> {
 
   return { nodes, edges };
 }
+
+/**
+ * 1-hop neighbourhood for a single note — every node it links to and
+ * every node that links back. Used by the in-note mini-graph rail.
+ * Re-uses the full graph build, then filters; cheap (≤ MAX_NOTES) and
+ * keeps the source of truth in one place.
+ */
+export async function getNoteNeighbourhood(noteId: string): Promise<NoteGraph> {
+  const full = await getNoteGraph();
+  const center = full.nodes.find((n) => n.id === noteId);
+  if (!center) return { nodes: [], edges: [] };
+
+  const neighbourIds = new Set<string>([noteId]);
+  for (const e of full.edges) {
+    if (e.source === noteId) neighbourIds.add(e.target);
+    else if (e.target === noteId) neighbourIds.add(e.source);
+  }
+
+  return {
+    nodes: full.nodes.filter((n) => neighbourIds.has(n.id)),
+    edges: full.edges.filter(
+      (e) =>
+        neighbourIds.has(e.source) &&
+        neighbourIds.has(e.target) &&
+        (e.source === noteId || e.target === noteId),
+    ),
+  };
+}

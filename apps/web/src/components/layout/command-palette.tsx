@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   CornerDownLeft,
   FileText,
@@ -29,8 +29,16 @@ import {
 } from '@notai/ui/components/command';
 import { useHotkey } from '@notai/ui/hooks/use-hotkey';
 import { createNote } from '@/server/actions/notes';
-import { searchNotes, type SearchHit } from '@/server/actions/search';
+import { searchNotes, searchNotesHybrid, type SearchHit } from '@/server/actions/search';
+import {
+  listSavedSearches,
+  saveSavedSearch,
+  deleteSavedSearch,
+  type SavedSearch,
+} from '@/server/actions/saved-searches';
 import { summariseUrl } from '@/server/actions/smart-paste';
+import { summarizeNote, extractActionItems, rewriteForClarity } from '@/server/actions/ai-actions';
+import { suggestTagsForNote } from '@/server/actions/tags';
 import { getThrowbackNote } from '@/server/actions/throwback';
 import { AskDialog } from './ask-dialog';
 import type { Note } from '@notai/db/schema';
@@ -53,7 +61,16 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
   const [pinnedOnly, setPinnedOnly] = React.useState(false);
   const [favoritesOnly, setFavoritesOnly] = React.useState(false);
   const [stickiesOnly, setStickiesOnly] = React.useState(false);
+  const [semanticOn, setSemanticOn] = React.useState(false);
+  const [savedSearches, setSavedSearches] = React.useState<SavedSearch[]>([]);
   const router = useRouter();
+  const pathname = usePathname();
+  // Pull the active note id off the URL so AI actions can target it
+  // without prop drilling. Matches `/app/n/<id>` and `/app/n/<id>/...`.
+  const activeNoteId = React.useMemo(() => {
+    const m = pathname?.match(/^\/app\/n\/([^/?#]+)/);
+    return m ? decodeURIComponent(m[1]!) : null;
+  }, [pathname]);
 
   useHotkey('mod+k', () => setOpen((v) => !v), { id: 'command-palette' });
   useHotkey('mod+shift+k', () => setAskOpen((v) => !v));
@@ -64,6 +81,15 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
     return () => document.removeEventListener('notai:command-palette', onOpen);
   }, []);
 
+  // Refresh saved searches whenever the palette opens — cheap query,
+  // and keeps the list in sync if the user saved one in another tab.
+  React.useEffect(() => {
+    if (!open) return;
+    void listSavedSearches()
+      .then((rows) => setSavedSearches(rows))
+      .catch(() => undefined);
+  }, [open]);
+
   React.useEffect(() => {
     if (!open) {
       setQuery('');
@@ -72,6 +98,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
       setPinnedOnly(false);
       setFavoritesOnly(false);
       setStickiesOnly(false);
+      setSemanticOn(false);
     }
   }, [open]);
 
@@ -85,7 +112,8 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
     let cancelled = false;
     setSearching(true);
     const t = setTimeout(() => {
-      searchNotes(q, { pinnedOnly, favoritesOnly, stickiesOnly })
+      const fn = semanticOn ? searchNotesHybrid : searchNotes;
+      fn(q, { pinnedOnly, favoritesOnly, stickiesOnly })
         .then((rows) => {
           if (!cancelled) setHits(rows);
         })
@@ -98,7 +126,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [query, pinnedOnly, favoritesOnly, stickiesOnly]);
+  }, [query, pinnedOnly, favoritesOnly, stickiesOnly, semanticOn]);
 
   const groupHeadingClass =
     '[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:tracking-[0.14em] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:text-primary';
@@ -164,6 +192,48 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
             >
               \ud83d\uddc2\ufe0f Stickies
             </button>
+            <button
+              type="button"
+              onClick={() => setSemanticOn((v) => !v)}
+              className={
+                'rounded-full border px-2 py-0.5 text-[11px] font-medium transition ' +
+                (semanticOn
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'text-muted-foreground hover:bg-accent')
+              }
+              aria-pressed={semanticOn}
+              title="Hybrid search: trigram + pgvector. Slower, but finds notes by meaning."
+            >
+              \u2728 Semantic
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                const name = window.prompt('Name this saved search:', query.trim().slice(0, 40));
+                if (!name?.trim()) return;
+                try {
+                  await saveSavedSearch({
+                    name: name.trim(),
+                    filters: {
+                      query: query.trim(),
+                      semanticOn,
+                      pinnedOnly,
+                      favoritesOnly,
+                      stickiesOnly,
+                    },
+                  });
+                  toast.success(`Saved "${name.trim()}"`);
+                  const rows = await listSavedSearches();
+                  setSavedSearches(rows);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : 'Could not save search');
+                }
+              }}
+              className="text-muted-foreground hover:bg-accent ml-auto rounded-full border px-2 py-0.5 text-[11px] font-medium transition"
+              title="Save this query + filters as a reusable search"
+            >
+              \ud83d\udcbe Save
+            </button>
           </div>
         )}{' '}
         <CommandList className="max-h-[420px] px-1 pb-2">
@@ -175,6 +245,93 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               </p>
             </div>
           </CommandEmpty>
+
+          {!showServerHits && savedSearches.length > 0 && (
+            <CommandGroup heading="Saved searches" className={groupHeadingClass}>
+              {savedSearches.map((s) => (
+                <CommandItem
+                  key={s.id}
+                  onSelect={() => {
+                    setQuery(s.filters.query);
+                    setSemanticOn(s.filters.semanticOn);
+                    setPinnedOnly(s.filters.pinnedOnly);
+                    setFavoritesOnly(s.filters.favoritesOnly);
+                    setStickiesOnly(s.filters.stickiesOnly);
+                  }}
+                >
+                  <span className="bg-muted text-muted-foreground grid size-7 place-items-center rounded-md">
+                    <Search className="size-3.5" />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">{s.name}</span>
+                  <button
+                    type="button"
+                    aria-label={`Delete saved search ${s.name}`}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        await deleteSavedSearch(s.id);
+                        setSavedSearches((rows) => rows.filter((r) => r.id !== s.id));
+                      } catch {
+                        toast.error('Could not delete');
+                      }
+                    }}
+                    className="text-muted-foreground hover:text-foreground ml-2 text-xs"
+                  >
+                    \u00d7
+                  </button>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          {activeNoteId && (
+            <CommandGroup heading="Current note (AI)" className={groupHeadingClass}>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  void runAiOnNote('Summarising note…', () => summarizeNote(activeNoteId));
+                }}
+              >
+                <span className="grid size-7 place-items-center rounded-md bg-fuchsia-500/15 text-fuchsia-600">
+                  <Sparkles className="size-3.5" />
+                </span>
+                <span>Summarise this note</span>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  void runAiOnNote('Extracting tasks…', () => extractActionItems(activeNoteId));
+                }}
+              >
+                <span className="grid size-7 place-items-center rounded-md bg-emerald-500/15 text-emerald-600">
+                  <Sparkles className="size-3.5" />
+                </span>
+                <span>Extract action items</span>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  void runAiOnNote('Rewriting for clarity…', () => rewriteForClarity(activeNoteId));
+                }}
+              >
+                <span className="grid size-7 place-items-center rounded-md bg-sky-500/15 text-sky-600">
+                  <Sparkles className="size-3.5" />
+                </span>
+                <span>Rewrite for clarity</span>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  void runSuggestTags(activeNoteId);
+                }}
+              >
+                <span className="grid size-7 place-items-center rounded-md bg-amber-500/15 text-amber-600">
+                  <Sparkles className="size-3.5" />
+                </span>
+                <span>Suggest tags</span>
+              </CommandItem>
+            </CommandGroup>
+          )}
 
           <CommandGroup heading="Quick actions" className={groupHeadingClass}>
             <CommandItem
@@ -411,6 +568,50 @@ function Hint({ kbd, children }: { kbd: string; children: React.ReactNode }) {
 }
 
 const URL_RE = /^https?:\/\/\S+$/;
+
+/**
+ * Run an AI action against the active note and copy the result to the
+ * clipboard. We deliberately don't auto-insert into the canvas — the
+ * user gets to read the output, decide, and paste it where they want.
+ * That keeps the destructive surface area zero.
+ */
+async function runAiOnNote(loadingMsg: string, fn: () => Promise<string>): Promise<void> {
+  const t = toast.loading(loadingMsg);
+  try {
+    const out = (await fn()).trim();
+    if (!out) {
+      toast.error('AI returned no content', { id: t });
+      return;
+    }
+    await navigator.clipboard.writeText(out).catch(() => undefined);
+    toast.success('Result copied to clipboard', {
+      id: t,
+      description: out.length > 120 ? out.slice(0, 117) + '…' : out,
+    });
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : 'AI action failed', { id: t });
+  }
+}
+
+async function runSuggestTags(noteId: string): Promise<void> {
+  const t = toast.loading('Suggesting tags…');
+  try {
+    const tags = await suggestTagsForNote(noteId);
+    if (!tags.length) {
+      toast.message('No tag suggestions for this note', { id: t });
+      return;
+    }
+    await navigator.clipboard
+      .writeText(tags.map((tag) => (tag.startsWith('#') ? tag : `#${tag}`)).join(' '))
+      .catch(() => undefined);
+    toast.success(`Copied ${tags.length} tag${tags.length === 1 ? '' : 's'}`, {
+      id: t,
+      description: tags.slice(0, 6).join(', '),
+    });
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Failed to suggest tags', { id: t });
+  }
+}
 
 /**
  * Pull a URL from the clipboard, fetch + summarise it, then create a

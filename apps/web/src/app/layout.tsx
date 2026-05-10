@@ -6,6 +6,7 @@ import { TooltipProvider } from '@notai/ui/components/tooltip';
 import { ConsentProvider } from '@notai/ui/components/consent-provider';
 import { CookieConsent } from '@notai/ui/components/cookie-consent';
 import { PreferencesApplier } from '@/components/settings/preferences-applier';
+import { CapacitorDeepLinkBridge } from '@/components/mobile/capacitor-deep-link-bridge';
 import { UpgradeModalProvider } from '@/components/upgrade-modal';
 import { ConsentAwareAnalytics } from '@/components/analytics/consent-aware-analytics';
 import './globals.css';
@@ -35,6 +36,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   interactiveWidget: 'resizes-content',
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -46,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ConsentProvider>
               <UpgradeModalProvider>
                 <PreferencesApplier />
+                <CapacitorDeepLinkBridge />
                 {children}
                 <CookieConsent />
                 <ConsentAwareAnalytics />

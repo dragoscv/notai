@@ -1,11 +1,18 @@
-# Mobile (iOS / Android via Tauri 2)
+# Mobile (iOS / Android)
 
-Notai's desktop app uses Tauri 2, which has experimental but usable mobile
-targets. Until the mobile UI is fully redesigned for touch, the official
-mobile experience is the **PWA** — installable from the browser on iOS 16+
-and any modern Android.
+Notai targets two mobile experiences:
 
-## Installable PWA (recommended for now)
+1. **Installable PWA** (zero-install, instant updates) — recommended for
+   power users on iOS 16+ and modern Android.
+2. **Capacitor wrapper** (`apps/mobile`) — published to the Play Store and
+   App Store. The wrapper loads the production web URL inside a native
+   webview, so app updates ship without store re-submission.
+
+Tauri Mobile is **no longer the official path** — Capacitor's
+WKWebView/WebView wrappers are far more stable as of late 2024. The Tauri
+desktop targets remain unchanged.
+
+## Installable PWA
 
 The web app already ships:
 
@@ -20,7 +27,25 @@ To install on iOS: open `notai.ro` in Safari → Share → **Add to Home Screen*
 On Android: Chrome's address bar shows "Install Notai" once the manifest is
 seen on at least two visits.
 
-## Native mobile (preview)
+## Capacitor wrapper (publish to stores)
+
+For App Store / Play Store distribution, see [`apps/mobile/README.md`](../apps/mobile/README.md).
+Quick path:
+
+```bash
+cd apps/mobile
+pnpm install
+pnpm exec cap add android        # any host
+pnpm exec cap add ios            # macOS only
+pnpm sync
+pnpm open:android                # Android Studio → Run on device
+pnpm open:ios                    # Xcode → Archive
+```
+
+Store listing templates live under `apps/mobile/store/play/` and
+`apps/mobile/store/appstore/`.
+
+## Tauri Mobile (legacy preview)
 
 The Tauri 2 mobile target is wired up in `apps/desktop/src-tauri`:
 

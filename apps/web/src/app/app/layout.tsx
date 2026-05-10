@@ -9,6 +9,8 @@ import { TimezoneSync } from '@/components/layout/timezone-sync';
 import { VoiceCapture } from '@/components/voice/voice-capture';
 import { ShortcutsCheatsheet } from '@/components/layout/shortcuts-cheatsheet';
 import { QuickCapture } from '@/components/layout/quick-capture';
+import { MobileCaptureFab } from '@/components/layout/mobile-capture-fab';
+import { InstallPrompt } from '@/components/layout/install-prompt';
 import { DailyNoteHotkey } from '@/components/layout/daily-note-hotkey';
 import { OnboardingTour } from '@/components/layout/onboarding-tour';
 import { PomodoroTimer } from '@/components/layout/pomodoro-timer';
@@ -46,6 +48,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <VoiceCapture />
         <ShortcutsCheatsheet />
         <QuickCapture />
+        <MobileCaptureFab />
+        <InstallPrompt />
         <DailyNoteHotkey />
         <OnboardingTour />
         <PomodoroTimer />

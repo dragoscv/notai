@@ -1,0 +1,57 @@
+name: release-sdk
+
+# Publishes @notai/sdk to npm.
+#
+# Triggers:
+#   - Tag push matching `sdk-v*` (e.g. sdk-v0.2.0)
+#   - Manual workflow_dispatch (publishes the current package.json version)
+#
+# Required repository secret:
+#   NPM_TOKEN  npm automation/publish token with publish rights to @notai
+
+on:
+  push:
+    tags:
+      - 'sdk-v*'
+  workflow_dispatch:
+
+concurrency:
+  group: release-sdk
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck SDK
+        run: pnpm --filter @notai/sdk typecheck
+
+      - name: Build SDK
+        run: pnpm --filter @notai/sdk build
+
+      - name: Publish to npm
+        working-directory: packages/sdk
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm publish --access public --provenance

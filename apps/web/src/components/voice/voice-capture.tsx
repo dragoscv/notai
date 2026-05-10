@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
 import { useHotkey } from '@notai/ui/hooks/use-hotkey';
 import { createNoteFromVoice } from '@/server/actions/transcribe';
+import { haptic } from '@/lib/haptics';
 
 type State = 'idle' | 'recording' | 'transcribing';
 
@@ -55,6 +56,7 @@ export function VoiceCapture() {
       const fd = new FormData();
       fd.append('audio', blob, 'voice.webm');
       const result = await createNoteFromVoice(fd);
+      haptic('success');
       toast.success('Voice note saved');
       setOpen(false);
       setState('idle');

@@ -38,6 +38,8 @@ import { isTauri, invoke } from '@/lib/tauri';
 import { ShareDialog } from './share-dialog';
 import { AssetUploader } from './asset-uploader';
 import { BacklinksPanel } from './backlinks-panel';
+import { NoteMiniGraph } from './note-mini-graph';
+import { NoteLinkPreviews } from './note-link-previews';
 import { RelatedNotesRail } from './related-notes-rail';
 import { RolloverBanner } from './rollover-banner';
 import { CanvasMigrationBanner } from './canvas-migration-banner';
@@ -47,6 +49,9 @@ import { ReadingMode } from './reading-mode';
 import { WordCountChip } from './word-count-chip';
 import { NoteColorPicker } from './note-color-picker';
 import { SmartLinkChip } from './smart-link-chip';
+import { NoteCoverBanner } from './note-cover-banner';
+import { NotePropertiesPanel } from './note-properties-panel';
+import { RecurringRollBanner } from './recurring-roll-banner';
 import { useHotkey } from '@notai/ui/hooks/use-hotkey';
 import { NoteLockOverlay } from './note-lock-overlay';
 import { CanvasQuickMath } from './canvas-quick-math';
@@ -597,6 +602,11 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
           ) : (
             <>
               <div className="editor-column mx-auto w-full px-8 pt-4">
+                <NoteCoverBanner
+                  noteId={note.id}
+                  initialUrl={note.coverUrl ?? null}
+                  initialPosition={note.coverPosition ?? 50}
+                />
                 <input
                   type="text"
                   value={title}
@@ -614,7 +624,9 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                   <NoteLockOverlay noteId={note.id} />
                 </div>
                 <RolloverBanner noteId={note.id} noteTitle={title} canvasRef={canvasRef} />
+                <RecurringRollBanner noteId={note.id} canvasRef={canvasRef} />
                 <CanvasMigrationBanner noteId={note.id} doc={doc} />
+                <NotePropertiesPanel noteId={note.id} />
               </div>
               <div
                 className="relative min-h-0 flex-1"
@@ -675,6 +687,8 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                 <StickyFromSelection canvasRef={canvasRef} />
               </div>
               <BacklinksPanel noteId={note.id} />
+              <NoteLinkPreviews plaintext={note.plaintext} />
+              <NoteMiniGraph noteId={note.id} />
               <RelatedNotesRail noteId={note.id} />
             </>
           )}

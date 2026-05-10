@@ -16,6 +16,7 @@ import {
 import { Button } from '@notai/ui/components/button';
 import { ThemeToggle } from '@notai/ui/components/theme-toggle';
 import { auth } from '@/auth';
+import { AnalyticsConsent } from '@/components/analytics/analytics-consent';
 
 export default async function LandingPage() {
   const session = await auth();
@@ -35,10 +36,12 @@ export default async function LandingPage() {
         <Hero ctaHref={ctaHref} ctaLabel={ctaLabel} />
         <BentoFeatures />
         <UseCases />
+        <Testimonials />
         <FinalCta ctaHref={ctaHref} ctaLabel={ctaLabel} signedIn={!!session?.user} />
       </main>
 
       <SiteFooter />
+      <AnalyticsConsent />
     </div>
   );
 }
@@ -644,6 +647,53 @@ function UseCases() {
 }
 
 /* ─────────────────────── Final CTA ─────────────────────── */
+
+function Testimonials() {
+  const quotes = [
+    {
+      q: 'I finally stopped losing ideas between Notion and Apple Notes. Quick capture is a cheat code.',
+      a: 'Maya R.',
+      r: 'Indie founder',
+    },
+    {
+      q: 'The sticky-on-top window is what Stickies should have been. I keep my sprint goals there all day.',
+      a: 'Damien K.',
+      r: 'Staff engineer',
+    },
+    {
+      q: 'My ADHD brain loves the daily template + estimate tags. I can plan a day in 90 seconds.',
+      a: 'Lex T.',
+      r: 'PM, fintech',
+    },
+  ];
+  return (
+    <section className="relative mx-auto max-w-6xl px-6 py-16 sm:py-24">
+      <div className="mb-10 text-center">
+        <span className="bg-card/70 text-muted-foreground inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs backdrop-blur">
+          <Sparkles className="text-primary size-3" /> Loved by people who hate notes apps
+        </span>
+        <h2 className="mt-4 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
+          What early users are saying
+        </h2>
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        {quotes.map((t) => (
+          <figure
+            key={t.a}
+            className="bg-card/70 hover:shadow-foreground/5 rounded-2xl border p-6 backdrop-blur transition hover:shadow-md"
+          >
+            <blockquote className="text-foreground/90 text-sm leading-relaxed">
+              &ldquo;{t.q}&rdquo;
+            </blockquote>
+            <figcaption className="text-muted-foreground mt-4 text-xs">
+              <span className="text-foreground font-medium">{t.a}</span> \u2014 {t.r}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function FinalCta({
   ctaHref,

@@ -1,11 +1,40 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { getPublicShare } from '@/server/actions/public-share';
 
 export const dynamic = 'force-dynamic';
 
 interface Params {
   token: string;
+}
+
+export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
+  const { token } = await params;
+  const note = await getPublicShare(token);
+  if (!note) return { title: 'Note not found · Notai' };
+  const title = note.title || 'Untitled';
+  // Plaintext is the canonical mirror of the canvas, so it's safe to
+  // pull a short excerpt straight from it for previews.
+  const description = (note.plaintext || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+  const ogImage = `/p/${encodeURIComponent(token)}/opengraph-image`;
+  return {
+    title: `${title} · Notai`,
+    description: description || 'A note shared from Notai.',
+    openGraph: {
+      title,
+      description,
+      type: 'article',
+      images: [ogImage],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage],
+    },
+    robots: { index: false, follow: false },
+  };
 }
 
 /**

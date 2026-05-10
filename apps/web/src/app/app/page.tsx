@@ -9,12 +9,18 @@ import { MorningBriefCard } from '@/components/dashboard/morning-brief-card';
 import { ThrowbackCard } from '@/components/dashboard/throwback-card';
 import { StaleTodosCard } from '@/components/dashboard/stale-todos-card';
 import { StreakBadge } from '@/components/dashboard/streak-badge';
+import { TimeOfDayChip } from '@/components/dashboard/time-of-day-chip';
+import { WeeklyReviewCard } from '@/components/dashboard/weekly-review-card';
+import { InboxZeroNudge } from '@/components/dashboard/inbox-zero-nudge';
+import { ContinueCard } from '@/components/dashboard/continue-card';
 import { DailyPromptCard } from '@/components/dashboard/daily-prompt-card';
 import { DailyRecapCard } from '@/components/dashboard/daily-recap-card';
 import { SentimentHeatmap } from '@/components/dashboard/sentiment-heatmap';
 import { OpenLoopsCard } from '@/components/dashboard/open-loops-card';
 import { AutoArchiveNudge } from '@/components/dashboard/auto-archive-nudge';
 import { TrashPurgeNudge } from '@/components/dashboard/trash-purge-nudge';
+import { TodayTasksCard } from '@/components/dashboard/today-tasks-card';
+import { CalendarTodayCard } from '@/components/dashboard/calendar-today-card';
 import { SidebarToggle } from '@/components/layout/sidebar-toggle';
 import { redirect } from 'next/navigation';
 
@@ -116,10 +122,17 @@ export default async function AppHome() {
         ) : (
           <div className="flex h-full flex-col overflow-hidden">
             <div className="px-4 pt-4 md:px-6">
-              <div className="mb-2 flex justify-end">
+              <div className="mb-2 flex items-center justify-end gap-2">
+                <TimeOfDayChip />
                 <StreakBadge />
               </div>
               <MorningBriefCard />
+            </div>
+            <div className="px-4 md:px-6">
+              <TodayTasksCard />
+            </div>
+            <div className="px-4 md:px-6">
+              <CalendarTodayCard />
             </div>
             <div className="px-4 md:px-6">
               <DailyPromptCard />
@@ -141,6 +154,15 @@ export default async function AppHome() {
             </div>
             <div className="px-4 md:px-6">
               <ThrowbackCard />
+            </div>
+            <div className="px-4 md:px-6">
+              <InboxZeroNudge />
+            </div>
+            <div className="px-4 md:px-6">
+              <ContinueCard />
+            </div>
+            <div className="px-4 md:px-6">
+              <WeeklyReviewCard />
             </div>
             <div className="px-4 md:px-6">
               <StaleTodosCard />

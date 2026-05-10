@@ -2,6 +2,8 @@ import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { getNote, touchNoteOpened } from '@/server/actions/notes';
 import { NoteWorkspace } from '@/components/note/note-workspace';
+import { NotePasswordGate } from '@/components/note/note-password-gate';
+import { isNoteLocked, isNoteUnlockedForSession } from '@/server/actions/note-password';
 import { signRealtimeToken } from '@notai/lib/jwt';
 
 export default async function NotePage({ params }: { params: Promise<{ id: string }> }) {
@@ -11,6 +13,14 @@ export default async function NotePage({ params }: { params: Promise<{ id: strin
 
   const note = await getNote(id);
   if (!note) notFound();
+
+  // Password gate \u2014 owner is also subject to the prompt so the lock is
+  // meaningful even if their session cookie is stolen along with auth.
+  if (await isNoteLocked(id)) {
+    if (!(await isNoteUnlockedForSession(id))) {
+      return <NotePasswordGate noteId={id} />;
+    }
+  }
 
   await touchNoteOpened(id);
 

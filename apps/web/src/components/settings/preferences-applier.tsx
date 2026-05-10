@@ -22,12 +22,14 @@ export function PreferencesApplier() {
     if (prefs.highContrast) html.dataset.highContrast = 'on';
     else delete html.dataset.highContrast;
     html.dataset.sidebarDensity = prefs.sidebarDensity;
+    html.dataset.editorTypography = prefs.editorTypography;
   }, [
     prefs.editorWidth,
     prefs.spellcheck,
     prefs.dyslexiaFont,
     prefs.highContrast,
     prefs.sidebarDensity,
+    prefs.editorTypography,
   ]);
 
   return null;

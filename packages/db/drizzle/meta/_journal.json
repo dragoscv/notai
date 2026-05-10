@@ -85,6 +85,76 @@
       "when": 1779400000000,
       "tag": "0011_folder_default_tags",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1779500000000,
+      "tag": "0012_note_cover",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1779600000000,
+      "tag": "0013_calendar_subscriptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1779700000000,
+      "tag": "0014_email_aliases",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1779800000000,
+      "tag": "0015_note_properties",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1779900000000,
+      "tag": "0016_share_slug_password",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1780000000000,
+      "tag": "0017_workspaces",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1780100000000,
+      "tag": "0018_api_and_push",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1780200000000,
+      "tag": "0019_webhooks",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1780300000000,
+      "tag": "0020_comments",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1780400000000,
+      "tag": "0021_comments_fix",
+      "breakpoints": true
     }
   ]
 }

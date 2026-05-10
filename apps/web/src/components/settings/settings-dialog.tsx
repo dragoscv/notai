@@ -42,6 +42,7 @@ import { signOutAction } from '@/server/actions/auth';
 import { updateProfile, exportUserNotes, deleteAccount } from '@/server/actions/account';
 import { exportAllNotesAsZip } from '@/server/actions/export-zip';
 import { importWorkspaceZip } from '@/server/actions/import-zip';
+import { importEvernoteEnex } from '@/server/actions/import-enex';
 import { exportCalendarIcs } from '@/server/actions/export-ics';
 
 export interface SettingsUser {
@@ -278,6 +279,23 @@ function AppearanceSection() {
       </div>
 
       <div className="space-y-2">
+        <Label>Typography</Label>
+        <SegmentedControl<AppPreferences['editorTypography']>
+          value={prefs.editorTypography}
+          onChange={(v) => setPrefs({ editorTypography: v })}
+          options={[
+            { value: 'serif', label: 'Serif' },
+            { value: 'sans', label: 'Sans' },
+            { value: 'rounded', label: 'Rounded' },
+            { value: 'mono', label: 'Mono' },
+          ]}
+        />
+        <p className="text-muted-foreground text-xs">
+          Sets the font for note titles and the editor surface.
+        </p>
+      </div>
+
+      <div className="space-y-2">
         <Label>Sidebar density</Label>
         <SegmentedControl<AppPreferences['sidebarDensity']>
           value={prefs.sidebarDensity}
@@ -504,6 +522,8 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
   const [exportingZip, startExportZip] = useTransition();
   const [importing, startImport] = useTransition();
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [importingEnex, startImportEnex] = useTransition();
+  const enexInputRef = useRef<HTMLInputElement>(null);
   const [exportingIcs, startExportIcs] = useTransition();
   const [signingOut, startSignOut] = useTransition();
   const [confirmEmail, setConfirmEmail] = useState('');
@@ -622,6 +642,47 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
     });
   };
 
+  const onImportEnex = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('Enex file is too large (max 50 MB).');
+      return;
+    }
+    startImportEnex(async () => {
+      const t = toast.loading('Importing from Evernote…');
+      try {
+        const buf = await file.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        let binary = '';
+        const CHUNK = 0x8000;
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+        }
+        const base64 = btoa(binary);
+        const summary = await importEvernoteEnex({ filename: file.name, base64 });
+        const parts: string[] = [];
+        if (summary.notesCreated > 0)
+          parts.push(`${summary.notesCreated} note${summary.notesCreated === 1 ? '' : 's'}`);
+        if (summary.tagsAttached > 0)
+          parts.push(`${summary.tagsAttached} tag${summary.tagsAttached === 1 ? '' : 's'}`);
+        const message = parts.length > 0 ? `Imported ${parts.join(', ')}.` : 'Nothing imported.';
+        toast.success(message, { id: t });
+        if (summary.resourcesSkipped > 0) {
+          toast.info(
+            `Skipped ${summary.resourcesSkipped} attachment${summary.resourcesSkipped === 1 ? '' : 's'} — re-attach manually if needed.`,
+          );
+        }
+        if (summary.errors.length > 0) {
+          toast.warning(`${summary.errors.length} issue(s): ${summary.errors[0]}`);
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Import failed', { id: t });
+      }
+    });
+  };
+
   const canDelete = !!user.email && confirmEmail.trim().toLowerCase() === user.email.toLowerCase();
 
   const doDelete = () => {
@@ -689,7 +750,8 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
           <div className="space-y-0.5">
             <p className="text-sm font-medium">Import workspace from .zip</p>
             <p className="text-muted-foreground text-xs">
-              Drop a zip of `.md` files (folders preserved). Max 500 files / 5 MB total.
+              Drop a zip of `.md` files (folders preserved). Notion exports work — UUID suffixes are
+              stripped automatically. Max 500 files / 5 MB total.
             </p>
           </div>
           <input
@@ -711,6 +773,38 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
               <Download className="size-4 rotate-180" />
             )}
             Import .zip
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium">Import from Evernote (.enex)</p>
+            <p className="text-muted-foreground text-xs">
+              Drop the .enex file Evernote produced (File → Export Notes…). Tags carry over.
+              Attachments aren&apos;t imported — re-attach manually if you need them.
+            </p>
+          </div>
+          <input
+            ref={enexInputRef}
+            type="file"
+            accept=".enex,application/xml,text/xml"
+            onChange={onImportEnex}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => enexInputRef.current?.click()}
+            disabled={importingEnex}
+          >
+            {importingEnex ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4 rotate-180" />
+            )}
+            Import .enex
           </Button>
         </div>
       </div>

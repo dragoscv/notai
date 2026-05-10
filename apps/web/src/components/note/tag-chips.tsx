@@ -127,26 +127,34 @@ export function TagChips({ noteId }: { noteId: string }) {
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      {tags.map((t) => (
-        <span
-          key={t.id}
-          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${colorFor(t.name)}`}
-        >
-          <Hash className="size-3 opacity-60" />
-          <a href={`/app/tags/${encodeURIComponent(t.name)}`} className="hover:underline">
-            {t.name}
-          </a>
-          <button
-            type="button"
-            onClick={() => remove(t.id)}
-            className="hover:bg-foreground/10 ml-0.5 rounded-full p-0.5"
-            aria-label={`Remove tag ${t.name}`}
-            disabled={pending}
+      {tags.map((t) => {
+        const segs = t.name.split('/');
+        const leaf = segs[segs.length - 1] ?? t.name;
+        const parent = segs.length > 1 ? segs.slice(0, -1).join('/') : null;
+        const href = '/app/tags/' + segs.map(encodeURIComponent).join('/');
+        return (
+          <span
+            key={t.id}
+            title={t.name}
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${colorFor(t.name)}`}
           >
-            <X className="size-2.5" />
-          </button>
-        </span>
-      ))}
+            <Hash className="size-3 opacity-60" />
+            <a href={href} className="hover:underline">
+              {parent && <span className="opacity-60">{parent}/</span>}
+              {leaf}
+            </a>
+            <button
+              type="button"
+              onClick={() => remove(t.id)}
+              className="hover:bg-foreground/10 ml-0.5 rounded-full p-0.5"
+              aria-label={`Remove tag ${t.name}`}
+              disabled={pending}
+            >
+              <X className="size-2.5" />
+            </button>
+          </span>
+        );
+      })}
       {showInput ? (
         <input
           autoFocus

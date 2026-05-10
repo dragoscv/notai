@@ -44,12 +44,37 @@ export async function getOrCreateDailyNote(): Promise<{ id: string; title: strin
       title,
       icon: '📅',
       kind: 'note',
+      plaintext: dailyNoteTemplate(title),
     })
     .returning({ id: notes.id, title: notes.title });
 
   if (!row) throw new Error('Failed to create daily note');
   revalidatePath('/app');
   return row;
+}
+
+/**
+ * Default body for a fresh daily note. Sectioned to gently structure
+ * the day without forcing the user into rigid blocks. Tasks use the
+ * `[ ]` syntax so they flow into the dashboard's Today rollup.
+ */
+function dailyNoteTemplate(title: string): string {
+  return [
+    `# ${title}`,
+    '',
+    '## 🎯 Top three',
+    '- [ ] ',
+    '- [ ] ',
+    '- [ ] ',
+    '',
+    '## 📓 Notes',
+    '',
+    '',
+    '## 🌙 End of day',
+    '- What went well: ',
+    '- One thing to improve: ',
+    '',
+  ].join('\n');
 }
 
 /** Server-action wrapper that redirects straight into today's daily note. */

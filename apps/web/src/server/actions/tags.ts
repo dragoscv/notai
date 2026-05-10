@@ -14,8 +14,31 @@ import {
   or,
   asc,
   inArray,
+  like,
   sql,
 } from '@notai/db';
+
+/**
+ * Normalise a tag name or path. Tags can be hierarchical via slashes
+ * (`work/clients/acme`); each segment is lowercased, spaces collapse
+ * into hyphens, and surrounding/empty separators are dropped. Returns
+ * an empty string when nothing meaningful remains so callers can bail.
+ */
+function cleanTagPath(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/^#/, '')
+    .split('/')
+    .map((seg) =>
+      seg
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9_-]/g, ''),
+    )
+    .filter(Boolean)
+    .join('/');
+}
 
 async function requireUser() {
   const session = await auth();
@@ -63,8 +86,9 @@ const upsertSchema = z.object({
   name: z
     .string()
     .min(1)
-    .max(40)
-    .transform((s) => s.trim().toLowerCase().replace(/\s+/g, '-')),
+    .max(120)
+    .transform(cleanTagPath)
+    .refine((s) => s.length > 0, { message: 'Tag name cannot be empty.' }),
   color: z.string().max(30).optional(),
 });
 
@@ -131,32 +155,47 @@ export async function listNotesByTag(tagId: string) {
 }
 
 /**
- * Same shape as `listNotesByTag` but keyed by tag name. Used by the
- * `/app/tags/[name]` page so the URL can stay human-readable.
- * Returns the tag row alongside the notes (or null if the tag
- * doesn't exist for the user).
+ * Same shape as `listNotesByTag` but keyed by tag name (or hierarchical
+ * path like `work/clients/acme`). Used by the `/app/tags/[...name]`
+ * page so the URL can stay human-readable. When a path has descendants
+ * (e.g. `work` with children `work/clients`), the response includes
+ * notes carrying any descendant too — viewing a parent rolls up its
+ * sub-tags.
  */
-export async function listNotesByTagName(name: string) {
+export async function listNotesByTagPath(name: string) {
   const me = await requireUser();
-  const cleaned = name.trim().toLowerCase().replace(/\s+/g, '-');
+  const cleaned = cleanTagPath(name);
+  type NoteRow = {
+    id: string;
+    title: string | null;
+    icon: string | null;
+    updatedAt: Date;
+  };
   if (!cleaned)
     return {
-      tag: null,
-      notes: [] as Array<{
-        id: string;
-        title: string | null;
-        icon: string | null;
-        updatedAt: Date;
-      }>,
+      tag: null as { id: string; name: string; color: string | null } | null,
+      notes: [] as NoteRow[],
+      includesDescendants: false,
     };
-  const [tag] = await db
+
+  // Match the exact tag and any descendants (`name/...`).
+  const matching = await db
     .select({ id: tags.id, name: tags.name, color: tags.color })
     .from(tags)
-    .where(and(eq(tags.ownerId, me.id), eq(tags.name, cleaned)))
-    .limit(1);
-  if (!tag) return { tag: null, notes: [] };
+    .where(
+      and(eq(tags.ownerId, me.id), or(eq(tags.name, cleaned), like(tags.name, `${cleaned}/%`))),
+    );
+
+  const exact = matching.find((t) => t.name === cleaned) ?? null;
+  const descendantIds = matching.filter((t) => t.name !== cleaned).map((t) => t.id);
+  const includesDescendants = descendantIds.length > 0;
+
+  if (matching.length === 0) {
+    return { tag: null, notes: [] as NoteRow[], includesDescendants: false };
+  }
+
   const rows = await db
-    .select({
+    .selectDistinct({
       id: notes.id,
       title: notes.title,
       icon: notes.icon,
@@ -164,18 +203,74 @@ export async function listNotesByTagName(name: string) {
     })
     .from(notes)
     .innerJoin(noteTags, eq(noteTags.noteId, notes.id))
-    .where(and(eq(notes.ownerId, me.id), eq(noteTags.tagId, tag.id)))
+    .where(
+      and(
+        eq(notes.ownerId, me.id),
+        inArray(
+          noteTags.tagId,
+          matching.map((t) => t.id),
+        ),
+      ),
+    )
     .orderBy(notes.updatedAt);
-  return { tag, notes: rows };
+
+  return {
+    tag: exact ?? { id: matching[0]!.id, name: cleaned, color: null },
+    notes: rows,
+    includesDescendants,
+  };
+}
+
+/** Backwards-compatible alias used by older callers. */
+export const listNotesByTagName = listNotesByTagPath;
+
+/**
+ * Returns the immediate child segments under a tag path. For example,
+ * given `work` it returns `[{segment: 'clients', count: 5}, ...]` for
+ * tags named `work/clients`, `work/admin`, ... Pass an empty path to
+ * list all top-level tag segments.
+ */
+export async function listChildTagSegments(
+  path: string,
+): Promise<Array<{ segment: string; count: number }>> {
+  const me = await requireUser();
+  const cleaned = cleanTagPath(path);
+  const prefix = cleaned ? `${cleaned}/` : '';
+  const depth = prefix ? cleaned.split('/').length + 1 : 1;
+
+  // Pull all tags either at the root (no prefix) or under the prefix.
+  const rows = await db
+    .select({
+      name: tags.name,
+      count: sql<number>`COUNT(${noteTags.noteId})`.as('count'),
+    })
+    .from(tags)
+    .leftJoin(noteTags, eq(noteTags.tagId, tags.id))
+    .where(and(eq(tags.ownerId, me.id), prefix ? like(tags.name, `${prefix}%`) : sql`true`))
+    .groupBy(tags.id);
+
+  const buckets = new Map<string, number>();
+  for (const row of rows) {
+    const segs = row.name.split('/');
+    if (segs.length < depth) continue; // exact match, skip
+    const segment = segs[depth - 1];
+    if (!segment) continue;
+    buckets.set(segment, (buckets.get(segment) ?? 0) + Number(row.count));
+  }
+
+  return Array.from(buckets.entries())
+    .map(([segment, count]) => ({ segment, count }))
+    .sort((a, b) => a.segment.localeCompare(b.segment));
 }
 
 /** Renames or recolors a tag. */
 export async function updateTag(input: { id: string; name?: string; color?: string }) {
   const me = await requireUser();
+  const nextName = input.name ? cleanTagPath(input.name) : undefined;
   await db
     .update(tags)
     .set({
-      ...(input.name ? { name: input.name.trim().toLowerCase().replace(/\s+/g, '-') } : {}),
+      ...(nextName ? { name: nextName } : {}),
       ...(input.color ? { color: input.color } : {}),
     })
     .where(and(eq(tags.id, input.id), eq(tags.ownerId, me.id)));

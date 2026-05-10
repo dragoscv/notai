@@ -157,6 +157,23 @@ export const notes = pgTable(
      */
     publicShareToken: text('public_share_token'),
     publicShareExpiresAt: timestamp('public_share_expires_at', { withTimezone: true }),
+    /** Optional human-readable slug used at `/p/<slug>` instead of the
+     *  opaque token. Unique per owner via the partial index defined in
+     *  migration 0016. */
+    publicShareSlug: text('public_share_slug'),
+
+    /** Scrypt hash protecting reads of this note. Null = unlocked. */
+    passwordHash: text('password_hash'),
+    passwordSetAt: timestamp('password_set_at', { withTimezone: true }),
+
+    /**
+     * Optional cover image for the note (Notion/Craft-style banner).
+     * `coverPosition` is the vertical focal point in 0..100 used as
+     * `object-position-y %` so the user can pick which slice of a
+     * tall image is visible inside the fixed-height banner.
+     */
+    coverUrl: text('cover_url'),
+    coverPosition: integer('cover_position').notNull().default(50),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

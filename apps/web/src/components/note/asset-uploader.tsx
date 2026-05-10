@@ -4,6 +4,7 @@ import { ImagePlus, Loader2 } from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
 import { toast } from 'sonner';
 import { finishAssetUpload, startAssetUpload } from '@/server/actions/assets';
+import { ocrImage } from '@/server/actions/ocr';
 
 /**
  * Drag-and-drop / file-picker uploader. Calls the server to presign,
@@ -48,7 +49,45 @@ export function AssetUploader({
         url: publicUrl,
       });
       onUploaded?.({ url: publicUrl, mime: file.type });
-      toast.success('Uploaded');
+      if (file.type.startsWith('image/')) {
+        toast.success('Uploaded', {
+          action: {
+            label: 'Extract text',
+            onClick: async () => {
+              const t = toast.loading('Reading image…');
+              try {
+                const { text } = await ocrImage({ noteId, imageUrl: publicUrl });
+                if (!text || text === '(no text detected)') {
+                  toast.message('No readable text found.', { id: t });
+                  return;
+                }
+                try {
+                  const list = JSON.parse(
+                    window.localStorage.getItem('notai:pending-appends') ?? '[]',
+                  ) as Array<{ noteId: string; body: string; ts: number }>;
+                  list.push({ noteId, body: text, ts: Date.now() });
+                  window.localStorage.setItem('notai:pending-appends', JSON.stringify(list));
+                } catch {
+                  /* localStorage may be unavailable — fall back to copy-to-clipboard */
+                  try {
+                    await navigator.clipboard.writeText(text);
+                    toast.success('Copied to clipboard.', { id: t });
+                    return;
+                  } catch {
+                    /* ignore */
+                  }
+                }
+                window.dispatchEvent(new CustomEvent('notai:pending-append-changed'));
+                toast.success('Text added below the image.', { id: t });
+              } catch (err) {
+                toast.error((err as Error).message || 'OCR failed', { id: t });
+              }
+            },
+          },
+        });
+      } else {
+        toast.success('Uploaded');
+      }
     } catch (err) {
       toast.error((err as Error).message ?? 'Upload failed');
     } finally {

@@ -86,6 +86,14 @@ export function QuickCapture() {
 
   useHotkey('mod+.', () => setOpen((v) => !v), { id: 'quick-capture' });
 
+  // Listen for an external "open me" event so the mobile FAB (and any
+  // future surface) can trigger Quick Capture without prop drilling.
+  React.useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener('notai:quick-capture-open', handler);
+    return () => window.removeEventListener('notai:quick-capture-open', handler);
+  }, []);
+
   // Debounced semantic suggestion: once the draft is substantive, ask
   // the server which existing notes look like a good home for it.
   React.useEffect(() => {

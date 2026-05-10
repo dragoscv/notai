@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Notai Web Clipper",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Save articles, selections, and screenshots to your Notai workspace.",
   "permissions": ["activeTab", "storage", "scripting", "contextMenus", "notifications", "tabs"],
   "host_permissions": ["<all_urls>"],

@@ -27,6 +27,17 @@ const MAX_FILE_BYTES = 1 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 5 * 1024 * 1024;
 const MD_RE = /\.(md|markdown|txt)$/i;
 
+/**
+ * Notion's MD/HTML exporter appends a 32-character hex page id to every
+ * filename and folder, e.g. `My Note 1234abcd5678ef90...md`. Strip it
+ * for clean titles. Same treatment for folder segments.
+ */
+const NOTION_HEX_SUFFIX = /[\s\u00A0]+[0-9a-f]{32}$/i;
+
+function cleanNotionName(s: string): string {
+  return s.replace(NOTION_HEX_SUFFIX, '').trim();
+}
+
 export interface ImportSummary {
   notesCreated: number;
   foldersCreated: number;
@@ -141,9 +152,10 @@ export async function importWorkspaceZip(rawInput: {
 
     const segments = name.split('/');
     const fileBase = segments.pop() ?? name;
-    const folderPath = segments.join('/');
+    const folderPath = segments.map(cleanNotionName).join('/');
     const text = strFromU8(data);
-    const title = fileBase.replace(MD_RE, '').slice(0, 200) || 'Imported note';
+    const cleanedBase = cleanNotionName(fileBase.replace(MD_RE, ''));
+    const title = cleanedBase.slice(0, 200) || 'Imported note';
     let folderId: string | null = null;
     try {
       folderId = await ensureFolder(folderPath);

@@ -14,6 +14,284 @@ Each app in this monorepo is versioned independently:
 
 ## [Unreleased]
 
+### Added
+
+- **Right-click "Comment on element"** in the canvas editor — when
+  exactly one Excalidraw element is selected, right-click now opens
+  the comments panel anchored to that element's id (uses the existing
+  `onCommentBlock` hook, which was previously stubbed). Falls through
+  to Excalidraw's native menu when no callback is wired or selection
+  is empty/multi.
+
+### Fixed
+
+- **Comments schema integrity** — migration `0021_comments_fix`
+  restores the canonical `note_comments` shape (with `user_id`,
+  `anchor` jsonb, `resolved_at`) and `note_comment_mentions` table
+  after `0020_comments` inadvertently overwrote them with a
+  conflicting layout. Production DBs that have not yet applied 0020
+  will get both files in sequence and end up correct.
+
+### Added
+
+- **Outgoing webhooks for note events** — register `https://` endpoints
+  at `/app/settings/webhooks` to receive POSTed JSON when notes are
+  created/updated/archived via the REST API. Each delivery is signed
+  with HMAC-SHA256 (`X-Notai-Signature: sha256=<hex>`) using a
+  per-endpoint `whsec_…` secret shown once at creation time. Failures
+  bump a `failure_count`; per-attempt status codes are persisted in
+  `webhook_deliveries` for debugging. Schema: migration `0019_webhooks`.
+- **`@notai/sdk` npm publish workflow** — `.github/workflows/release-sdk.yml`
+  publishes on `sdk-v*` tags (or manual dispatch) with provenance.
+  Requires `NPM_TOKEN` repo secret. SDK now ships a real `dist/`
+  build via `tsconfig.build.json` so consumers don't need TS source.
+- **`@notai/sdk` TypeScript client** — new workspace package wrapping
+  the public REST API. Bring your own `apiKey` + optional `baseUrl`
+  for self-hosted deployments. Throws `NotaiApiError` with HTTP status
+  + server message on non-2xx. Lives in `packages/sdk/`.
+- **Capacitor deep-link bridge** — `<CapacitorDeepLinkBridge>` mounted
+  in the root layout listens for native `appUrlOpen` events and
+  routes `notai://...` deep links (from the iOS Action Extension)
+  through the Next.js router. No-op outside Capacitor.
+- **VAPID key generator + push docs** — `scripts/generate-vapid-keys.mjs`
+  spits out the four env lines needed to enable web push. Full setup
+  walkthrough at `docs/push-notifications.md`.
+- **Android Play Store release pipeline** —
+  `.github/workflows/release-mobile-android.yml` decodes the keystore,
+  builds + signs the AAB, uploads to Play (defaults to the `internal`
+  track, choosable via workflow_dispatch). Lists every required secret
+  in the file header.
+- **iOS share-sheet runbook** — added a complete Action Extension
+  walkthrough to `apps/mobile/IOS_SETUP.md` (Swift snippets, Info.plist
+  keys, URL scheme registration) so the mobile share sheet can hand
+  text to Notai once the Mac bootstrap is run.
+- **Daily review push notifications** — new
+  `/api/cron/push-daily-review` route uses `web-push` (VAPID) to fan
+  out a personalized morning nudge to every active subscription;
+  registered as a Vercel cron at 13:00 UTC daily and prunes 404/410
+  endpoints automatically. Requires `VAPID_PUBLIC_KEY` /
+  `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` env (no-op when unset).
+- **Android share-sheet receive** — `AndroidManifest.xml` now declares
+  an `ACTION_SEND text/plain` intent filter and `MainActivity.java`
+  rewrites the incoming share into a deep link
+  (`/app/quick-capture?shared=...`). The quick-capture page reads the
+  param and pre-fills the new sticky.
+- **Developer API docs** — public docs at `/developers/api` cover
+  authentication, every endpoint shape, error codes, and a curl
+  example. Linked from Settings \u2192 API keys.
+- **Public REST API + API keys** — new `/api/v1/notes` (GET list,
+  POST create) and `/api/v1/notes/[id]` (GET, PATCH, DELETE\u2192archive)
+  endpoints authenticate via `Authorization: Bearer nk_\u2026` tokens.
+  Keys are SHA-256-hashed with only a 12-char prefix shown afterwards.
+  UI lives at `/app/settings/api-keys` and supports create + revoke;
+  scope strings (`notes:read notes:write`) are checked per request.
+  Backed by migration `0018_api_and_push`.
+- **Web push notifications scaffolding** — `/sw-push.js` service
+  worker handles `push` and `notificationclick` events; client toggle
+  at `/app/settings/notifications` requests permission, subscribes via
+  PushManager (using `NEXT_PUBLIC_VAPID_PUBLIC_KEY`), and persists the
+  subscription server-side. The actual cron-triggered send runs in a
+  follow-up; the receive path is fully wired.
+- **Markdown / Obsidian / Notion importer** — new `/app/settings/import`
+  page with a folder picker (`webkitdirectory`). Each `.md`/`.markdown`/
+  `.txt` file becomes a note; YAML frontmatter (`title`, `icon`, `emoji`)
+  is honored, with the first H1 used as a fallback title. Caps: 1 MiB
+  per file, 200 files per batch (chunked client-side). Lives in
+  `apps/web/src/server/actions/import-markdown.ts` and
+  `apps/web/src/components/settings/markdown-import-button.tsx`.
+- **iOS TestFlight release pipeline** — `.github/workflows/release-mobile-ios.yml`
+  builds + signs + uploads to TestFlight on `mobile-ios-v*` tags or
+  manual dispatch. Documents every required secret (cert, profile,
+  App Store Connect API key) and runs on `macos-14` so the repo stays
+  Windows-friendly day-to-day.
+- **Social share buttons on public links** — when a note's public read-only
+  link is enabled, the share dialog now shows X, LinkedIn, and email
+  share affordances next to the copy-link control.
+- **Workspace teams (end-to-end)** — new server actions in
+  `apps/web/src/server/actions/workspaces.ts` cover create / delete,
+  invite (signed token, 14-day TTL), accept, member listing &
+  removal, and folder sharing with role gating
+  (`owner`/`admin`/`editor`/`viewer`). Backed by migration `0017`. UI
+  lives at `/app/workspaces` with a per-workspace member panel; the
+  invite flow lands at `/workspace/accept/[token]` and requires the
+  signed-in email to match the invitee.
+- **Mobile haptics + safe-area** — tiny `lib/haptics.ts` wrapper uses
+  the Web Vibration API and emits a `notai:haptic` event so a
+  Capacitor plugin shim can hook in later. Wired into the mobile FAB
+  (light/medium) and voice-capture save (success). Root viewport now
+  sets `viewportFit: 'cover'` so iOS notch insets work as expected.
+- **Continue where you left off** — new `<ContinueCard>` on the
+  dashboard surfaces the 5 most recently opened notes from any device
+  using the existing `notes.lastOpenedAt` mirror. Powered by
+  `listRecentlyOpened` in `server/actions/recent.ts`.
+- **Inline link previews in notes** — `<NoteLinkPreviews>` scans the
+  note's plaintext mirror, dedupes URLs (cap 6), and renders a
+  Notion-style card per link via the existing cached
+  `/api/link-preview` endpoint. Mounted under the canvas next to the
+  backlinks panel.
+
+### Earlier in this release window
+
+- **iOS setup runbook** — `apps/mobile/IOS_SETUP.md` documents the full
+  Xcode-based path: `cap add ios`, signing, Privacy Manifest template,
+  Info.plist usage strings, and TestFlight upload. Repo stays
+  Windows-friendly; no `apps/mobile/ios/` checked in until a Mac runs
+  the bootstrap.
+- **Realtime presence cursors** — `<CanvasNote>` now publishes the
+  local pointer to Yjs awareness (~30 fps) and reflects peer cursors
+  via Excalidraw's `collaborators` map, giving live multi-user cursors
+  on shared notes.
+- **Word (.doc) export** — new `exportNoteDoc` server action +
+  sidebar context menu item ship a Word-openable HTML wrapper, joining
+  the existing Markdown / PDF exports.
+- **Smart link previews** — `/api/link-preview` resolves OpenGraph
+  metadata server-side (4 s timeout, 256 KiB cap, SSRF-blocklisted),
+  consumed by a new `<LinkPreviewCard>` for Notion-style inline cards.
+- **Encryption-at-rest helper** — `apps/web/src/server/crypto/encryption.ts`
+  provides AES-256-GCM `encrypt` / `decrypt` plus key-wrap helpers
+  driven by `NOTAI_DATA_KEY`. Foundation for opt-in note-body
+  encryption (no schema changes yet).
+- **Workspaces + shared folders schema** — migration
+  `0017_workspaces` adds `workspaces`, `workspace_members`,
+  `shared_folders`, and `workspace_invites` tables with a
+  `workspace_role` enum. Already applied to local; production
+  migration pending.
+- **Web Clipper v0.4.0** — bumped manifest version to mark a release
+  cycle (article + selection + region screenshot pipelines stable).
+- **Privacy-first analytics consent** — landing page now shows a
+  cookie-banner that, on accept, sends pageviews + custom events to
+  PostHog via a tiny dependency-free client (`NEXT_PUBLIC_POSTHOG_KEY`
+  + `NEXT_PUBLIC_POSTHOG_HOST`). — No-ops without keys.
+
+- **Android release signing scaffold** — `apps/mobile/android/app/build.gradle`
+  now wires a `signingConfigs.release` block driven by Gradle properties
+  (`NOTAI_KEYSTORE_FILE`, `NOTAI_KEYSTORE_PASSWORD`, `NOTAI_KEY_ALIAS`,
+  `NOTAI_KEY_PASSWORD`) so debug builds keep working unchanged. Full
+  keystore generation + AAB build instructions live in
+  `apps/mobile/android/SIGNING.md`. `.gitignore` now excludes
+  `keystore.properties` so secrets stay local.
+- **Saved searches** — command palette can save the current query +
+  filter pills (semantic, pinned, favorites, stickies) under a name and
+  restore them in one click. Reuses the `user_views` table with
+  `scope='search'`, no migration required. Server actions live in
+  `apps/web/src/server/actions/saved-searches.ts`.
+- **Custom share slugs** — public share dialog accepts a per-note
+  slug so readers see `/p/my-talk` instead of an opaque token. Backed
+  by migration `0016_share_slug_password` (partial unique index on
+  `(owner_id, public_share_slug)`); `getPublicShare` now resolves
+  either token or slug.
+- **Per-note password lock** — owners can set a scrypt-hashed password
+  on any note. Locked notes show a `<NotePasswordGate>` until unlocked
+  for the session via an httpOnly cookie (4 h TTL). Includes
+  `setNotePassword`, `clearNotePassword`, `unlockNote`, and a Set/Clear
+  control inside the share dialog.
+- **Marketing landing testimonials** — added a 3-card social-proof
+  section between Use Cases and Final CTA.
+- **Mobile voice FAB** — the mobile capture stack now exposes a mic
+  button alongside the `+` so voice-to-note (already wired to Whisper
+  via `createNoteFromVoice`) is one tap away on phones.
+- **Stats dashboard** — new `/app/stats` page showing total / 7-day /
+  30-day note counts, a 30-day daily activity bar chart, top 12 tags,
+  and favourite/archived totals. All aggregated server-side via a
+  single Postgres round-trip per section.
+
+- **Android debug APK** — `cap add android` ran successfully and
+  `:app:assembleDebug` produces a 3.6 MB sideloadable APK at
+  `apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk`.
+  Builds with the JBR shipped by Android Studio (JDK 17).
+- **Play Store scaffold** — added `store/play/screenshots/README.md`
+  with capture script and `store/play/privacy.md`. Listing URLs now
+  point at the existing `/privacy-policy` and `/terms` pages.
+- **AI command palette** — `⌘K` now shows a "Current note (AI)" group
+  when you're inside `/app/n/<id>`: summarise, extract action items,
+  rewrite for clarity, suggest tags. Results land on the clipboard so
+  the canvas is never modified without consent.
+- **Mini graph per note** — 1-hop neighbourhood (in + out backlinks)
+  rendered as an SVG inside the note workspace, alongside the
+  existing backlinks panel and related-notes rail.
+- **Daily journal template** — fresh daily notes are seeded with
+  Top three / Notes / End-of-day sections so the page is never blank.
+- **Inbox-Zero nudge** — dashboard card appears once you have ≥ 5
+  unfiled notes; one click into the existing Inbox Zero flow.
+- **Public share OG image + metadata** — `/p/<token>` pages now ship
+  Open Graph + Twitter card metadata and a `next/og`-rendered preview
+  image so Slack / Discord / iMessage previews look intentional.
+- **Hybrid search** — new `searchNotesHybrid` server action merges the
+  trigram lexical pass with a pgvector semantic pass; behind a
+  ✨ Semantic pill in the command palette so the default stays fast.
+- **Recurrence engine** — `@repeat(daily|weekly|monthly|weekdays)` tasks
+  now auto-roll: when you check one off, an amber banner offers to
+  append a fresh open task with the next due date stamped in. Per-note,
+  per-day dismissal so it stays quiet once you've decided.
+- **iCal RRULE expansion** — calendar feeds with `RRULE:` (DAILY,
+  WEEKLY+BYDAY, MONTHLY, YEARLY) and `EXDATE:` exceptions are now
+  expanded into individual occurrences within the dashboard window.
+  Caps at 365 instances per series for safety.
+- **Email attachments → assets** — Postmark inbound payloads now upload
+  PNG/JPEG/WEBP/GIF/SVG/PDF attachments (≤10 MB each, ≤10 per email)
+  through the existing S3 SigV4 pipeline and link them on the created
+  note.
+- **Database / table view** — every property key you've used becomes a
+  browsable database at `/app/db/[key]`. Table view shows the primary
+  key column plus every other property on the same notes, sortable by
+  any column.
+- **Estimate-aware tasks** — `@est(15m)` / `@est(1h)` parses into a
+  per-task minute count and renders a sky-blue badge in the Today card
+  so time-blindness doesn't blow up your day.
+- **Time-of-day chip** — ambient header chip shows the current segment
+  (Morning / Afternoon / Evening / Night) and minutes until the next
+  one, updating every minute.
+- **Weekly review card** — dashboard surface listing the notes you
+  touched in the last 7 days, with new-vs-touched counts.
+- **Mobile capture FAB + PWA install prompt** — floating + button on
+  small viewports opens Quick Capture; a polite install banner appears
+  after 4 s with a 14-day cooldown on dismissals.
+- **Mobile asset pipeline** — `apps/mobile` now ships a
+  `@capacitor/assets` config plus a 1024² source icon for generating
+  Android / iOS launcher icons and splash screens.
+- **Vitest + CI green-gate** — `apps/web` now runs Vitest with a
+  baseline test suite for `lib/tasks.ts`, and a new GitHub Actions `ci`
+  workflow runs lint → typecheck → test → build on every push and PR.
+- **Hierarchical tags** — `#projects/notai/launch` style. Tag detail
+  pages now show breadcrumbs and child-segment chips with note counts;
+  rolling up notes under a tag includes its descendants.
+- **Cover images & typography presets** — Notion/Craft-style banner per
+  note with drag-to-reposition; four editor type stacks (Serif, Sans,
+  Rounded, Mono) selectable in Settings → Appearance.
+- **Tasks with due dates & recurrence** — `[ ] @due(YYYY-MM-DD)
+  @repeat(daily|weekly|monthly|weekdays) !!high|med|low`. Today /
+  Overdue rollup card on the dashboard.
+- **Notion ZIP & Evernote ENEX import** — added to Settings → Account.
+  Notion's hex-suffix folder/file names are stripped; ENEX resources
+  (attachments) are counted but skipped in this first cut.
+- **OCR for uploaded images** — when you upload an image, the toast
+  offers an "Extract text" action that calls a vision-capable OpenAI
+  model (BYOK) and copies the result into the note.
+- **Calendar ingestion via iCal** — paste a Google/Outlook/Apple iCal
+  URL at `/app/calendars`; today + tomorrow events appear on the
+  dashboard. Read-only; SSRF-hardened with private-IP rejection,
+  request size cap, and an 8 s timeout.
+- **Email-to-note** — each user gets a secret address
+  `local+TOKEN@<EMAIL_INBOUND_DOMAIN>`. Inbound webhook at
+  `POST /api/inbound-email` accepts a Postmark-shaped payload, gated
+  by `EMAIL_INBOUND_WEBHOOK_SECRET`. Sender is verified against the
+  user's account email. See `docs/email-inbound.md`.
+- **Note properties** — Bear/Notion-style typed key/value fields
+  (text/number/date/select/checkbox/url) attached to any note.
+  Editable from a collapsible panel below the editor. Foundations laid
+  for a future table/database view.
+- **Mobile wrapper (`apps/mobile`)** — Capacitor 6 shell that loads the
+  production web app inside Android + iOS native webviews. Includes
+  Play Store and App Store listing templates plus a step-by-step
+  publishing guide. PWA install path remains supported.
+
+### Database
+
+- New migrations: `0012_note_cover`, `0013_calendar_subscriptions`,
+  `0014_email_aliases`, `0015_note_properties`. Run
+  `pnpm db:push` (local) or apply via the migration script before the
+  next deploy.
+
 ## [@notai/web 0.2.0] - 2026-05-10
 
 ### Added

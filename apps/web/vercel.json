@@ -18,6 +18,14 @@
     {
       "path": "/api/cron/daily-note",
       "schedule": "5 * * * *"
+    },
+    {
+      "path": "/api/cron/push-daily-review",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/webhook-hygiene",
+      "schedule": "30 4 * * *"
     }
   ],
   "headers": [
