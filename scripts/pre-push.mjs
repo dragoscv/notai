@@ -69,6 +69,12 @@ const STEPS = [
     args: ['scripts/version-bump-audit.mjs'],
     hint: 'See scripts/version-bump-audit.mjs — bumps must include a CHANGELOG entry.',
   },
+  {
+    name: 'Secret scan',
+    cmd: 'node',
+    args: ['scripts/secret-scan.mjs'],
+    hint: 'Remove the secret from the file and rotate it. False positives can be silenced via `// notai-secret-scan-ignore`.',
+  },
 ];
 
 function run({ name, cmd, args, env }) {

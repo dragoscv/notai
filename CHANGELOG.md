@@ -16,6 +16,20 @@ Each app in this monorepo is versioned independently:
 
 ### Added
 
+- **Public API status page** at `/developers/status` \u2014 24h totals,
+  error rate, average + p95 latency, a 7-day daily traffic chart, and
+  a top-routes table. Reads aggregated metrics only from
+  `api_request_log`; no per-key data is exposed. Page revalidates
+  every 60 s.
+- **Pre-push secret scanner** \u2014 new `scripts/secret-scan.mjs` greps
+  every tracked file for known secret patterns (AWS, GitHub PAT/OAuth,
+  Stripe, Slack, Google OAuth, OpenAI, Anthropic, private-key blocks)
+  and fails the push when anything matches. False positives can be
+  silenced with a `// notai-secret-scan-ignore` line comment or by
+  appending the file to `ALLOW_FILES`.
+
+### Added
+
 - **Distributed rate limiter** \u2014 the in-memory limiter now upgrades
   to Upstash Redis via REST when `UPSTASH_REDIS_REST_URL` and
   `UPSTASH_REDIS_REST_TOKEN` are set. Counters are shared across all
