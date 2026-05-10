@@ -3,72 +3,85 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { isTauri, invoke } from '@/lib/tauri';
 
+interface UpdateInfo {
+  version: string;
+  current_version: string;
+  notes?: string | null;
+}
+
+const TOAST_ID = 'updater-available';
+const POLL_MS = 60 * 60 * 1000; // re-check every hour while the app is open
+
 /**
- * Mount-once component that wires up:
+ * Mount-once component that wires up the auto-update flow:
  *
- * 1. **Tauri desktop**: listens for `updater://ready` emitted by the Rust
- *    side after a silent background download+install. Shows a sonner toast
- *    with a "Restart now" action.
- *    Also proactively calls `check_for_update` on mount so the web layer
- *    acts as a retry if the event from startup fired before this listener
- *    was registered.
+ * 1. **Tauri desktop**: never installs anything without consent. On mount
+ *    (and every hour after) it asks the Rust side `check_for_update`. If a
+ *    newer release exists, a sticky toast appears with the version and
+ *    notes; clicking "Install & restart" invokes `install_update`, which
+ *    downloads, applies, and restarts. The Rust startup task also emits
+ *    `updater://available` on its own first check, so a notification can
+ *    fire even if the user happened to be on a tab without this component.
  *
- * 2. **PWA (browser)**: listens for `serviceWorker.controllerchange`, which
- *    fires when a freshly-activated service worker takes over the page.
- *    Shows a subtle toast offering to reload.
+ * 2. **PWA (browser)**: when a freshly-activated service worker takes
+ *    over, offer a Reload toast.
  */
 export function AppUpdater() {
   React.useEffect(() => {
     if (isTauri()) {
-      let unlisten: (() => void) | null = null;
       let cancelled = false;
+      let unlisten: (() => void) | null = null;
+      let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-      const showRestartToast = (version?: string) => {
-        toast.success(
-          version
-            ? `Update installed (v${version}). Restart Notai to apply.`
-            : 'Update installed. Restart Notai to apply.',
-          {
-            id: 'updater-ready',
-            duration: Infinity,
-            action: {
-              label: 'Restart now',
-              onClick: () => {
-                invoke('restart_app').catch(() => {
-                  /* ignore — app is quitting */
-                });
-              },
+      const showAvailableToast = (info: UpdateInfo) => {
+        toast(`Notai v${info.version} is available`, {
+          id: TOAST_ID,
+          description: info.notes
+            ? truncate(info.notes, 240)
+            : `You're on v${info.current_version}.`,
+          duration: Infinity,
+          action: {
+            label: 'Install & restart',
+            onClick: () => {
+              toast.loading('Downloading update…', { id: TOAST_ID });
+              invoke('install_update').catch((e) => {
+                toast.error(`Update failed: ${String(e)}`, { id: TOAST_ID, duration: 8000 });
+              });
             },
           },
-        );
+          cancel: { label: 'Later', onClick: () => toast.dismiss(TOAST_ID) },
+        });
+      };
+
+      const runCheck = async () => {
+        try {
+          const info = await invoke<UpdateInfo | null>('check_for_update');
+          if (cancelled || !info) return;
+          showAvailableToast(info);
+        } catch {
+          // offline, GitHub rate-limit, or command missing — silent.
+        }
       };
 
       (async () => {
         try {
           const { listen } = await import('@tauri-apps/api/event');
-          const un = await listen<{ version?: string }>('updater://ready', (ev) =>
-            showRestartToast(ev.payload?.version),
-          );
+          const un = await listen<UpdateInfo>('updater://available', (ev) => {
+            if (ev.payload) showAvailableToast(ev.payload);
+          });
           if (cancelled) un();
           else unlisten = un;
         } catch {
-          /* tauri not ready — ignore */
+          /* tauri events not ready — ignore */
         }
-
-        // Belt-and-suspenders: if the Rust-side startup check fired
-        // before we subscribed, this second check picks up a staged
-        // update (or no-ops if there isn't one).
-        try {
-          const applied = await invoke<boolean>('check_for_update');
-          if (applied) showRestartToast();
-        } catch {
-          /* offline, no update, or command missing — ignore */
-        }
+        await runCheck();
+        pollTimer = setInterval(runCheck, POLL_MS);
       })();
 
       return () => {
         cancelled = true;
         unlisten?.();
+        if (pollTimer) clearInterval(pollTimer);
       };
     }
 
@@ -111,4 +124,9 @@ export function AppUpdater() {
   }, []);
 
   return null;
+}
+
+function truncate(s: string, max: number): string {
+  if (s.length <= max) return s;
+  return `${s.slice(0, max - 1).trimEnd()}…`;
 }

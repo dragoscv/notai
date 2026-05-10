@@ -338,21 +338,76 @@ fn handle_deep_link(app: &AppHandle, url: &str) {
     }
 }
 
-/// Check GitHub Releases for a newer version. If one is found, download +
-/// install in the background and restart the app. The endpoint URL +
-/// signing pubkey live in `tauri.conf.json` under `plugins.updater`.
-async fn check_for_updates(app: AppHandle) -> Result<(), String> {
+/// Check GitHub Releases for a newer version. Does NOT install — only
+/// reports what's available so the UI can ask the user before downloading
+/// hundreds of MB and restarting their session. Called from JS on mount
+/// + on a periodic interval, and also once from the Rust setup hook so a
+/// notification can fire even before the web layer subscribes.
+#[derive(serde::Serialize, Clone)]
+struct UpdateInfo {
+    version: String,
+    current_version: String,
+    notes: Option<String>,
+}
+
+#[tauri::command]
+async fn check_for_update(app: AppHandle) -> Result<Option<UpdateInfo>, String> {
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    let Some(update) = updater.check().await.map_err(|e| e.to_string())? else {
+        return Ok(None);
+    };
+    Ok(Some(UpdateInfo {
+        version: update.version.clone(),
+        current_version: update.current_version.clone(),
+        notes: update.body.clone(),
+    }))
+}
+
+/// Download + install the pending update, then restart. Invoked by the
+/// "Install & restart" button in the in-app notification. The await on
+/// `download_and_install` resolves only after the installer has been
+/// applied; `app.restart()` never returns.
+#[tauri::command]
+async fn install_update(app: AppHandle) -> Result<(), String> {
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    let Some(update) = updater.check().await.map_err(|e| e.to_string())? else {
+        return Err("no update available".into());
+    };
+    update
+        .download_and_install(|_chunk, _total| {}, || {})
+        .await
+        .map_err(|e| e.to_string())?;
+    app.restart();
+}
+
+/// Restart the app without installing anything (currently unused — the
+/// updater path restarts as part of `install_update`. Kept for parity
+/// with the JS layer that may call it after a manual reinstall.)
+#[tauri::command]
+async fn restart_app(app: AppHandle) -> Result<(), String> {
+    app.restart();
+}
+
+/// Background task that runs once on startup: ask GitHub if there's a
+/// newer version, and if there is, broadcast `updater://available` so
+/// the in-app notification can offer to install. Never installs on its
+/// own — that's the user's call.
+async fn startup_update_check(app: AppHandle) -> Result<(), String> {
     let updater = app.updater().map_err(|e| e.to_string())?;
     let Some(update) = updater.check().await.map_err(|e| e.to_string())? else {
         return Ok(());
     };
     println!("[updater] new version available: {}", update.version);
-    update
-        .download_and_install(|_chunk, _total| {}, || {})
-        .await
-        .map_err(|e| e.to_string())?;
-    println!("[updater] installed; restarting");
-    app.restart();
+    use tauri::Emitter;
+    let _ = app.emit(
+        "updater://available",
+        UpdateInfo {
+            version: update.version.clone(),
+            current_version: update.current_version.clone(),
+            notes: update.body.clone(),
+        },
+    );
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -398,6 +453,9 @@ pub fn run() {
             quick_capture,
             set_autostart,
             get_autostart,
+            check_for_update,
+            install_update,
+            restart_app,
         ])
         .on_window_event(|window, event| {
             // Hide the main window on close instead of destroying it — that
@@ -417,7 +475,7 @@ pub fn run() {
             // are silently ignored — they're not fatal.
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = check_for_updates(handle).await {
+                if let Err(e) = startup_update_check(handle).await {
                     eprintln!("[updater] {}", e);
                 }
             });

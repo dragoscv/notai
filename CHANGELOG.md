@@ -515,6 +515,29 @@ Apply with `pnpm db:migrate (local)` or `pnpm db:migrate (production)`.
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.18] - 2026-05-10
+
+### Changed — Confirm before installing updates
+
+The auto-updater no longer downloads or installs anything without asking.
+On boot (and every hour after), if a newer release is available the app
+shows a sticky in-app notification with the new version and release notes.
+Clicking **Install & restart** is what actually downloads, applies, and
+restarts — matching Bear, Obsidian, and Notion's update UX.
+
+- **Rust** (`apps/desktop/src-tauri/src/lib.rs`): the silent
+  `check_for_updates` task is gone. Replaced with `startup_update_check`
+  which only checks and emits `updater://available` with `{version,
+  current_version, notes}`. Three new invoke commands: `check_for_update`
+  (returns `Option<UpdateInfo>` without installing), `install_update`
+  (downloads + installs + restarts), `restart_app` (parity with the JS
+  layer). All three registered in the invoke handler — they were missing
+  before, so the JS fallbacks had been silently failing.
+- **Web** (`apps/web/src/components/layout/app-updater.tsx`): mount-time
+  check + 1h interval re-check. Sticky toast with "Install & restart" /
+  "Later" actions; switches to a "Downloading update…" loading toast on
+  click, and surfaces `toast.error` on failure.
+
 ## [@notai/desktop 0.1.17] - 2026-05-10
 
 ### Fixed
