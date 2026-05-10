@@ -7,6 +7,10 @@ const pkg = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf
   version?: string;
 };
 const APP_VERSION = pkg.version ?? '0.0.0';
+const realtimePkg = JSON.parse(
+  readFileSync(resolve(process.cwd(), '../realtime-server/package.json'), 'utf8'),
+) as { version?: string };
+const REALTIME_VERSION = realtimePkg.version ?? '0.0.0';
 
 const withSerwist = withSerwistInit({
   swSrc: 'src/app/sw.ts',
@@ -25,6 +29,7 @@ const nextConfig: NextConfig = {
 
   env: {
     NEXT_PUBLIC_APP_VERSION: APP_VERSION,
+    NEXT_PUBLIC_REALTIME_VERSION: REALTIME_VERSION,
   },
 
   // Next.js 16 — top-level flags

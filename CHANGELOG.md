@@ -515,6 +515,34 @@ Apply with `pnpm db:migrate (local)` or `pnpm db:migrate (production)`.
   and `HOCUSPOCUS_JWT_SECRET`, sets port 1234, session affinity, and uses
   the `notai-deploy` service account.
 
+## [@notai/desktop 0.1.21] - 2026-05-10
+
+### Changed — Compact single-line version footer with icon-only update check
+
+The version footer under the Notai logo is now a single line with
+all three component versions (`web v… · app v… · rt v…`) and an
+icon-only update check button:
+
+- **Refresh icon** (default) — click to check for updates.
+- **Spinning refresh** — check in progress.
+- **Yellow warning** — an update is available; the existing install
+  toast handles the actual upgrade.
+- **Green check** — confirms "you're on the latest" for ~2 s, then
+  reverts to the refresh icon.
+
+The desktop version is hidden when running in the browser (only
+`web` and `rt` are shown). The realtime server version is exposed
+to the client via `NEXT_PUBLIC_REALTIME_VERSION`, read at build
+time from `apps/realtime-server/package.json`.
+
+- **`apps/web/src/components/layout/app-version.tsx`**: rewritten
+  for the new layout; subscribes to `updater://available` so the
+  warning icon also lights up from the boot-time updater poll.
+- **`apps/web/next.config.ts`**: also reads
+  `apps/realtime-server/package.json` and exposes
+  `NEXT_PUBLIC_REALTIME_VERSION`.
+- **`apps/web/package.json`**: bumped to 0.1.2.
+
 ## [@notai/desktop 0.1.20] - 2026-05-10
 
 ### Added — App version display + manual update check

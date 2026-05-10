@@ -1,7 +1,9 @@
 'use client';
 import * as React from 'react';
 import { toast } from 'sonner';
+import { RefreshCw, AlertTriangle, Check } from 'lucide-react';
 import { isTauri, invoke } from '@/lib/tauri';
+import { cn } from '@notai/lib/utils';
 
 interface UpdateInfo {
   version: string;
@@ -10,13 +12,17 @@ interface UpdateInfo {
 }
 
 const WEB_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.0.0';
+const REALTIME_VERSION = process.env.NEXT_PUBLIC_REALTIME_VERSION ?? '0.0.0';
+
+type CheckState = 'idle' | 'checking' | 'available' | 'uptodate';
 
 export function AppVersion({ collapsed }: { collapsed?: boolean }) {
   const [desktopVersion, setDesktopVersion] = React.useState<string | null>(null);
-  const [checking, setChecking] = React.useState(false);
+  const [state, setState] = React.useState<CheckState>('idle');
+  const inTauri = isTauri();
 
   React.useEffect(() => {
-    if (!isTauri()) return;
+    if (!inTauri) return;
     let cancelled = false;
     (async () => {
       try {
@@ -30,53 +36,87 @@ export function AppVersion({ collapsed }: { collapsed?: boolean }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [inTauri]);
+
+  // Listen for updater availability emitted by the Rust startup poll so the
+  // warning icon shows even without the user clicking refresh.
+  React.useEffect(() => {
+    if (!inTauri) return;
+    let unlisten: (() => void) | undefined;
+    (async () => {
+      const { listen } = await import('@tauri-apps/api/event');
+      unlisten = await listen('updater://available', () => setState('available'));
+    })();
+    return () => unlisten?.();
+  }, [inTauri]);
+
+  // Auto-revert "uptodate" back to idle after 2s so the icon returns to refresh.
+  React.useEffect(() => {
+    if (state !== 'uptodate') return;
+    const t = setTimeout(() => setState('idle'), 2000);
+    return () => clearTimeout(t);
+  }, [state]);
+
+  const onCheck = async () => {
+    if (!inTauri || state === 'checking') return;
+    setState('checking');
+    try {
+      const info = await invoke<UpdateInfo | null>('check_for_update');
+      setState(info ? 'available' : 'uptodate');
+    } catch (err) {
+      toast.error(`Update check failed: ${String(err)}`, { duration: 5000 });
+      setState('idle');
+    }
+  };
+
+  const segments = [`web v${WEB_VERSION}`];
+  if (inTauri && desktopVersion) segments.push(`app v${desktopVersion}`);
+  segments.push(`rt v${REALTIME_VERSION}`);
+  const text = segments.join(' · ');
 
   if (collapsed) {
     return (
       <div
         className="text-muted-foreground/60 px-1 pt-1 text-center text-[9px] leading-tight"
-        title={
-          desktopVersion ? `App v${desktopVersion} • Web v${WEB_VERSION}` : `Web v${WEB_VERSION}`
-        }
+        title={text}
       >
         v{desktopVersion ?? WEB_VERSION}
       </div>
     );
   }
 
-  const onCheck = async () => {
-    if (!isTauri() || checking) return;
-    setChecking(true);
-    try {
-      const info = await invoke<UpdateInfo | null>('check_for_update');
-      if (!info) {
-        toast.success("You're on the latest version", { duration: 3000 });
-      }
-      // If an update IS available, the existing AppUpdater listener shows
-      // the install toast — no need to duplicate it here.
-    } catch (err) {
-      toast.error(`Update check failed: ${String(err)}`, { duration: 5000 });
-    } finally {
-      setChecking(false);
-    }
-  };
+  const Icon = state === 'available' ? AlertTriangle : state === 'uptodate' ? Check : RefreshCw;
+  const iconColor =
+    state === 'available'
+      ? 'text-yellow-500 hover:text-yellow-400'
+      : state === 'uptodate'
+        ? 'text-green-500'
+        : 'text-muted-foreground/70 hover:text-foreground';
+  const tooltip =
+    state === 'available'
+      ? 'Update available — click the install toast to apply'
+      : state === 'uptodate'
+        ? 'You are on the latest version'
+        : state === 'checking'
+          ? 'Checking for updates…'
+          : 'Check for updates';
 
   return (
-    <div className="text-muted-foreground/70 px-3 pb-1 pt-0.5 text-[10px] leading-tight">
-      <div>Web v{WEB_VERSION}</div>
-      {desktopVersion ? (
-        <div className="flex items-center justify-between gap-2">
-          <span>App v{desktopVersion}</span>
-          <button
-            type="button"
-            onClick={onCheck}
-            disabled={checking}
-            className="hover:text-foreground underline-offset-2 transition-colors hover:underline disabled:opacity-50"
-          >
-            {checking ? 'Checking…' : 'Check for updates'}
-          </button>
-        </div>
+    <div className="text-muted-foreground/70 flex items-center gap-1.5 px-3 pb-1 pt-0.5 text-[10px] leading-tight">
+      <span className="truncate" title={text}>
+        {text}
+      </span>
+      {inTauri ? (
+        <button
+          type="button"
+          onClick={onCheck}
+          disabled={state === 'checking'}
+          className={cn('shrink-0 transition-colors', iconColor)}
+          aria-label={tooltip}
+          title={tooltip}
+        >
+          <Icon className={cn('size-3', state === 'checking' && 'animate-spin')} />
+        </button>
       ) : null}
     </div>
   );
