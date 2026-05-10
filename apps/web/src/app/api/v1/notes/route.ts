@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifyApiKey } from '@/server/actions/api-keys';
 import { dispatchNoteEvent } from '@/server/actions/webhooks';
+import { logApiRequest } from '@/server/api-log';
 import { apiCreateNote } from '@/server/notes-api';
 import { db, notes, eq, and, isNull, desc } from '@notai/db';
 
@@ -25,6 +26,7 @@ const createSchema = z.object({
 });
 
 export async function GET(req: Request) {
+  const started = Date.now();
   const auth = await verifyApiKey(req.headers.get('authorization'));
   if (!auth) return jsonError(401, 'unauthorized');
   if (!auth.scopes.includes('notes:read')) return jsonError(403, 'missing scope notes:read');
@@ -41,10 +43,19 @@ export async function GET(req: Request) {
     .where(and(eq(notes.ownerId, auth.userId), isNull(notes.deletedAt)))
     .orderBy(desc(notes.updatedAt))
     .limit(50);
+  logApiRequest({
+    apiKeyId: auth.apiKeyId,
+    userId: auth.userId,
+    path: '/api/v1/notes',
+    method: 'GET',
+    status: 200,
+    durationMs: Date.now() - started,
+  });
   return NextResponse.json({ notes: rows });
 }
 
 export async function POST(req: Request) {
+  const started = Date.now();
   const auth = await verifyApiKey(req.headers.get('authorization'));
   if (!auth) return jsonError(401, 'unauthorized');
   if (!auth.scopes.includes('notes:write')) return jsonError(403, 'missing scope notes:write');
@@ -63,6 +74,14 @@ export async function POST(req: Request) {
   void dispatchNoteEvent(auth.userId, 'note.created', {
     id: created.id,
     title: created.title,
+  });
+  logApiRequest({
+    apiKeyId: auth.apiKeyId,
+    userId: auth.userId,
+    path: '/api/v1/notes',
+    method: 'POST',
+    status: 201,
+    durationMs: Date.now() - started,
   });
   return NextResponse.json({ id: created.id, title: created.title }, { status: 201 });
 }

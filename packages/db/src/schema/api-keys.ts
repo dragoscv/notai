@@ -1,4 +1,12 @@
-import { pgTable, text, varchar, timestamp, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  integer,
+  index,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { users } from './auth';
 
 /**
@@ -46,5 +54,32 @@ export const pushSubscriptions = pgTable(
   (t) => [
     uniqueIndex('push_subscriptions_endpoint_unq').on(t.endpoint),
     index('push_subscriptions_user_idx').on(t.userId),
+  ],
+);
+
+/**
+ * Per-call audit row for the public REST API. Captured fire-and-forget
+ * from each /api/v1/* handler so we can show the user how their key
+ * is being used. Pruned by the webhook-hygiene cron (>30d).
+ */
+export const apiRequestLog = pgTable(
+  'api_request_log',
+  {
+    id: text('id').primaryKey(),
+    apiKeyId: text('api_key_id')
+      .notNull()
+      .references(() => apiKeys.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    path: text('path').notNull(),
+    method: text('method').notNull(),
+    status: integer('status').notNull(),
+    durationMs: integer('duration_ms').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('api_request_log_key_idx').on(t.apiKeyId, t.createdAt),
+    index('api_request_log_user_idx').on(t.userId, t.createdAt),
   ],
 );

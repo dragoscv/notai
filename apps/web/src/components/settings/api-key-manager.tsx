@@ -1,10 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { Trash2, Plus, Copy, Loader2 } from 'lucide-react';
+import { Trash2, Plus, Copy, Loader2, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@notai/ui/components/button';
 import { createApiKey, revokeApiKey } from '@/server/actions/api-keys';
+import { getApiKeyUsage, type ApiKeyUsageStats } from '@/server/actions/api-usage';
 
 export interface SerializedKey {
   id: string;
@@ -97,42 +98,116 @@ export function ApiKeyManager({ initial }: { initial: SerializedKey[] }) {
       ) : (
         <ul className="divide-y rounded-2xl border">
           {keys.map((k) => (
-            <li key={k.id} className="flex items-center gap-3 p-4">
-              <div className="min-w-0 flex-1">
-                <div className="font-medium">{k.name}</div>
-                <div className="text-muted-foreground font-mono text-xs">{k.prefix}\u2026</div>
-                <div className="text-muted-foreground mt-1 text-xs">
-                  {k.scopes} \u00b7 created {new Date(k.createdAt).toLocaleDateString()}
-                  {k.lastUsedAt
-                    ? ` \u00b7 last used ${new Date(k.lastUsedAt).toLocaleDateString()}`
-                    : ' \u00b7 unused'}
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={async () => {
-                  if (
-                    !window.confirm(
-                      `Revoke \u201c${k.name}\u201d? Calls using it will start failing immediately.`,
-                    )
-                  )
-                    return;
-                  try {
-                    await revokeApiKey(k.id);
-                    setKeys((rows) => rows.filter((r) => r.id !== k.id));
-                    toast.success('Revoked');
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : 'Failed');
-                  }
-                }}
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </li>
+            <KeyRow
+              key={k.id}
+              k={k}
+              onRevoked={() => setKeys((rows) => rows.filter((r) => r.id !== k.id))}
+            />
           ))}
         </ul>
       )}
     </div>
+  );
+}
+
+function KeyRow({ k, onRevoked }: { k: SerializedKey; onRevoked: () => void }) {
+  const [open, setOpen] = React.useState(false);
+  const [stats, setStats] = React.useState<ApiKeyUsageStats | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  React.useEffect(() => {
+    if (!open || stats) return;
+    setLoading(true);
+    getApiKeyUsage(k.id)
+      .then((s) => setStats(s))
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
+  }, [open, stats, k.id]);
+  return (
+    <li className="p-4">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="font-medium">{k.name}</div>
+          <div className="text-muted-foreground font-mono text-xs">{k.prefix}\u2026</div>
+          <div className="text-muted-foreground mt-1 text-xs">
+            {k.scopes} \u00b7 created {new Date(k.createdAt).toLocaleDateString()}
+            {k.lastUsedAt
+              ? ` \u00b7 last used ${new Date(k.lastUsedAt).toLocaleDateString()}`
+              : ' \u00b7 unused'}
+          </div>
+        </div>
+        <Button size="sm" variant="ghost" onClick={() => setOpen((v) => !v)} title="Usage">
+          <Activity className="size-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={async () => {
+            if (
+              !window.confirm(
+                `Revoke \u201c${k.name}\u201d? Calls using it will start failing immediately.`,
+              )
+            )
+              return;
+            try {
+              await revokeApiKey(k.id);
+              onRevoked();
+              toast.success('Revoked');
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : 'Failed');
+            }
+          }}
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      </div>
+      {open && (
+        <div className="bg-muted/40 mt-3 rounded-lg p-3 text-xs">
+          {loading && <p className="text-muted-foreground">Loading\u2026</p>}
+          {!loading && stats && (
+            <>
+              <div className="mb-2">
+                <span className="font-medium">{stats.totalLast30Days}</span> request
+                {stats.totalLast30Days === 1 ? '' : 's'} in last 30 days
+                {stats.errorsLast30Days > 0 && (
+                  <span className="text-destructive">
+                    {' '}
+                    \u00b7 {stats.errorsLast30Days} error(s)
+                  </span>
+                )}
+              </div>
+              {stats.recent.length === 0 ? (
+                <p className="text-muted-foreground">No calls yet.</p>
+              ) : (
+                <ul className="space-y-0.5 font-mono">
+                  {stats.recent.map((r, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <span
+                        className={
+                          r.status >= 400
+                            ? 'text-destructive w-10'
+                            : r.status >= 300
+                              ? 'w-10 text-amber-600'
+                              : 'w-10 text-emerald-600'
+                        }
+                      >
+                        {r.status}
+                      </span>
+                      <span className="w-12">{r.method}</span>
+                      <span className="flex-1 truncate">{r.path}</span>
+                      <span className="text-muted-foreground w-12 text-right">
+                        {r.durationMs}ms
+                      </span>
+                      <span className="text-muted-foreground w-32 text-right">
+                        {new Date(r.createdAt).toLocaleString()}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </li>
   );
 }

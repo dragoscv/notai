@@ -88,7 +88,7 @@ export async function revokeApiKey(keyId: string): Promise<void> {
  */
 export async function verifyApiKey(
   rawHeader: string | null | undefined,
-): Promise<{ userId: string; scopes: string[] } | null> {
+): Promise<{ apiKeyId: string; userId: string; scopes: string[] } | null> {
   if (!rawHeader) return null;
   const m = rawHeader.match(/^Bearer\s+(.+)$/i);
   if (!m) return null;
@@ -115,5 +115,5 @@ export async function verifyApiKey(
     .set({ lastUsedAt: new Date() })
     .where(eq(apiKeys.id, row.id))
     .catch(() => undefined);
-  return { userId: row.userId, scopes: row.scopes.split(/\s+/).filter(Boolean) };
+  return { apiKeyId: row.id, userId: row.userId, scopes: row.scopes.split(/\s+/).filter(Boolean) };
 }

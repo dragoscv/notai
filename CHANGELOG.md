@@ -16,6 +16,16 @@ Each app in this monorepo is versioned independently:
 
 ### Added
 
+- **Per-API-key usage analytics** — every call to `/api/v1/notes/*`
+  is now logged to a new `api_request_log` table (path, method,
+  status, duration). The API key manager grows an inline activity
+  panel: total requests in the last 30 days, error count, and the
+  last 25 calls with status/method/path/latency. Logging is
+  fire-and-forget and never affects the API response. Schema:
+  migration `0022_api_request_log`.
+
+### Added
+
 - **Right-click "Comment on element"** in the canvas editor — when
   exactly one Excalidraw element is selected, right-click now opens
   the comments panel anchored to that element's id (uses the existing
