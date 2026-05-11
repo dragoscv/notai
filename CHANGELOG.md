@@ -15,6 +15,14 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Command palette: search result cache + recent searches** — typing
+  the same query twice now returns instantly from a module-scoped LRU
+  (up to 24 entries, 60-second freshness). Successful searches are
+  appended to a "Recent searches" group rendered when the palette
+  opens with an empty input, persisted to `localStorage`. Cuts the
+  feel of search-as-you-type substantially when you backspace and
+  retype, or revisit the palette on the same query within a minute.
+
 - **Privacy receipts: E2E audit log** — every lifecycle moment of
   end-to-end encryption is now persisted to a new `e2e_audit_log`
   table (setup, passphrase rotation, per-note lock / unlock /

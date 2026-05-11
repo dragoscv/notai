@@ -44,6 +44,73 @@ import { AskDialog } from './ask-dialog';
 import type { Note } from '@notai/db/schema';
 
 /**
+ * In-memory LRU cache of recent search results keyed by the full
+ * query+filter signature. Lives at module scope so it survives
+ * palette close / reopen and reuses results across tab focus
+ * cycles, without ever leaking outside the renderer process.
+ */
+const SEARCH_CACHE_MAX = 24;
+const searchCache = new Map<string, { hits: SearchHit[]; ts: number }>();
+
+function cacheKey(
+  q: string,
+  filters: { pinned: boolean; fav: boolean; stickies: boolean; semantic: boolean },
+): string {
+  return `${q}|${filters.pinned ? 1 : 0}|${filters.fav ? 1 : 0}|${filters.stickies ? 1 : 0}|${filters.semantic ? 1 : 0}`;
+}
+
+function cacheGet(key: string): SearchHit[] | null {
+  const hit = searchCache.get(key);
+  if (!hit) return null;
+  // Expire after 60s — fresh enough to feel live, long enough to
+  // make typing-backspace-retype feel free.
+  if (Date.now() - hit.ts > 60_000) {
+    searchCache.delete(key);
+    return null;
+  }
+  // Refresh LRU order.
+  searchCache.delete(key);
+  searchCache.set(key, hit);
+  return hit.hits;
+}
+
+function cachePut(key: string, hits: SearchHit[]): void {
+  if (searchCache.size >= SEARCH_CACHE_MAX) {
+    const oldest = searchCache.keys().next().value;
+    if (oldest !== undefined) searchCache.delete(oldest);
+  }
+  searchCache.set(key, { hits, ts: Date.now() });
+}
+
+const RECENT_KEY = 'notai:cmdk:recent';
+const RECENT_MAX = 8;
+
+function loadRecentSearches(): string[] {
+  try {
+    const raw = window.localStorage.getItem(RECENT_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((s): s is string => typeof s === 'string').slice(0, RECENT_MAX);
+  } catch {
+    return [];
+  }
+}
+
+function pushRecentSearch(q: string): string[] {
+  const trimmed = q.trim();
+  if (trimmed.length < 2) return loadRecentSearches();
+  const current = loadRecentSearches().filter((s) => s !== trimmed);
+  const next = [trimmed, ...current].slice(0, RECENT_MAX);
+  try {
+    window.localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch {
+    // ignore quota / private-mode errors
+  }
+  return next;
+}
+
+/**
  * App-wide command palette. Triggered with ⌘K or `notai:command-palette`.
  *
  * For queries ≥ 2 chars we hit a server action that searches the user's
@@ -63,6 +130,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
   const [stickiesOnly, setStickiesOnly] = React.useState(false);
   const [semanticOn, setSemanticOn] = React.useState(false);
   const [savedSearches, setSavedSearches] = React.useState<SavedSearch[]>([]);
+  const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
   const router = useRouter();
   const pathname = usePathname();
   // Pull the active note id off the URL so AI actions can target it
@@ -85,6 +153,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
   // and keeps the list in sync if the user saved one in another tab.
   React.useEffect(() => {
     if (!open) return;
+    setRecentSearches(loadRecentSearches());
     void listSavedSearches()
       .then((rows) => setSavedSearches(rows))
       .catch(() => undefined);
@@ -109,13 +178,31 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
       setSearching(false);
       return;
     }
+    const key = cacheKey(q, {
+      pinned: pinnedOnly,
+      fav: favoritesOnly,
+      stickies: stickiesOnly,
+      semantic: semanticOn,
+    });
+    const cached = cacheGet(key);
+    if (cached) {
+      // Instant return for repeat queries — most useful when the user
+      // backspaces a character and retypes it, or revisits the same
+      // search across tab focus.
+      setHits(cached);
+      setSearching(false);
+      return;
+    }
     let cancelled = false;
     setSearching(true);
     const t = setTimeout(() => {
       const fn = semanticOn ? searchNotesHybrid : searchNotes;
       fn(q, { pinnedOnly, favoritesOnly, stickiesOnly })
         .then((rows) => {
-          if (!cancelled) setHits(rows);
+          if (cancelled) return;
+          cachePut(key, rows);
+          setHits(rows);
+          if (rows.length > 0) setRecentSearches(pushRecentSearch(q));
         })
         .catch(() => undefined)
         .finally(() => {
@@ -245,6 +332,19 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               </p>
             </div>
           </CommandEmpty>
+
+          {!showServerHits && recentSearches.length > 0 && (
+            <CommandGroup heading="Recent searches" className={groupHeadingClass}>
+              {recentSearches.map((q) => (
+                <CommandItem key={`recent-${q}`} onSelect={() => setQuery(q)}>
+                  <span className="bg-muted text-muted-foreground grid size-7 place-items-center rounded-md">
+                    <Search className="size-3.5" />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">{q}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
 
           {!showServerHits && savedSearches.length > 0 && (
             <CommandGroup heading="Saved searches" className={groupHeadingClass}>
