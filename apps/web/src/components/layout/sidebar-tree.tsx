@@ -91,6 +91,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { usePrompt } from '@/components/ui/prompt-dialog';
 import { EmbedStatusIndicator } from '@/components/layout/embed-status-indicator';
 import { NoteMergeDialog } from '@/components/note/note-merge-dialog';
+import { NewFromTemplateButton } from './new-from-template-button';
 
 /* --------------------- Expanded-state persistence ------------------------ */
 
@@ -446,6 +447,7 @@ export function SidebarTree({ folders, notes }: SidebarTreeProps) {
           <IconHeaderBtn aria-label="New note" title="New note" onClick={() => openNewNote(null)}>
             <Plus className="size-3.5" />
           </IconHeaderBtn>
+          <NewFromTemplateButton folderId={null} />
         </div>
       </div>
 

@@ -2,7 +2,13 @@
 import * as React from 'react';
 import { Hash, Plus, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { attachTag, detachTag, listNoteTags, suggestTagsForNote } from '@/server/actions/tags';
+import {
+  attachTag,
+  detachTag,
+  listNoteTags,
+  listTags,
+  suggestTagsForNote,
+} from '@/server/actions/tags';
 
 interface Tag {
   id: string;
@@ -40,14 +46,16 @@ export function TagChips({ noteId }: { noteId: string }) {
       .catch(() => undefined);
   }, [noteId]);
 
-  const submit = () => {
-    const name = draft.trim().replace(/^#/, '');
+  const submit = (override?: string) => {
+    const name = (override ?? draft).trim().replace(/^#/, '');
     if (!name) return;
     startTransition(async () => {
       try {
         const t = await attachTag({ noteId, name });
         setTags((arr) => (arr.some((x) => x.id === t.id) ? arr : [...arr, t]));
         setDraft('');
+        // Refresh the autocomplete pool so brand-new tags surface next time.
+        void loadAllTags();
       } catch (err) {
         toast.error((err as Error).message ?? "Couldn't add tag");
       }
@@ -62,7 +70,33 @@ export function TagChips({ noteId }: { noteId: string }) {
 
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
   const [suggesting, setSuggesting] = React.useState(false);
-  const requestSuggestions = React.useCallback(async () => {
+
+  // Workspace tag pool for the autocomplete dropdown. Fetched once when
+  // the user opens the input and refreshed after a successful attach so
+  // brand-new tags appear in subsequent autocompletions.
+  const [allTags, setAllTags] = React.useState<Tag[] | null>(null);
+  const [hover, setHover] = React.useState(0);
+  const loadAllTags = React.useCallback(async () => {
+    try {
+      const rows = await listTags();
+      setAllTags(rows);
+    } catch {
+      setAllTags([]);
+    }
+  }, []);
+  const attachedNames = React.useMemo(() => new Set(tags.map((t) => t.name)), [tags]);
+  const draftQuery = draft.trim().replace(/^#/, '').toLowerCase();
+  const matches = React.useMemo(() => {
+    if (!allTags || !draftQuery) return [];
+    return allTags
+      .filter((t) => !attachedNames.has(t.name))
+      .filter((t) => t.name.toLowerCase().includes(draftQuery))
+      .slice(0, 6);
+  }, [allTags, attachedNames, draftQuery]);
+  React.useEffect(() => {
+    setHover(0);
+  }, [draftQuery]);
+  const requestSuggestions = async () => {
     setSuggesting(true);
     try {
       const raw = await suggestTagsForNote(noteId);
@@ -77,7 +111,7 @@ export function TagChips({ noteId }: { noteId: string }) {
     } finally {
       setSuggesting(false);
     }
-  }, [noteId, tags]);
+  };
 
   // Auto-suggest once per note per session: when the note has no tags
   // and the user has had it open for ~30s, quietly fetch up to 3
@@ -156,26 +190,64 @@ export function TagChips({ noteId }: { noteId: string }) {
         );
       })}
       {showInput ? (
-        <input
-          autoFocus
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => {
-            if (!draft.trim()) setShowInput(false);
-            else submit();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              submit();
-            } else if (e.key === 'Escape') {
-              setShowInput(false);
-              setDraft('');
-            }
-          }}
-          placeholder="tag…"
-          className="text-foreground/80 placeholder:text-muted-foreground w-24 bg-transparent text-[11px] outline-none"
-        />
+        <span className="relative inline-flex">
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onFocus={() => {
+              if (allTags == null) void loadAllTags();
+            }}
+            onBlur={() => {
+              // Delay so a click on a suggestion has a chance to fire.
+              window.setTimeout(() => {
+                if (!draft.trim()) setShowInput(false);
+                else submit();
+              }, 120);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const picked = matches[hover];
+                submit(picked?.name);
+              } else if (e.key === 'Escape') {
+                setShowInput(false);
+                setDraft('');
+              } else if (e.key === 'ArrowDown' && matches.length > 0) {
+                e.preventDefault();
+                setHover((h) => (h + 1) % matches.length);
+              } else if (e.key === 'ArrowUp' && matches.length > 0) {
+                e.preventDefault();
+                setHover((h) => (h - 1 + matches.length) % matches.length);
+              }
+            }}
+            placeholder="tag…"
+            className="text-foreground/80 placeholder:text-muted-foreground w-32 bg-transparent text-[11px] outline-none"
+          />
+          {matches.length > 0 && (
+            <ul className="bg-popover absolute left-0 top-full z-30 mt-1 min-w-[160px] overflow-hidden rounded-md border text-[11px] shadow-md">
+              {matches.map((t, i) => (
+                <li key={t.id}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      // mousedown beats blur — lets us pick before the input loses focus.
+                      e.preventDefault();
+                      submit(t.name);
+                    }}
+                    onMouseEnter={() => setHover(i)}
+                    className={`flex w-full items-center gap-1.5 px-2 py-1 text-left ${
+                      i === hover ? 'bg-muted' : ''
+                    }`}
+                  >
+                    <Hash className="size-2.5 opacity-60" />
+                    {t.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </span>
       ) : (
         <button
           type="button"
