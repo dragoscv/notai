@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, emailAliases, emailMessages, users, notes, assets, eq, and } from '@notai/db';
-import { sql } from 'drizzle-orm';
+import { db, emailAliases, emailMessages, users, notes, assets, eq, and, sql } from '@notai/db';
 import { timingSafeEqual } from 'node:crypto';
 import { buildKey, isAssetsConfigured, presign, publicUrlFor } from '@/server/storage/s3';
 

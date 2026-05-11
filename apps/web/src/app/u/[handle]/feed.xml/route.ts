@@ -1,5 +1,4 @@
-import { db, users, notes, eq, and, desc } from '@notai/db';
-import { sql } from 'drizzle-orm';
+import { db, users, notes, eq, and, desc, sql } from '@notai/db';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
