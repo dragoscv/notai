@@ -52,6 +52,11 @@ export const env = createEnv({
 
     // Cron auth — a shared secret a scheduler (Vercel cron or other) sends.
     CRON_SECRET: z.string().min(16).optional(),
+
+    // BullMQ queue backend (e.g. Upstash Redis: rediss://default:<token>@<host>:<port>).
+    // Required when outbound webhooks are enabled — the dispatcher throws
+    // if missing so producers can't silently drop deliveries.
+    REDIS_URL: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url(),

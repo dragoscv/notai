@@ -15,6 +15,17 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Outbound webhook retry queue (BullMQ + Redis)** — `dispatchNoteEvent`
+  now enqueues per-endpoint deliveries onto a `webhook-deliveries` queue
+  instead of firing inline `Promise.all(fetch)`. Five attempts with
+  exponential backoff (2s → 4s → 8s → 16s → 32s); every attempt writes
+  a `webhook_deliveries` row so the dashboard delivery log shows the
+  full retry history. New `/api/cron/webhook-worker` route runs every
+  minute and drains the queue for ~50s. New required env `REDIS_URL`
+  (Upstash Redis works: `rediss://default:<token>@<host>:<port>`) —
+  the producer throws if it's unset, since silent fallback to inline
+  delivery would re-introduce the silent-drop bug this is fixing.
+
 - **Three new AI actions** — `outline`, `title`, and `fix-spelling`
   added to both the inline `/api/ai/slash` endpoint (so any consumer
   using `runSlashAi` gets them) and the note-level `<NoteAiMenu />`

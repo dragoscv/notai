@@ -1,10 +1,12 @@
 'use server';
 
-import { createHmac, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
-import { db, webhookEndpoints, webhookDeliveries, eq, and, desc, sql } from '@notai/db';
+import { db, webhookEndpoints, webhookDeliveries, eq, and, desc } from '@notai/db';
+import { enqueueWebhook } from '@/server/webhooks/queue';
+import { deliverOnce } from '@/server/webhooks/deliver';
 
 export interface WebhookRow {
   id: string;
@@ -142,26 +144,43 @@ export async function redeliverWebhook(deliveryId: string): Promise<{ statusCode
     .limit(1);
   if (!row || row.ownerId !== session.user.id) throw new Error('Not found');
   const body = JSON.stringify(row.payload);
-  const newId = await deliverOne(
-    { id: row.endpointId, url: row.url, secret: row.secret },
-    row.event,
-    body,
-  );
-  const [fresh] = await db
-    .select({ statusCode: webhookDeliveries.statusCode })
-    .from(webhookDeliveries)
-    .where(eq(webhookDeliveries.id, newId))
-    .limit(1);
+  // Manual replays go through the same delivery path the worker uses,
+  // but synchronously — the user is staring at the dialog and wants the
+  // status code back. We swallow the throw deliverOnce uses to advance
+  // BullMQ's retry counter.
+  let result;
+  try {
+    result = await deliverOnce({
+      endpointId: row.endpointId,
+      event: row.event,
+      body,
+    });
+  } catch {
+    // deliverOnce already wrote a webhook_deliveries row before throwing;
+    // surface the recorded status to the dashboard.
+    const [last] = await db
+      .select({ id: webhookDeliveries.id, statusCode: webhookDeliveries.statusCode })
+      .from(webhookDeliveries)
+      .where(eq(webhookDeliveries.endpointId, row.endpointId))
+      .orderBy(desc(webhookDeliveries.deliveredAt))
+      .limit(1);
+    revalidatePath('/app/settings/webhooks');
+    return { statusCode: last?.statusCode ?? null };
+  }
   revalidatePath('/app/settings/webhooks');
-  return { statusCode: fresh?.statusCode ?? null };
+  return { statusCode: result.statusCode };
 }
 
 /**
- * Fire-and-forget event dispatcher. Call this from any server action
- * that mutates a note. Looks up active endpoints subscribed to the
- * event, posts the payload with HMAC signing, and persists a per-call
- * delivery record. Failures bump `failureCount`; 5xx in a row should
- * eventually disable the endpoint (deferred to a follow-up cron).
+ * Event dispatcher. Enqueues one BullMQ job per matching active endpoint.
+ * The worker (apps/web/src/app/api/cron/webhook-worker/route.ts) handles
+ * the actual HTTP delivery + retries with exponential backoff.
+ *
+ * Throws synchronously if REDIS_URL is unset. The previous fire-and-forget
+ * implementation silently dropped on transport errors; failing loudly here
+ * forces the missing-config to surface during note mutation rather than
+ * being discovered hours later by a customer asking why their integration
+ * never fired.
  */
 export async function dispatchNoteEvent(
   userId: string,
@@ -173,79 +192,18 @@ export async function dispatchNoteEvent(
     .from(webhookEndpoints)
     .where(and(eq(webhookEndpoints.userId, userId), eq(webhookEndpoints.isActive, true)));
   if (endpoints.length === 0) return;
+  const matched = endpoints.filter((ep) => ep.events.split(/\s+/).includes(event));
+  if (matched.length === 0) return;
   const body = JSON.stringify({
     event,
     deliveredAt: new Date().toISOString(),
     data: payload,
   });
-  await Promise.all(
-    endpoints
-      .filter((ep) => ep.events.split(/\s+/).includes(event))
-      .map((ep) => deliverOne(ep, event, body)),
-  );
+  await Promise.all(matched.map((ep) => enqueueWebhook({ endpointId: ep.id, event, body })));
 }
 
 // Replay-safe signature: HMAC-SHA256 over `${unixSeconds}.${body}` (Stripe-style).
 // Receivers should reject deliveries whose `X-Notai-Timestamp` differs from
-// their own clock by more than ~5 minutes.
-async function deliverOne(
-  ep: { id: string; url: string; secret: string },
-  event: string,
-  body: string,
-): Promise<string> {
-  const id = randomBytes(8).toString('hex');
-  const ts = Math.floor(Date.now() / 1000).toString();
-  const sig = createHmac('sha256', ep.secret).update(`${ts}.${body}`).digest('hex');
-  const started = Date.now();
-  let statusCode: number | null = null;
-  let responseBody: string | null = null;
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(ep.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Notai-Webhook/1.0',
-        'X-Notai-Event': event,
-        'X-Notai-Timestamp': ts,
-        'X-Notai-Signature': `t=${ts},v1=${sig}`,
-        'X-Notai-Delivery-Id': id,
-      },
-      body,
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    statusCode = res.status;
-    try {
-      responseBody = (await res.text()).slice(0, 1000);
-    } catch {
-      responseBody = null;
-    }
-  } catch (err) {
-    statusCode = null;
-    responseBody = err instanceof Error ? err.message.slice(0, 200) : 'fetch failed';
-  }
-  const ok = statusCode != null && statusCode >= 200 && statusCode < 300;
-  await db.insert(webhookDeliveries).values({
-    id,
-    endpointId: ep.id,
-    event,
-    payload: JSON.parse(body),
-    statusCode,
-    responseBody,
-    durationMs: Date.now() - started,
-  });
-  await db
-    .update(webhookEndpoints)
-    .set(
-      ok
-        ? { lastSuccessAt: new Date(), failureCount: 0 }
-        : {
-            lastFailureAt: new Date(),
-            failureCount: sql`${webhookEndpoints.failureCount} + 1`,
-          },
-    )
-    .where(eq(webhookEndpoints.id, ep.id));
-  return id;
-}
+// their own clock by more than ~5 minutes. The actual per-attempt logic
+// lives in apps/web/src/server/webhooks/deliver.ts so the BullMQ worker
+// can call it without importing this 'use server' file.
