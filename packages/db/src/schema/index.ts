@@ -25,3 +25,4 @@ export * from './user-totp';
 export * from './flashcards';
 export * from './user-snippets';
 export * from './note-presence';
+export * from './user-keys';

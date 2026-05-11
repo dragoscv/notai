@@ -15,6 +15,19 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **End-to-end encryption foundation** — new `user_keys` table (0036)
+  stores a per-user AES-GCM 256 master key wrapped twice: once under a
+  PBKDF2-SHA256-derived KEK from the user's passphrase (600k iters,
+  per-user salt), once under a 32-byte recovery key shown once at
+  setup. The client primitives live in `apps/web/src/lib/e2e.ts`
+  (`generateMasterKey`, `deriveKEKFromPassphrase`,
+  `importRecoveryKEK`, `encryptBytes`/`decryptBytes`, `randomSalt`).
+  The settings → Account → Enable encryption panel walks the user
+  through setup and displays the recovery key exactly once. Server
+  receives only ciphertext — passphrase and master key never leave
+  the browser. Per-note encrypt toggle, encrypted-body column, and
+  server-side feature gating ship in a follow-up.
+
 - **Graph co-presence** — note-workspace heartbeats every 30s into a
   new `note_presence` table; the graph view polls active viewers every
   20s and renders a small emerald dot on every node currently being

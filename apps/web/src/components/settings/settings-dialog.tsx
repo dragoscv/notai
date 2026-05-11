@@ -41,6 +41,7 @@ import { ShortcutsEditor } from './shortcuts-editor';
 import { signOutAction } from '@/server/actions/auth';
 import { updateProfile, exportUserNotes, deleteAccount } from '@/server/actions/account';
 import { exportAllNotesAsZip } from '@/server/actions/export-zip';
+import { EncryptionSettingsPanel } from './encryption-settings-panel';
 import { importWorkspaceZip } from '@/server/actions/import-zip';
 import { importEvernoteEnex } from '@/server/actions/import-enex';
 import { exportCalendarIcs } from '@/server/actions/export-ics';
@@ -705,6 +706,8 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
   return (
     <div className="space-y-6">
       <SectionHeading title="Account" description="Your data and session." />
+
+      <EncryptionSettingsPanel />
 
       <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
         <div className="flex items-start justify-between gap-4">
