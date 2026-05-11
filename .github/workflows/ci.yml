@@ -45,4 +45,8 @@ jobs:
           SKIP_ENV_VALIDATION: '1'
           SKIP_NEXT_BUILD_TS: '1'
           TURBO_DAEMON: '0'
+          # packages/db/src/client.ts throws if DATABASE_URL is missing,
+          # even when the env schema is skipped. Provide a placeholder so
+          # `next build` can collect page data for routes that import db.
+          DATABASE_URL: 'postgres://ci:ci@localhost:5432/ci'
         run: pnpm build
