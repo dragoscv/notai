@@ -4,6 +4,8 @@
  * have one place that handles the dev fallback and the prod failure mode.
  */
 
+import { isSuppressed } from '@/server/email-suppressions';
+
 interface SendInput {
   to: string;
   subject: string;
@@ -18,7 +20,14 @@ export async function sendEmail({
   text,
   html,
   replyTo,
-}: SendInput): Promise<{ ok: boolean }> {
+}: SendInput): Promise<{ ok: boolean; suppressed?: boolean }> {
+  // Suppression check FIRST — never send to bounced/complained addresses.
+  const suppressed = await isSuppressed(to).catch(() => null);
+  if (suppressed) {
+    console.info('[email] skipped — recipient suppressed (%s)', suppressed.reason);
+    return { ok: false, suppressed: true };
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.CONTACT_FROM ?? 'Notai <noreply@notai.ro>';
 

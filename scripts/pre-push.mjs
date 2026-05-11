@@ -77,6 +77,26 @@ const STEPS = [
   },
 ];
 
+const VERBOSE = process.env.PREPUSH_VERBOSE === '1' || process.argv.includes('--verbose');
+const HEARTBEAT_MS = 1000;
+const STATUS_MAX_COL = 100;
+
+function lastNonEmptyLine(buf) {
+  // Strip ANSI + carriage returns so transient progress bars don't garble.
+  const cleaned = buf.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '').replace(/\r/g, '\n');
+  const lines = cleaned.split('\n');
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const l = lines[i].trim();
+    if (l) return l;
+  }
+  return '';
+}
+
+function truncate(s, max) {
+  if (s.length <= max) return s;
+  return s.slice(0, max - 1) + '…';
+}
+
 function run({ name, cmd, args, env }) {
   return new Promise((resolve) => {
     const start = Date.now();
@@ -84,12 +104,51 @@ function run({ name, cmd, args, env }) {
       cwd: repoRoot,
       shell: true,
       env: { ...process.env, ...(env ?? {}) },
+      // Inherit stdio in verbose mode so output streams to terminal as it happens.
+      stdio: VERBOSE ? 'inherit' : 'pipe',
     });
+
     let buf = '';
-    child.stdout.on('data', (d) => (buf += d.toString()));
-    child.stderr.on('data', (d) => (buf += d.toString()));
+    let heartbeat = null;
+    let lastDrawWidth = 0;
+
+    if (!VERBOSE) {
+      const onData = (d) => {
+        buf += d.toString();
+      };
+      child.stdout.on('data', onData);
+      child.stderr.on('data', onData);
+
+      if (isTTY) {
+        const draw = () => {
+          const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+          const tail = lastNonEmptyLine(buf);
+          const prefix = `  ${cyan('●')} ${name} ${dim(`(${elapsed}s)`)} `;
+          // Calculate visible width without ANSI for proper clearing.
+          const visibleLen = `  ● ${name} (${elapsed}s) `.length;
+          const room = Math.max(20, STATUS_MAX_COL - visibleLen);
+          const line = prefix + (tail ? dim(truncate(tail, room)) : dim('…'));
+          // Clear the previous line then redraw.
+          process.stdout.write(`\r${' '.repeat(lastDrawWidth)}\r${line}`);
+          lastDrawWidth = visibleLen + Math.min(room, tail.length || 1);
+        };
+        draw();
+        heartbeat = setInterval(draw, HEARTBEAT_MS);
+      }
+    }
+
     child.on('close', (code) => {
+      if (heartbeat) clearInterval(heartbeat);
+      if (!VERBOSE && isTTY && lastDrawWidth > 0) {
+        // Erase the heartbeat line so the final ✓/✖ printed by the caller is clean.
+        process.stdout.write(`\r${' '.repeat(lastDrawWidth)}\r`);
+      }
       resolve({ name, code, output: buf, ms: Date.now() - start });
+    });
+
+    child.on('error', (err) => {
+      if (heartbeat) clearInterval(heartbeat);
+      resolve({ name, code: 1, output: String(err), ms: Date.now() - start });
     });
   });
 }
@@ -110,17 +169,29 @@ console.log(
     `  Bypass with --no-verify at your own risk — quality is no longer re-checked in CI. Logs collapsed; failures expand.`,
   ),
 );
+if (VERBOSE) {
+  console.log(dim('  Verbose mode: streaming all step output (PREPUSH_VERBOSE=1).'));
+} else {
+  console.log(
+    dim(
+      '  Tip: re-run with `$env:PREPUSH_VERBOSE=1; git push` to stream live output for slow steps.',
+    ),
+  );
+}
 
 const results = [];
 for (const step of STEPS) {
-  process.stdout.write(`  ${cyan('●')} ${step.name}${dim(' …')}`);
+  if (VERBOSE) {
+    console.log();
+    console.log(cyan(`▶ ${step.name}`));
+  }
   const r = await run(step);
   results.push({ ...r, step });
   const t = `${(r.ms / 1000).toFixed(1)}s`;
   if (r.code === 0) {
-    process.stdout.write(`\r  ${green('✓')} ${step.name} ${dim(`(${t})`)}\n`);
+    process.stdout.write(`  ${green('✓')} ${step.name} ${dim(`(${t})`)}\n`);
   } else {
-    process.stdout.write(`\r  ${red('✖')} ${step.name} ${dim(`(${t}, exit ${r.code})`)}\n`);
+    process.stdout.write(`  ${red('✖')} ${step.name} ${dim(`(${t}, exit ${r.code})`)}\n`);
   }
 }
 
