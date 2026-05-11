@@ -23,6 +23,13 @@ export const users = pgTable('user', {
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
   /** IANA timezone (e.g. 'Europe/Bucharest'). Synced from the browser. */
   timezone: text('timezone'),
+  /**
+   * Optional public blog handle. When set, the user's published notes
+   * are listed at `/u/{handle}` with an RSS feed at
+   * `/u/{handle}/feed.xml`. Lower-cased, URL-safe, unique. Null means
+   * the user has not opted into a public blog.
+   */
+  blogHandle: text('blog_handle'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

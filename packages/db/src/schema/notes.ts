@@ -161,6 +161,11 @@ export const notes = pgTable(
      *  opaque token. Unique per owner via the partial index defined in
      *  migration 0016. */
     publicShareSlug: text('public_share_slug'),
+    /** When true AND the owner has a `blogHandle`, this note is listed
+     *  on the owner's public blog at `/u/{handle}` and in its RSS
+     *  feed. Independent of `publicShareToken` so the user explicitly
+     *  promotes only the notes they want on the index. */
+    blogVisible: boolean('blog_visible').notNull().default(false),
 
     /** Scrypt hash protecting reads of this note. Null = unlocked. */
     passwordHash: text('password_hash'),
