@@ -15,6 +15,13 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Graph co-presence** — note-workspace heartbeats every 30s into a
+  new `note_presence` table; the graph view polls active viewers every
+  20s and renders a small emerald dot on every node currently being
+  viewed by someone other than you. Rows older than 5 minutes are
+  reaped on the next heartbeat, so no separate cron is needed. Hover
+  tooltip shows the viewer's name (or count when multiple).
+
 - **Native push registration bridge (mobile)** — new
   `<CapacitorPushBridge />` mounted in the root layout requests push
   permission, registers with APNs/FCM, and forwards the resulting
