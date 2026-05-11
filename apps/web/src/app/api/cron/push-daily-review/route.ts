@@ -44,6 +44,7 @@ export async function GET(req: Request) {
       endpoint: pushSubscriptions.endpoint,
       p256dh: pushSubscriptions.p256dh,
       auth: pushSubscriptions.auth,
+      platform: pushSubscriptions.platform,
     })
     .from(pushSubscriptions);
 
@@ -74,11 +75,40 @@ export async function GET(req: Request) {
       seenUsers.set(sub.userId, info);
     }
 
+    const title = 'Your daily review is ready';
+    const body = info.name
+      ? `${info.name.split(' ')[0]}, take 2 minutes to review what you opened recently.`
+      : 'Take 2 minutes to review your recent notes.';
+
+    if (sub.platform === 'ios' || sub.platform === 'android') {
+      // Native mobile token — FCM. Lazy import so dev environments without
+      // Firebase env vars still successfully build the route.
+      const { sendFcm } = await import('@/server/push/fcm');
+      const r = await sendFcm(sub.endpoint, {
+        title,
+        body,
+        url: '/app',
+        tag: 'notai-daily',
+      });
+      if (r.ok) {
+        result.sent += 1;
+      } else if (r.permanent) {
+        await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, sub.id));
+        result.pruned += 1;
+      } else {
+        result.errors += 1;
+      }
+      continue;
+    }
+
+    // Web push (VAPID). Skip rows that somehow lost their key pair.
+    if (!sub.p256dh || !sub.auth) {
+      result.errors += 1;
+      continue;
+    }
     const payload = JSON.stringify({
-      title: 'Your daily review is ready',
-      body: info.name
-        ? `${info.name.split(' ')[0]}, take 2 minutes to review what you opened recently.`
-        : 'Take 2 minutes to review your recent notes.',
+      title,
+      body,
       url: '/app',
       tag: 'notai-daily',
     });

@@ -15,6 +15,18 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **FCM mobile push primitive** — `push_subscriptions` table now stores
+  native mobile tokens alongside the existing web push rows. New
+  `platform` column (`'web' | 'ios' | 'android'`, default `'web'`) and
+  `device_id` column with a composite unique on
+  `(user_id, device_id, platform)` so reinstalls update a device's
+  token in place instead of accumulating stale rows. `registerPushSubscription`
+  server action accepts the new shape; `/api/cron/push-daily-review`
+  branches on platform and sends through the new `sendFcm()` helper
+  (`apps/web/src/server/push/fcm.ts`, built on `firebase-admin`).
+  New env: `FIREBASE_PROJECT_ID`, `FIREBASE_SERVICE_ACCOUNT_JSON`.
+  Migration `0028_push_subscriptions_fcm`.
+
 - **Outbound webhook retry queue (BullMQ + Redis)** — `dispatchNoteEvent`
   now enqueues per-endpoint deliveries onto a `webhook-deliveries` queue
   instead of firing inline `Promise.all(fetch)`. Five attempts with

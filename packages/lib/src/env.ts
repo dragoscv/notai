@@ -57,6 +57,14 @@ export const env = createEnv({
     // Required when outbound webhooks are enabled — the dispatcher throws
     // if missing so producers can't silently drop deliveries.
     REDIS_URL: z.string().min(1).optional(),
+
+    // Firebase Cloud Messaging — for native mobile push (iOS + Android).
+    // Web push continues to use the VAPID keys below; FCM is only used
+    // when a subscription's `platform` column is 'ios' or 'android'.
+    FIREBASE_PROJECT_ID: z.string().min(1).optional(),
+    // Full service-account JSON, single-line (escape newlines in the
+    // private key as `\\n`). Missing = FCM sends throw cleanly.
+    FIREBASE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url(),

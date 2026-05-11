@@ -7,6 +7,7 @@ import {
   index,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { users } from './auth';
 
 /**
@@ -35,8 +36,11 @@ export const apiKeys = pgTable(
 );
 
 /**
- * Web Push (PushManager) subscriptions for daily review reminders
- * and other notifications. Each browser session creates one row.
+ * Push notification subscriptions, for both Web Push (browser PushManager,
+ * VAPID-signed) and native mobile push (FCM tokens from Capacitor's iOS
+ * and Android plugins). The `platform` column tells the sender which
+ * transport to use; `deviceId` lets a single device update its token in
+ * place across app upgrades rather than accumulating stale rows.
  */
 export const pushSubscriptions = pgTable(
   'push_subscriptions',
@@ -45,15 +49,23 @@ export const pushSubscriptions = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
+    // For 'web' this is the PushManager endpoint URL; for 'ios'/'android'
+    // it's the FCM registration token.
     endpoint: text('endpoint').notNull(),
-    p256dh: text('p256dh').notNull(),
-    auth: text('auth').notNull(),
+    // VAPID encryption keys \u2014 nullable because FCM tokens don't use them.
+    p256dh: text('p256dh'),
+    auth: text('auth'),
+    platform: text('platform').notNull().default('web'),
+    deviceId: text('device_id'),
     userAgent: text('user_agent'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('push_subscriptions_endpoint_unq').on(t.endpoint),
     index('push_subscriptions_user_idx').on(t.userId),
+    uniqueIndex('push_subscriptions_user_device_platform_unq')
+      .on(t.userId, t.deviceId, t.platform)
+      .where(sql`device_id IS NOT NULL`),
   ],
 );
 
