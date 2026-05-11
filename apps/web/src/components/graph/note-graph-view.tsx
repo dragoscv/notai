@@ -3,6 +3,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { FileText, Sparkles } from 'lucide-react';
 import type { NoteGraph, GraphNode } from '@/server/actions/note-graph';
+import { listActiveViewers, type ActiveViewer } from '@/server/actions/presence';
 
 interface SimNode extends GraphNode {
   x: number;
@@ -36,6 +37,36 @@ const FRICTION = 0.86;
  */
 export function NoteGraphView({ data }: Props) {
   const [hovered, setHovered] = React.useState<string | null>(null);
+  const [viewers, setViewers] = React.useState<Map<string, ActiveViewer[]>>(new Map());
+
+  // Poll active viewers every 20s. Server returns rows seen in the last
+  // 60s, so a 20s poll gives every node ~3 chances to refresh before a
+  // viewer is dropped from the live set.
+  React.useEffect(() => {
+    if (data.nodes.length === 0) return;
+    let cancelled = false;
+    const ids = data.nodes.map((n) => n.id);
+    const refresh = () => {
+      void listActiveViewers(ids)
+        .then((rows) => {
+          if (cancelled) return;
+          const m = new Map<string, ActiveViewer[]>();
+          for (const r of rows) {
+            const arr = m.get(r.noteId) ?? [];
+            arr.push(r);
+            m.set(r.noteId, arr);
+          }
+          setViewers(m);
+        })
+        .catch(() => undefined);
+    };
+    refresh();
+    const t = window.setInterval(refresh, 20_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(t);
+    };
+  }, [data.nodes]);
 
   const nodes = React.useMemo<SimNode[]>(() => {
     if (data.nodes.length === 0) return [];
@@ -132,6 +163,8 @@ export function NoteGraphView({ data }: Props) {
           {nodes.map((n) => {
             const r = Math.min(20, 6 + Math.sqrt(n.inDegree + n.outDegree) * 3);
             const dim = isDimmed(n.id);
+            const liveViewers = viewers.get(n.id) ?? [];
+            const isLive = liveViewers.length > 0;
             return (
               <g
                 key={n.id}
@@ -147,6 +180,21 @@ export function NoteGraphView({ data }: Props) {
                     strokeWidth={2}
                   />
                 </Link>
+                {isLive && (
+                  <circle
+                    r={4}
+                    cx={r * 0.75}
+                    cy={-r * 0.75}
+                    className="stroke-background pointer-events-none fill-emerald-500"
+                    strokeWidth={1.5}
+                  >
+                    <title>
+                      {liveViewers.length === 1
+                        ? `${liveViewers[0]!.name ?? 'Someone'} is here`
+                        : `${liveViewers.length} people viewing`}
+                    </title>
+                  </circle>
+                )}
                 <text
                   y={r + 12}
                   textAnchor="middle"

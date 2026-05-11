@@ -115,6 +115,28 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
   const canvasRef = React.useRef<CanvasNoteHandle>(null);
   const [surface, setSurface] = useSurface();
 
+  // Co-presence heartbeat: ping the server every 30s so the graph view
+  // can render a "currently editing" dot on this note's node. The
+  // initial ping fires on mount; the interval keeps it fresh until the
+  // workspace unmounts (route change or tab close).
+  React.useEffect(() => {
+    let cancelled = false;
+    let timer: number | null = null;
+    void import('@/server/actions/presence').then(({ heartbeatNotePresence }) => {
+      if (cancelled) return;
+      const ping = () => {
+        if (cancelled) return;
+        void heartbeatNotePresence({ noteId: note.id }).catch(() => undefined);
+      };
+      ping();
+      timer = window.setInterval(ping, 30_000);
+    });
+    return () => {
+      cancelled = true;
+      if (timer !== null) window.clearInterval(timer);
+    };
+  }, [note.id]);
+
   // Chat panel: open state is per-note + persisted to localStorage so
   // power users keep it open across reloads, while first-time visitors
   // see a clean canvas. SSR-safe via the lazy initializer.
