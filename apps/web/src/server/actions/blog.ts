@@ -70,6 +70,16 @@ export async function setNoteBlogVisible(input: {
   visible: boolean;
 }): Promise<void> {
   const user = await requireUser();
+  if (input.visible) {
+    const [row] = await db
+      .select({ isEncrypted: notes.isEncrypted })
+      .from(notes)
+      .where(and(eq(notes.id, input.noteId), eq(notes.ownerId, user.id!)))
+      .limit(1);
+    if (row?.isEncrypted) {
+      throw new Error('End-to-end encrypted notes cannot be published.');
+    }
+  }
   await db
     .update(notes)
     .set({ blogVisible: input.visible, updatedAt: new Date() })

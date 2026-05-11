@@ -17,11 +17,19 @@ async function requireUser() {
 /** Asserts the caller owns the note (only owners can manage sharing). */
 async function requireOwner(noteId: string, userId: string) {
   const [n] = await db
-    .select({ id: notes.id, title: notes.title, ownerId: notes.ownerId })
+    .select({
+      id: notes.id,
+      title: notes.title,
+      ownerId: notes.ownerId,
+      isEncrypted: notes.isEncrypted,
+    })
     .from(notes)
     .where(and(eq(notes.id, noteId), eq(notes.ownerId, userId)))
     .limit(1);
   if (!n) throw new Error('Note not found or not owned by you');
+  if (n.isEncrypted) {
+    throw new Error('This note is end-to-end encrypted. Unlock it before sharing.');
+  }
   return n;
 }
 

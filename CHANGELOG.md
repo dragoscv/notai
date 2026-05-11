@@ -15,6 +15,40 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Per-note end-to-end encryption** — notes table now has
+  `is_encrypted` + `encrypted_body` columns (migration 0037). A new
+  "Encrypt this note end-to-end…" dropdown action grabs the canvas's
+  text content, encrypts it client-side with the user's master key
+  (AES-GCM 256, key derived from the existing `user_keys` envelope),
+  and stores only ciphertext on the server. The note is then rendered
+  as a read-only `EncryptedNotePanel` that prompts for the passphrase
+  once per session and caches the decrypted CryptoKey in memory until
+  tab close. Encrypted notes are excluded from full-text + semantic
+  search, blocked from AI actions, sharing, and blog publishing. The
+  rest of the app continues to function for non-encrypted notes
+  unchanged.
+
+- **Outbound webhook fan-out wired into UI mutations** — `createNote`
+  and `updateNote` server actions now fire `note.created` /
+  `note.updated` / `note.archived` events through the existing
+  BullMQ-backed delivery pipeline; previously only the public REST
+  routes dispatched. Integrations settings page now links to the
+  webhook manager.
+
+- **Bulk multi-select in the sidebar** — Cmd/Ctrl-click a note or use
+  the "Select multiple…" context-menu entry to enter selection mode.
+  A floating action bar lets you archive, unarchive, favorite, move
+  between folders, or delete the whole selection in one round-trip
+  via new `bulkUpdateNotes` / `bulkDeleteNotes` server actions. Esc
+  exits selection mode.
+
+- **Excalidraw → PNG export** — "Export canvas as PNG…" in the note
+  dropdown renders the current scene at 2× resolution via Excalidraw's
+  `exportToBlob` and downloads it with a filename derived from the
+  note title.
+
+### Changed
+
 - **End-to-end encryption foundation** — new `user_keys` table (0036)
   stores a per-user AES-GCM 256 master key wrapped twice: once under a
   PBKDF2-SHA256-derived KEK from the user's passphrase (600k iters,
@@ -25,8 +59,7 @@ Each app in this monorepo is versioned independently:
   The settings → Account → Enable encryption panel walks the user
   through setup and displays the recovery key exactly once. Server
   receives only ciphertext — passphrase and master key never leave
-  the browser. Per-note encrypt toggle, encrypted-body column, and
-  server-side feature gating ship in a follow-up.
+  the browser.
 
 - **Graph co-presence** — note-workspace heartbeats every 30s into a
   new `note_presence` table; the graph view polls active viewers every

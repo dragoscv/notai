@@ -58,6 +58,7 @@ export async function searchNotes(
     .where(
       and(
         isNull(notes.deletedAt),
+        eq(notes.isEncrypted, false),
         or(eq(notes.ownerId, userId), eq(noteCollaborators.userId, userId)),
         or(sql`${notes.title} ILIKE ${like}`, sql`${notes.plaintext} ILIKE ${like}`),
         filters?.pinnedOnly ? eq(notes.isPinned, true) : undefined,
@@ -126,6 +127,7 @@ export async function searchNotesHybrid(
     .where(
       and(
         isNull(notes.deletedAt),
+        eq(notes.isEncrypted, false),
         sql`${notes.embedding} IS NOT NULL`,
         or(eq(notes.ownerId, userId), eq(noteCollaborators.userId, userId)),
         filters?.pinnedOnly ? eq(notes.isPinned, true) : undefined,

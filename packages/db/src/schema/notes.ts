@@ -185,6 +185,19 @@ export const notes = pgTable(
     coverUrl: text('cover_url'),
     coverPosition: integer('cover_position').notNull().default(50),
 
+    /**
+     * Per-note end-to-end encryption. When `isEncrypted` is true, the
+     * note's content is stored as AES-GCM 256 ciphertext in
+     * `encryptedBody` (base64 of `IV(12) || ciphertext`), keyed by the
+     * user's master key from `user_keys`. The server never sees the
+     * plaintext; `plaintext` / Hocuspocus snapshots are blanked, and
+     * the note is excluded from search / embeddings / AI / blog /
+     * sharing flows. The client decrypts on read into a read-only
+     * surface.
+     */
+    isEncrypted: boolean('is_encrypted').notNull().default(false),
+    encryptedBody: text('encrypted_body'),
+
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     lastOpenedAt: timestamp('last_opened_at', { withTimezone: true }),

@@ -78,6 +78,7 @@ import { ApplyTemplateButton } from './apply-template-button';
 import { VersionHistory } from './version-history';
 import { searchBacklinkCandidates, createNoteFromBacklink } from '@/server/actions/backlinks';
 import { FocusMode } from './focus-mode';
+import { EncryptedNotePanel, lockNoteFlow } from './encrypted-note-panel';
 import { useRouter } from 'next/navigation';
 
 function colorFor(id: string) {
@@ -104,6 +105,13 @@ export interface NoteWorkspaceProps {
 }
 
 export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceProps) {
+  if (note.isEncrypted) {
+    return <EncryptedNotePanel noteId={note.id} title={note.title} />;
+  }
+  return <NoteWorkspaceInner note={note} token={token} realtimeUrl={realtimeUrl} user={user} />;
+}
+
+function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspaceProps) {
   const { doc, provider, status, synced } = useNoteDoc({
     noteId: note.id,
     url: realtimeUrl,
@@ -592,6 +600,109 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                 }}
               >
                 Convert text blocks to Excalidraw…
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  const api = canvasRef.current?.getExcalidrawApi();
+                  if (!api) {
+                    toast.error('Canvas not ready yet.');
+                    return;
+                  }
+                  const elements = api
+                    .getSceneElements()
+                    .filter((el) => !(el as { isDeleted?: boolean }).isDeleted);
+                  if (elements.length === 0) {
+                    toast.error('Nothing on the canvas to export.');
+                    return;
+                  }
+                  const t = toast.loading('Rendering PNG…');
+                  try {
+                    const mod = (await import('@excalidraw/excalidraw' as never)) as unknown as {
+                      exportToBlob: (opts: {
+                        elements: unknown;
+                        appState: unknown;
+                        files: unknown;
+                        mimeType: string;
+                        getDimensions: (
+                          w: number,
+                          h: number,
+                        ) => { width: number; height: number; scale: number };
+                      }) => Promise<Blob>;
+                    };
+                    const appState = api.getAppState();
+                    const files = api.getFiles();
+                    const blob = await mod.exportToBlob({
+                      elements: elements as never,
+                      appState: {
+                        ...appState,
+                        exportBackground: true,
+                        exportWithDarkMode: false,
+                      },
+                      files,
+                      mimeType: 'image/png',
+                      getDimensions: (w: number, h: number) => ({
+                        width: w * 2,
+                        height: h * 2,
+                        scale: 2,
+                      }),
+                    });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${(title || 'note').replace(/[\\/:*?"<>|]/g, '_').slice(0, 80)}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                    toast.success('Exported PNG.', { id: t });
+                  } catch (err) {
+                    toast.error(`PNG export failed: ${(err as Error).message}`, { id: t });
+                  }
+                }}
+              >
+                Export canvas as PNG…
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  const api = canvasRef.current?.getExcalidrawApi();
+                  if (!api) {
+                    toast.error('Canvas not ready yet.');
+                    return;
+                  }
+                  const elements = api
+                    .getSceneElements()
+                    .filter((el) => !(el as { isDeleted?: boolean }).isDeleted);
+                  const text = elements
+                    .filter((el) => (el as { type?: string }).type === 'text')
+                    .map((el) => (el as { text?: string }).text ?? '')
+                    .filter(Boolean)
+                    .join('\n\n');
+                  if (!text.trim()) {
+                    toast.error('Nothing to encrypt — write something first.');
+                    return;
+                  }
+                  if (
+                    !confirm(
+                      'Encrypt this note end-to-end? Once encrypted: the canvas becomes read-only, AI / search / sharing / blog are disabled for this note. You can unlock and disable encryption from the locked view.',
+                    )
+                  ) {
+                    return;
+                  }
+                  const t = toast.loading('Encrypting…');
+                  try {
+                    const ok = await lockNoteFlow(note.id, text);
+                    if (ok) {
+                      toast.success('Note encrypted', { id: t });
+                      window.location.reload();
+                    } else {
+                      toast.dismiss(t);
+                    }
+                  } catch (err) {
+                    toast.error((err as Error).message || 'Encryption failed', { id: t });
+                  }
+                }}
+              >
+                Encrypt this note end-to-end…
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"

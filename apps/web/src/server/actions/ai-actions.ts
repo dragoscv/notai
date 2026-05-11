@@ -11,7 +11,12 @@ async function requireUserAccess(noteId: string) {
   if (!session?.user?.id) throw new Error('Not signed in');
   const me = session.user as { id: string };
   const [row] = await db
-    .select({ id: notes.id, plaintext: notes.plaintext, title: notes.title })
+    .select({
+      id: notes.id,
+      plaintext: notes.plaintext,
+      title: notes.title,
+      isEncrypted: notes.isEncrypted,
+    })
     .from(notes)
     .leftJoin(
       noteCollaborators,
@@ -22,6 +27,9 @@ async function requireUserAccess(noteId: string) {
     )
     .limit(1);
   if (!row) throw new Error('Note not found');
+  if (row.isEncrypted) {
+    throw new Error('This note is end-to-end encrypted. Unlock it to use AI.');
+  }
   return row;
 }
 

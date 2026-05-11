@@ -55,6 +55,7 @@ import {
   Layers as LayersIcon,
   Hash,
   BookmarkPlus,
+  CheckSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -92,6 +93,12 @@ import { usePrompt } from '@/components/ui/prompt-dialog';
 import { EmbedStatusIndicator } from '@/components/layout/embed-status-indicator';
 import { NoteMergeDialog } from '@/components/note/note-merge-dialog';
 import { NewFromTemplateButton } from './new-from-template-button';
+import {
+  SidebarSelectionProvider,
+  SidebarBulkBar,
+  SidebarSelectCheckbox,
+  useSidebarSelection,
+} from './sidebar-bulk';
 
 /* --------------------- Expanded-state persistence ------------------------ */
 
@@ -250,11 +257,29 @@ export interface SidebarTreeProps {
 }
 
 export function SidebarTree({ folders, notes }: SidebarTreeProps) {
+  return (
+    <SidebarSelectionProvider>
+      <SidebarTreeInner folders={folders} notes={notes} />
+    </SidebarSelectionProvider>
+  );
+}
+
+function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { expanded, toggle, expand } = useExpandedFolders();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const { prompt, dialog: promptDialog } = usePrompt();
+  const selection = useSidebarSelection();
+
+  React.useEffect(() => {
+    if (!selection.enabled) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') selection.clear();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selection]);
 
   const [activeDrag, setActiveDrag] = React.useState<DragId | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
@@ -506,6 +531,8 @@ export function SidebarTree({ folders, notes }: SidebarTreeProps) {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      <SidebarBulkBar folders={folders} />
 
       {confirmDialog}
       {promptDialog}
@@ -834,6 +861,8 @@ function NoteRow({
     id: encodeDrag(dragId),
   });
   const [mergeOpen, setMergeOpen] = React.useState(false);
+  const selection = useSidebarSelection();
+  const isSelected = selection.selected.has(note.id);
 
   const openAsSticky = async () => {
     try {
@@ -956,9 +985,24 @@ function NoteRow({
           >
             <Link
               href={`/app/n/${note.id}`}
+              onClick={(e) => {
+                // In selection mode, clicking toggles selection instead
+                // of navigating. Cmd/Ctrl-click also toggles even when
+                // selection mode is off (entering it implicitly).
+                if (selection.enabled) {
+                  e.preventDefault();
+                  selection.toggle(note.id);
+                  return;
+                }
+                if (e.metaKey || e.ctrlKey) {
+                  e.preventDefault();
+                  selection.enable(note.id);
+                }
+              }}
               className={cn(
                 'text-foreground/80 hover:bg-accent hover:text-accent-foreground flex items-center gap-2 rounded-md',
                 active && 'bg-accent text-accent-foreground',
+                isSelected && 'ring-primary/40 bg-primary/5 ring-1',
               )}
               style={{
                 paddingLeft: `${depth * 12 + 22}px`,
@@ -968,6 +1012,7 @@ function NoteRow({
                 fontSize: 'var(--sidebar-row-text, 0.875rem)',
               }}
             >
+              <SidebarSelectCheckbox noteId={note.id} className="-ml-1 shrink-0" />
               <span className="shrink-0 text-xs">{note.icon ?? '📝'}</span>
               <span className="min-w-0 flex-1 truncate">{note.title || 'Untitled'}</span>
               {note.color && note.color !== 'default' && (
@@ -985,6 +1030,20 @@ function NoteRow({
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent className="w-56">
+          <ContextMenuItem
+            onSelect={() => {
+              if (selection.enabled) selection.toggle(note.id);
+              else selection.enable(note.id);
+            }}
+          >
+            <CheckSquare className="size-4" />{' '}
+            {selection.enabled
+              ? isSelected
+                ? 'Deselect'
+                : 'Add to selection'
+              : 'Select multiple…'}
+          </ContextMenuItem>
+          <ContextMenuSeparator />
           <ContextMenuItem onSelect={() => onRename(note)}>
             <Pencil className="size-4" /> Rename
           </ContextMenuItem>

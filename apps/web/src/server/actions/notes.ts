@@ -23,6 +23,7 @@ import {
   sql,
 } from '@notai/db';
 import { requireQuota } from '@/server/plans';
+import { dispatchNoteEvent } from '@/server/actions/webhooks';
 import { type ViewSpec, type FilterSpec } from '@/lib/view-spec';
 
 /** Position gap between siblings so reorders don't have to renumber neighbours. */
@@ -259,6 +260,13 @@ export async function createNote(input: z.input<typeof createSchema> = {}) {
   }
 
   revalidatePath('/app');
+  if (note) {
+    void dispatchNoteEvent(user.id, 'note.created', {
+      id: note.id,
+      title: note.title,
+      folderId: note.folderId,
+    }).catch(() => undefined);
+  }
   return note;
 }
 
@@ -281,6 +289,11 @@ export async function updateNote(input: z.input<typeof updateSchema>) {
     .where(and(eq(notes.id, id), eq(notes.ownerId, user.id)));
   revalidatePath('/app');
   revalidatePath(`/app/n/${id}`);
+  if (patch.isArchived === true) {
+    void dispatchNoteEvent(user.id, 'note.archived', { id, ...patch }).catch(() => undefined);
+  } else {
+    void dispatchNoteEvent(user.id, 'note.updated', { id, ...patch }).catch(() => undefined);
+  }
 }
 
 const setCoverSchema = z.object({
@@ -398,6 +411,61 @@ export async function listTrash() {
     .from(notes)
     .where(and(eq(notes.ownerId, user.id), isNotNull(notes.deletedAt)))
     .orderBy(desc(notes.deletedAt));
+}
+
+const bulkPatchSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(200),
+  patch: z
+    .object({
+      isPinned: z.boolean().optional(),
+      isFavorite: z.boolean().optional(),
+      isArchived: z.boolean().optional(),
+      folderId: z.string().nullable().optional(),
+      color: z.string().max(30).optional(),
+    })
+    .refine((p) => Object.keys(p).length > 0, 'patch is empty'),
+});
+
+/**
+ * Apply the same patch to many notes the caller owns. Used by the
+ * sidebar's multi-select toolbar (archive/unarchive, move-to-folder,
+ * recolor, favorite). Silently drops ids the user does not own — no
+ * partial-permission errors.
+ */
+export async function bulkUpdateNotes(input: z.input<typeof bulkPatchSchema>) {
+  const user = await requireUser();
+  const { ids, patch } = bulkPatchSchema.parse(input);
+  const res = await db
+    .update(notes)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(and(inArray(notes.id, ids), eq(notes.ownerId, user.id)))
+    .returning({ id: notes.id });
+  revalidatePath('/app');
+  if (patch.isArchived === true) {
+    void Promise.all(
+      res.map((n) =>
+        dispatchNoteEvent(user.id, 'note.archived', { id: n.id }).catch(() => undefined),
+      ),
+    );
+  }
+  return { updated: res.length };
+}
+
+/**
+ * Soft-delete (move to trash) every note in `ids` that the caller owns.
+ * Mirrors `deleteNote` for a single id but in a single round-trip.
+ */
+export async function bulkDeleteNotes(ids: string[]) {
+  const user = await requireUser();
+  const parsed = z.array(z.string().min(1)).min(1).max(200).parse(ids);
+  const res = await db
+    .update(notes)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(and(inArray(notes.id, parsed), eq(notes.ownerId, user.id), isNull(notes.deletedAt)))
+    .returning({ id: notes.id });
+  revalidatePath('/app');
+  revalidatePath('/app/trash');
+  return { deleted: res.length };
 }
 
 /**

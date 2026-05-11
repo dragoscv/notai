@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
-import { Copy, Plus, Trash2, Bot, Chrome } from 'lucide-react';
+import Link from 'next/link';
+import { Copy, Plus, Trash2, Bot, Chrome, Webhook } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@notai/ui';
 import { createPersonalAccessToken, revokePersonalAccessToken } from '@/server/actions/pat';
@@ -203,6 +204,22 @@ export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[
       </section>
 
       <BookmarkletSection baseUrl={baseUrl} />
+
+      <section className="space-y-3">
+        <h2 className="flex items-center gap-2 text-base font-semibold">
+          <Webhook className="size-4" /> Webhooks
+        </h2>
+        <p className="text-muted-foreground text-sm">
+          POST signed JSON to your own endpoints when notes are created, updated, or archived.
+          Payloads are HMAC-SHA256 signed with a per-endpoint secret.
+        </p>
+        <Link
+          href="/app/settings/webhooks"
+          className="bg-card hover:bg-accent inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors"
+        >
+          <Webhook className="size-4" /> Manage webhooks
+        </Link>
+      </section>
     </div>
   );
 }
