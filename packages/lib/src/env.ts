@@ -53,6 +53,9 @@ export const env = createEnv({
     // Cron auth — a shared secret a scheduler (Vercel cron or other) sends.
     CRON_SECRET: z.string().min(16).optional(),
 
+    // Audit-log retention in days (default 365). Set to 0 to disable pruning.
+    AUDIT_LOG_RETENTION_DAYS: z.coerce.number().int().min(0).max(3650).optional(),
+
     // BullMQ queue backend (e.g. Upstash Redis: rediss://default:<token>@<host>:<port>).
     // Required when outbound webhooks are enabled — the dispatcher throws
     // if missing so producers can't silently drop deliveries.
