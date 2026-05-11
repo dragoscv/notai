@@ -33,6 +33,7 @@ import { updateNote, deleteNote } from '@/server/actions/notes';
 import { suggestEmojiForTitle } from '@/server/actions/suggest-emoji';
 import { toast } from 'sonner';
 import { SurfaceSwitcher, useSurface } from './surface-switcher';
+import { NoteStatsChip } from './note-stats-chip';
 import { OpenStickiesButton } from './open-stickies-button';
 import { isTauri, invoke } from '@/lib/tauri';
 import { ShareDialog } from './share-dialog';
@@ -425,6 +426,8 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
         <div className="bg-border mx-2 h-5 w-px" />
 
         <SurfaceSwitcher value={surface} onChange={setSurface} />
+
+        <NoteStatsChip plaintext={note.plaintext} />
 
         <div className="ml-auto flex items-center gap-1">
           <Button
