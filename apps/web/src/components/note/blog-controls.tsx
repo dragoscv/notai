@@ -20,10 +20,16 @@ import {
 export function BlogControls({ noteId }: { noteId: string }) {
   const [status, setStatus] = React.useState<NoteBlogStatus | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [now, setNow] = React.useState(0);
 
   React.useEffect(() => {
     void getNoteBlogStatus(noteId).then((s) => setStatus(s));
   }, [noteId]);
+  React.useEffect(() => {
+    setNow(Date.now());
+    const t = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(t);
+  }, []);
 
   if (!status) {
     return (
@@ -85,7 +91,7 @@ export function BlogControls({ noteId }: { noteId: string }) {
     }
   };
 
-  const isFuture = status.publishAt ? new Date(status.publishAt).getTime() > Date.now() : false;
+  const isFuture = status.publishAt ? new Date(status.publishAt).getTime() > now : false;
 
   return (
     <div className="space-y-3 rounded-md border p-3">
