@@ -18,6 +18,7 @@ import {
   ToggleRight,
   LifeBuoy,
   ArrowLeft,
+  MailX,
 } from 'lucide-react';
 import { cn } from '@notai/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@notai/ui';
@@ -38,6 +39,7 @@ const NAV: NavItem[] = [
   { href: '/admin/feature-flags', label: 'Feature flags', icon: ToggleRight },
   { href: '/admin/broadcasts', label: 'Broadcasts', icon: Megaphone },
   { href: '/admin/support', label: 'Support', icon: LifeBuoy },
+  { href: '/admin/email-suppressions', label: 'Email suppressions', icon: MailX },
   { href: '/admin/audit-log', label: 'Audit log', icon: ScrollText },
   { href: '/admin/health', label: 'Health', icon: Activity },
 ];

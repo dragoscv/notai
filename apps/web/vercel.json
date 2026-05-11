@@ -26,6 +26,10 @@
     {
       "path": "/api/cron/webhook-hygiene",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/purge-pending-deletions",
+      "schedule": "45 3 * * *"
     }
   ],
   "headers": [

@@ -18,6 +18,8 @@ export const users = pgTable('user', {
   status: userStatus('status').notNull().default('active'),
   suspendedAt: timestamp('suspended_at', { withTimezone: true }),
   suspendedReason: text('suspended_reason'),
+  /** Self-serve "delete my account" — purged after grace period by cron. */
+  deletionRequestedAt: timestamp('deletion_requested_at', { withTimezone: true }),
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
   /** IANA timezone (e.g. 'Europe/Bucharest'). Synced from the browser. */
   timezone: text('timezone'),
