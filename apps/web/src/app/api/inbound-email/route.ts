@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, emailAliases, users, notes, assets, eq } from '@notai/db';
+import { db, emailAliases, emailMessages, users, notes, assets, eq, and } from '@notai/db';
+import { sql } from 'drizzle-orm';
 import { timingSafeEqual } from 'node:crypto';
 import { buildKey, isAssetsConfigured, presign, publicUrlFor } from '@/server/storage/s3';
 
@@ -43,6 +44,7 @@ interface PostmarkInbound {
   MessageID?: string;
   OriginalRecipient?: string;
   Attachments?: PostmarkAttachment[];
+  Headers?: Array<{ Name?: string; Value?: string }>;
 }
 
 const MAX_BODY = 10 * 1024 * 1024; // bumped to 10 MB once attachments are in scope
@@ -88,6 +90,32 @@ function extractToken(payload: PostmarkInbound): string | null {
   const candidate = payload.OriginalRecipient ?? payload.ToFull?.[0]?.Email ?? '';
   const m = /\+([^@]+)@/.exec(candidate);
   return m ? m[1]!.toLowerCase() : null;
+}
+
+/** Normalise a Message-ID: strip whitespace + angle brackets, lower-case. */
+function normaliseMessageId(raw: string | undefined | null): string | null {
+  if (!raw) return null;
+  const s = raw.trim().replace(/^<|>$/g, '').trim().toLowerCase();
+  if (!s || s.length > 998) return null; // RFC 5322 line limit
+  return s;
+}
+
+/** Collect candidate In-Reply-To + References Message-IDs from raw headers. */
+function readThreadHeaders(payload: PostmarkInbound): string[] {
+  const headers = payload.Headers ?? [];
+  const found: string[] = [];
+  for (const h of headers) {
+    const name = h.Name?.toLowerCase();
+    if (name !== 'in-reply-to' && name !== 'references') continue;
+    const value = h.Value ?? '';
+    // References can list multiple <id>s separated by whitespace.
+    const ids = value.match(/<[^>]+>/g) ?? [value];
+    for (const id of ids) {
+      const norm = normaliseMessageId(id);
+      if (norm) found.push(norm);
+    }
+  }
+  return found;
 }
 
 export async function POST(req: NextRequest) {
@@ -147,15 +175,63 @@ export async function POST(req: NextRequest) {
     '';
   const plaintext = bodyText.slice(0, 64 * 1024);
 
-  const [createdNote] = await db
-    .insert(notes)
-    .values({
-      ownerId: alias.userId,
-      title: subject,
-      plaintext,
-      position: Date.now(),
-    })
-    .returning({ id: notes.id });
+  // Threading: if any In-Reply-To / References header matches a
+  // previously-recorded inbound message, append to that note's
+  // plaintext instead of creating a new note. Falls back to a fresh
+  // note when nothing matches.
+  const threadCandidates = readThreadHeaders(payload);
+  let threadedNoteId: string | null = null;
+  if (threadCandidates.length > 0) {
+    const [hit] = await db
+      .select({ noteId: emailMessages.noteId })
+      .from(emailMessages)
+      .where(sql`${emailMessages.messageId} = ANY(${threadCandidates})`)
+      .limit(1);
+    if (hit) {
+      // Confirm the matched note still belongs to this alias before
+      // mutating it — protects against stale message-id rows pointing
+      // at notes that have changed owner via workspace moves.
+      const [target] = await db
+        .select({ id: notes.id })
+        .from(notes)
+        .where(and(eq(notes.id, hit.noteId), eq(notes.ownerId, alias.userId)))
+        .limit(1);
+      if (target) threadedNoteId = target.id;
+    }
+  }
+
+  let createdNote: { id: string } | undefined;
+  if (threadedNoteId) {
+    const divider = `\n\n--- Reply from ${fromEmail} at ${new Date().toISOString()} ---\n\n`;
+    await db
+      .update(notes)
+      .set({
+        plaintext: sql`coalesce(${notes.plaintext}, '') || ${divider + plaintext}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(notes.id, threadedNoteId));
+    createdNote = { id: threadedNoteId };
+  } else {
+    const [row] = await db
+      .insert(notes)
+      .values({
+        ownerId: alias.userId,
+        title: subject,
+        plaintext,
+        position: Date.now(),
+      })
+      .returning({ id: notes.id });
+    createdNote = row;
+  }
+
+  // Record this email's own Message-ID so future replies can thread to it.
+  const ownMessageId = normaliseMessageId(payload.MessageID);
+  if (ownMessageId && createdNote) {
+    await db
+      .insert(emailMessages)
+      .values({ messageId: ownMessageId, noteId: createdNote.id })
+      .onConflictDoNothing();
+  }
 
   // Best-effort attachment upload. Failures don't block note creation.
   let attached = 0;
