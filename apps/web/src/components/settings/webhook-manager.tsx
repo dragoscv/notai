@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, Trash2, Copy, Loader2, Activity, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Trash2, Copy, Loader2, Activity, RefreshCw, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@notai/ui/components/button';
 import { Switch } from '@notai/ui/components/switch';
@@ -192,6 +193,11 @@ function HookRow({
           title="View deliveries"
         >
           <Activity className="size-4" />
+        </Button>
+        <Button size="sm" variant="ghost" asChild title="Open dashboard">
+          <Link href={`/app/settings/webhooks/${hook.id}`}>
+            <BarChart3 className="size-4" />
+          </Link>
         </Button>
         <Switch checked={hook.isActive} onCheckedChange={onToggle} />
         <Button size="sm" variant="ghost" onClick={onDelete}>
