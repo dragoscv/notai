@@ -76,3 +76,49 @@ export async function setNoteBlogVisible(input: {
     .where(and(eq(notes.id, input.noteId), eq(notes.ownerId, user.id!)));
   revalidatePath(`/app/n/${input.noteId}`);
 }
+
+/**
+ * Set or clear the scheduled publish timestamp on a blog note. Pass
+ * `null` to publish immediately (the index + RSS treat null as live).
+ * Past timestamps are accepted and behave as immediate-live.
+ */
+export async function setNoteBlogPublishAt(input: {
+  noteId: string;
+  publishAt: Date | null;
+}): Promise<void> {
+  const user = await requireUser();
+  await db
+    .update(notes)
+    .set({ blogPublishAt: input.publishAt, updatedAt: new Date() })
+    .where(and(eq(notes.id, input.noteId), eq(notes.ownerId, user.id!)));
+  revalidatePath(`/app/n/${input.noteId}`);
+}
+
+export interface NoteBlogStatus {
+  visible: boolean;
+  publishAt: string | null;
+  ownerHandle: string | null;
+}
+
+export async function getNoteBlogStatus(noteId: string): Promise<NoteBlogStatus | null> {
+  const user = await requireUser();
+  const [row] = await db
+    .select({
+      visible: notes.blogVisible,
+      publishAt: notes.blogPublishAt,
+    })
+    .from(notes)
+    .where(and(eq(notes.id, noteId), eq(notes.ownerId, user.id!)))
+    .limit(1);
+  if (!row) return null;
+  const [u] = await db
+    .select({ blogHandle: users.blogHandle })
+    .from(users)
+    .where(eq(users.id, user.id!))
+    .limit(1);
+  return {
+    visible: row.visible,
+    publishAt: row.publishAt?.toISOString() ?? null,
+    ownerHandle: u?.blogHandle ?? null,
+  };
+}

@@ -28,6 +28,7 @@ async function loadBlog(handleRaw: string) {
       publicShareToken: notes.publicShareToken,
       publicShareSlug: notes.publicShareSlug,
       publicShareExpiresAt: notes.publicShareExpiresAt,
+      blogPublishAt: notes.blogPublishAt,
       updatedAt: notes.updatedAt,
     })
     .from(notes)
@@ -37,6 +38,7 @@ async function loadBlog(handleRaw: string) {
         eq(notes.blogVisible, true),
         sql`${notes.publicShareToken} is not null`,
         sql`${notes.deletedAt} is null`,
+        sql`(${notes.blogPublishAt} is null or ${notes.blogPublishAt} <= now())`,
       ),
     )
     .orderBy(desc(notes.updatedAt))

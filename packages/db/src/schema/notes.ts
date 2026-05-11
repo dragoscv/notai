@@ -166,6 +166,11 @@ export const notes = pgTable(
      *  feed. Independent of `publicShareToken` so the user explicitly
      *  promotes only the notes they want on the index. */
     blogVisible: boolean('blog_visible').notNull().default(false),
+    /** When set in the future, the note is treated as scheduled and
+     *  hidden from blog listings + RSS until that timestamp passes.
+     *  When null or in the past, the note is live (subject to
+     *  `blogVisible`). */
+    blogPublishAt: timestamp('blog_publish_at', { withTimezone: true }),
 
     /** Scrypt hash protecting reads of this note. Null = unlocked. */
     passwordHash: text('password_hash'),

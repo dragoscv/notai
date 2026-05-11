@@ -46,6 +46,7 @@ export async function GET(_req: Request, { params }: { params: Promise<Params> }
         eq(notes.blogVisible, true),
         sql`${notes.publicShareToken} is not null`,
         sql`${notes.deletedAt} is null`,
+        sql`(${notes.blogPublishAt} is null or ${notes.blogPublishAt} <= now())`,
       ),
     )
     .orderBy(desc(notes.updatedAt))

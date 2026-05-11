@@ -12,6 +12,7 @@ import {
   setPublicShareSlug,
 } from '@/server/actions/public-share';
 import { setNotePassword, clearNotePassword } from '@/server/actions/note-password';
+import { BlogControls } from './blog-controls';
 
 /**
  * Toggle for the public read-only share link. Lives inside the
@@ -224,6 +225,7 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
           </div>
         </details>
       </div>
+      <BlogControls noteId={noteId} />
     </div>
   );
 }
