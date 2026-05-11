@@ -672,6 +672,124 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
                   const elements = api
                     .getSceneElements()
                     .filter((el) => !(el as { isDeleted?: boolean }).isDeleted);
+                  if (elements.length === 0) {
+                    toast.error('Nothing on the canvas to export.');
+                    return;
+                  }
+                  const t = toast.loading('Rendering SVG…');
+                  try {
+                    const mod = (await import('@excalidraw/excalidraw' as never)) as unknown as {
+                      exportToSvg: (opts: {
+                        elements: unknown;
+                        appState: unknown;
+                        files: unknown;
+                        exportPadding?: number;
+                      }) => Promise<SVGSVGElement>;
+                    };
+                    const appState = api.getAppState();
+                    const files = api.getFiles();
+                    const svg = await mod.exportToSvg({
+                      elements: elements as never,
+                      appState: {
+                        ...appState,
+                        exportBackground: true,
+                        exportWithDarkMode: false,
+                      },
+                      files,
+                      exportPadding: 16,
+                    });
+                    const xml = new XMLSerializer().serializeToString(svg);
+                    const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${(title || 'note').replace(/[\\/:*?"<>|]/g, '_').slice(0, 80)}.svg`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                    toast.success('Exported SVG.', { id: t });
+                  } catch (err) {
+                    toast.error(`SVG export failed: ${(err as Error).message}`, { id: t });
+                  }
+                }}
+              >
+                Export canvas as SVG…
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  const api = canvasRef.current?.getExcalidrawApi();
+                  if (!api) {
+                    toast.error('Canvas not ready yet.');
+                    return;
+                  }
+                  const elements = api
+                    .getSceneElements()
+                    .filter((el) => !(el as { isDeleted?: boolean }).isDeleted);
+                  if (elements.length === 0) {
+                    toast.error('Nothing on the canvas to copy.');
+                    return;
+                  }
+                  if (
+                    typeof navigator === 'undefined' ||
+                    !navigator.clipboard ||
+                    typeof window.ClipboardItem === 'undefined'
+                  ) {
+                    toast.error('Clipboard image copy is not supported in this browser.');
+                    return;
+                  }
+                  const t = toast.loading('Copying to clipboard…');
+                  try {
+                    const mod = (await import('@excalidraw/excalidraw' as never)) as unknown as {
+                      exportToBlob: (opts: {
+                        elements: unknown;
+                        appState: unknown;
+                        files: unknown;
+                        mimeType: string;
+                        getDimensions: (
+                          w: number,
+                          h: number,
+                        ) => { width: number; height: number; scale: number };
+                      }) => Promise<Blob>;
+                    };
+                    const appState = api.getAppState();
+                    const files = api.getFiles();
+                    const blob = await mod.exportToBlob({
+                      elements: elements as never,
+                      appState: {
+                        ...appState,
+                        exportBackground: true,
+                        exportWithDarkMode: false,
+                      },
+                      files,
+                      mimeType: 'image/png',
+                      getDimensions: (w: number, h: number) => ({
+                        width: w * 2,
+                        height: h * 2,
+                        scale: 2,
+                      }),
+                    });
+                    await navigator.clipboard.write([
+                      new window.ClipboardItem({ 'image/png': blob }),
+                    ]);
+                    toast.success('Copied canvas to clipboard.', { id: t });
+                  } catch (err) {
+                    toast.error(`Clipboard copy failed: ${(err as Error).message}`, { id: t });
+                  }
+                }}
+              >
+                Copy canvas to clipboard
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  const api = canvasRef.current?.getExcalidrawApi();
+                  if (!api) {
+                    toast.error('Canvas not ready yet.');
+                    return;
+                  }
+                  const elements = api
+                    .getSceneElements()
+                    .filter((el) => !(el as { isDeleted?: boolean }).isDeleted);
                   const text = elements
                     .filter((el) => (el as { type?: string }).type === 'text')
                     .map((el) => (el as { text?: string }).text ?? '')
@@ -690,7 +808,7 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
                   }
                   const t = toast.loading('Encrypting…');
                   try {
-                    const ok = await lockNoteFlow(note.id, text);
+                    const ok = await lockNoteFlow(note.id, text, title || note.title);
                     if (ok) {
                       toast.success('Note encrypted', { id: t });
                       window.location.reload();

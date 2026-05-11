@@ -38,14 +38,33 @@ const FRICTION = 0.86;
 export function NoteGraphView({ data }: Props) {
   const [hovered, setHovered] = React.useState<string | null>(null);
   const [viewers, setViewers] = React.useState<Map<string, ActiveViewer[]>>(new Map());
+  const [hideEncrypted, setHideEncrypted] = React.useState(false);
+  const [encryptedOnly, setEncryptedOnly] = React.useState(false);
+
+  const filteredData = React.useMemo<NoteGraph>(() => {
+    if (!hideEncrypted && !encryptedOnly) return data;
+    const allowed = new Set(
+      data.nodes
+        .filter((n) => {
+          if (encryptedOnly) return n.isEncrypted;
+          if (hideEncrypted) return !n.isEncrypted;
+          return true;
+        })
+        .map((n) => n.id),
+    );
+    return {
+      nodes: data.nodes.filter((n) => allowed.has(n.id)),
+      edges: data.edges.filter((e) => allowed.has(e.source) && allowed.has(e.target)),
+    };
+  }, [data, hideEncrypted, encryptedOnly]);
 
   // Poll active viewers every 20s. Server returns rows seen in the last
   // 60s, so a 20s poll gives every node ~3 chances to refresh before a
   // viewer is dropped from the live set.
   React.useEffect(() => {
-    if (data.nodes.length === 0) return;
+    if (filteredData.nodes.length === 0) return;
     let cancelled = false;
-    const ids = data.nodes.map((n) => n.id);
+    const ids = filteredData.nodes.map((n) => n.id);
     const refresh = () => {
       void listActiveViewers(ids)
         .then((rows) => {
@@ -66,16 +85,16 @@ export function NoteGraphView({ data }: Props) {
       cancelled = true;
       window.clearInterval(t);
     };
-  }, [data.nodes]);
+  }, [filteredData.nodes]);
 
   const nodes = React.useMemo<SimNode[]>(() => {
-    if (data.nodes.length === 0) return [];
+    if (filteredData.nodes.length === 0) return [];
     // Seed positions on a ring so the simulation has a sane starting point.
     const cx = WIDTH / 2;
     const cy = HEIGHT / 2;
     const r = Math.min(WIDTH, HEIGHT) * 0.38;
-    const seeded: SimNode[] = data.nodes.map((n, i) => {
-      const t = (i / data.nodes.length) * Math.PI * 2;
+    const seeded: SimNode[] = filteredData.nodes.map((n, i) => {
+      const t = (i / filteredData.nodes.length) * Math.PI * 2;
       return {
         ...n,
         x: cx + r * Math.cos(t),
@@ -84,8 +103,8 @@ export function NoteGraphView({ data }: Props) {
         vy: 0,
       };
     });
-    return runSimulation(seeded, data.edges);
-  }, [data.nodes, data.edges]);
+    return runSimulation(seeded, filteredData.edges);
+  }, [filteredData.nodes, filteredData.edges]);
 
   const byId = React.useMemo(() => {
     const m = new Map<string, SimNode>();
@@ -95,14 +114,14 @@ export function NoteGraphView({ data }: Props) {
 
   const neighbours = React.useMemo(() => {
     const adj = new Map<string, Set<string>>();
-    for (const e of data.edges) {
+    for (const e of filteredData.edges) {
       if (!adj.has(e.source)) adj.set(e.source, new Set());
       if (!adj.has(e.target)) adj.set(e.target, new Set());
       adj.get(e.source)!.add(e.target);
       adj.get(e.target)!.add(e.source);
     }
     return adj;
-  }, [data.edges]);
+  }, [filteredData.edges]);
 
   if (data.nodes.length === 0) {
     return (
@@ -139,6 +158,33 @@ export function NoteGraphView({ data }: Props) {
 
   return (
     <div className="bg-background relative h-full w-full overflow-auto">
+      <div className="bg-background/80 absolute left-3 top-3 z-10 flex items-center gap-3 rounded-md border px-2 py-1 text-xs shadow-sm backdrop-blur">
+        <label className="flex items-center gap-1.5">
+          <input
+            type="checkbox"
+            checked={hideEncrypted}
+            onChange={(e) => {
+              setHideEncrypted(e.target.checked);
+              if (e.target.checked) setEncryptedOnly(false);
+            }}
+          />
+          Hide encrypted
+        </label>
+        <label className="flex items-center gap-1.5">
+          <input
+            type="checkbox"
+            checked={encryptedOnly}
+            onChange={(e) => {
+              setEncryptedOnly(e.target.checked);
+              if (e.target.checked) setHideEncrypted(false);
+            }}
+          />
+          Encrypted only
+        </label>
+        <span className="text-muted-foreground">
+          {filteredData.nodes.length} / {data.nodes.length}
+        </span>
+      </div>
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         preserveAspectRatio="xMidYMid meet"
@@ -148,7 +194,7 @@ export function NoteGraphView({ data }: Props) {
       >
         {/* Edges */}
         <g stroke="currentColor" strokeOpacity={0.25} strokeWidth={1}>
-          {data.edges.map((e, i) => {
+          {filteredData.edges.map((e, i) => {
             const a = byId.get(e.source);
             const b = byId.get(e.target);
             if (!a || !b) return null;

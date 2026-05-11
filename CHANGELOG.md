@@ -15,6 +15,47 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Encrypted note titles** — when a note is encrypted, its title is
+  also encrypted client-side and stored in a new `encrypted_title`
+  column (migration 0038). The plaintext `title` is replaced with
+  "🔒 Encrypted note" on the server so sidebar / graph / search never
+  leak the original title. The `EncryptedNotePanel` decrypts and
+  shows the real title in its header after unlock.
+
+- **Recovery-key unlock** — the unlock dialog now has a "Use recovery
+  key instead" toggle. Users who lost their passphrase can paste the
+  `notai-rk-…` string saved at setup to recover. Unwrapping uses the
+  `encryptedMasterKeyByRecovery` envelope already shipped with the
+  E2E foundation.
+
+- **Change-passphrase flow** — Settings → Security → Encryption now
+  has a "Change passphrase" panel. Client unwraps the master key with
+  the old passphrase, re-wraps it under a new PBKDF2-derived KEK with
+  a fresh salt, and ships only the new wrapped blob via the existing
+  `rotatePassphrase` action. The recovery envelope is preserved
+  unchanged, so the same recovery key continues to work.
+
+- **Bulk tag-apply** — sidebar bulk action bar gains a "Tag" button.
+  Server-side `bulkAttachTag` / `bulkDetachTag` actions upsert the
+  tag and join-row in one round-trip across up to 200 notes.
+
+- **Canvas → SVG + clipboard copy** — note dropdown gains
+  "Export canvas as SVG…" (uses Excalidraw's `exportToSvg`,
+  serializes via `XMLSerializer`) and "Copy canvas to clipboard"
+  (writes a 2× PNG into the system clipboard via
+  `navigator.clipboard.write` + `ClipboardItem`, with a fallback
+  toast on unsupported browsers).
+
+- **Graph view: encrypted-only / hide-encrypted filters** — graph
+  toolbar gains two mutually-exclusive checkboxes that filter both
+  nodes and edges. The simulation re-runs on filter change. Server's
+  `getNoteGraph` now returns `isEncrypted` per node.
+
+- **Sidebar drag-multi-select** — when selection mode is active and
+  ≥2 notes are selected, dragging any one of them moves the entire
+  selection in a single `bulkUpdateNotes` round-trip. Drag overlay
+  shows the count ("12 notes") instead of a title.
+
 - **Per-note end-to-end encryption** — notes table now has
   `is_encrypted` + `encrypted_body` columns (migration 0037). A new
   "Encrypt this note end-to-end…" dropdown action grabs the canvas's

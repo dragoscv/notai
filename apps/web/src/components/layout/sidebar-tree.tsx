@@ -77,6 +77,7 @@ import {
   duplicateNote,
   moveNote,
   exportNoteMarkdown,
+  bulkUpdateNotes,
 } from '@/server/actions/notes';
 import { exportNoteDoc } from '@/server/actions/export';
 import {
@@ -310,7 +311,18 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
     try {
       if (drag.kind === 'note') {
         const { folderId, index } = resolveTargetIndex(drop, folders, notes, drag);
-        await moveNote({ noteId: drag.id, folderId, index });
+        // Multi-drag: when the dragged note is part of an active
+        // selection of >1, move every selected note in one bulk call
+        // rather than just the visually-grabbed one. Index is ignored
+        // for the rest — they all land at the end of the target folder.
+        if (selection.enabled && selection.selected.size > 1 && selection.selected.has(drag.id)) {
+          const ids = [...selection.selected];
+          await bulkUpdateNotes({ ids, patch: { folderId } });
+          toast.success(`Moved ${ids.length} notes`);
+          selection.clear();
+        } else {
+          await moveNote({ noteId: drag.id, folderId, index });
+        }
       } else {
         const { parentId, index } = resolveFolderTargetIndex(drop, folders);
         await moveFolder({ id: drag.id, parentId, index });
@@ -524,9 +536,14 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
         <DragOverlay>
           {activeDrag ? (
             <div className="bg-popover pointer-events-none rounded-md border px-2 py-1.5 text-sm shadow-lg">
-              {activeDrag.kind === 'note'
-                ? (notes.find((n) => n.id === activeDrag.id)?.title ?? 'Note')
-                : (folders.find((f) => f.id === activeDrag.id)?.name ?? 'Folder')}
+              {activeDrag.kind === 'note' &&
+              selection.enabled &&
+              selection.selected.size > 1 &&
+              selection.selected.has(activeDrag.id)
+                ? `${selection.selected.size} notes`
+                : activeDrag.kind === 'note'
+                  ? (notes.find((n) => n.id === activeDrag.id)?.title ?? 'Note')
+                  : (folders.find((f) => f.id === activeDrag.id)?.name ?? 'Folder')}
             </div>
           ) : null}
         </DragOverlay>

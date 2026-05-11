@@ -18,6 +18,8 @@ import {
   encryptString,
   decryptString,
   importRawAesKey,
+  importRecoveryKEK,
+  parseRecoveryKey,
   fromB64,
 } from '@/lib/e2e';
 import { getMyKeyEnvelope } from '@/server/actions/encryption';
@@ -27,12 +29,6 @@ import {
   getNoteCiphertext,
 } from '@/server/actions/note-encryption';
 
-/**
- * Session-scoped cache for the user's master AES-GCM key. Living in
- * module state means it survives in-page navigation but is wiped on
- * tab close (no persistence). The single-flight `unlockPromise` ensures
- * a hammered "Decrypt" button doesn't trigger N parallel PBKDF2 runs.
- */
 let cachedMasterKey: CryptoKey | null = null;
 let unlockPromise: Promise<CryptoKey> | null = null;
 
@@ -44,16 +40,10 @@ export function clearCachedMasterKey(): void {
   cachedMasterKey = null;
 }
 
-/**
- * Prompt the user for their passphrase (modal) and unwrap the master
- * key. Resolves to a usable CryptoKey, cached for the session.
- */
 export async function unlockMasterKey(passphrase: string): Promise<CryptoKey> {
   if (cachedMasterKey) return cachedMasterKey;
   const envelope = await getMyKeyEnvelope();
-  if (!envelope) {
-    throw new Error('Encryption is not set up on this account.');
-  }
+  if (!envelope) throw new Error('Encryption is not set up on this account.');
   const salt = fromB64(envelope.salt);
   const kek = await deriveKEKFromPassphrase(passphrase, salt, envelope.kdfIters);
   let raw: Uint8Array;
@@ -67,6 +57,28 @@ export async function unlockMasterKey(passphrase: string): Promise<CryptoKey> {
   return master;
 }
 
+export async function unlockMasterKeyWithRecovery(recoveryDisplay: string): Promise<CryptoKey> {
+  if (cachedMasterKey) return cachedMasterKey;
+  const envelope = await getMyKeyEnvelope();
+  if (!envelope) throw new Error('Encryption is not set up on this account.');
+  let rawRecovery: Uint8Array;
+  try {
+    rawRecovery = parseRecoveryKey(recoveryDisplay);
+  } catch {
+    throw new Error('Could not parse recovery key.');
+  }
+  const kek = await importRecoveryKEK(rawRecovery);
+  let raw: Uint8Array;
+  try {
+    raw = await decryptBytes(kek, envelope.encryptedMasterKeyByRecovery);
+  } catch {
+    throw new Error('Recovery key did not match.');
+  }
+  const master = await importRawAesKey(raw);
+  cachedMasterKey = master;
+  return master;
+}
+
 interface UnlockDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -74,25 +86,28 @@ interface UnlockDialogProps {
   reason?: string;
 }
 
-/**
- * Modal that collects the passphrase, derives the KEK, unwraps the
- * master key, and hands it back to the caller via `onUnlocked`. Used
- * by both the in-note locked panel and the "Lock note" menu action
- * (since locking also needs the key to wrap the plaintext).
- */
 export function UnlockKeyDialog({ open, onOpenChange, onUnlocked, reason }: UnlockDialogProps) {
+  const [mode, setMode] = React.useState<'passphrase' | 'recovery'>('passphrase');
   const [passphrase, setPassphrase] = React.useState('');
+  const [recoveryKey, setRecoveryKey] = React.useState('');
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
-    if (!open) setPassphrase('');
+    if (!open) {
+      setPassphrase('');
+      setRecoveryKey('');
+      setMode('passphrase');
+    }
   }, [open]);
 
   const submit = async () => {
-    if (!passphrase.trim()) return;
     setBusy(true);
     try {
-      const promise = unlockPromise ?? unlockMasterKey(passphrase);
+      const promise =
+        unlockPromise ??
+        (mode === 'passphrase'
+          ? unlockMasterKey(passphrase)
+          : unlockMasterKeyWithRecovery(recoveryKey));
       unlockPromise = promise;
       const key = await promise;
       onUnlocked(key);
@@ -106,6 +121,9 @@ export function UnlockKeyDialog({ open, onOpenChange, onUnlocked, reason }: Unlo
     }
   };
 
+  const canSubmit =
+    mode === 'passphrase' ? passphrase.trim().length > 0 : recoveryKey.trim().length > 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -115,24 +133,44 @@ export function UnlockKeyDialog({ open, onOpenChange, onUnlocked, reason }: Unlo
           </DialogTitle>
           <DialogDescription>
             {reason ??
-              'Enter your master passphrase. Decryption happens entirely in your browser; the server never sees your key.'}
+              'Decryption happens entirely in your browser; the server never sees your key.'}
           </DialogDescription>
         </DialogHeader>
-        <Input
-          type="password"
-          value={passphrase}
-          onChange={(e) => setPassphrase(e.target.value)}
-          placeholder="Master passphrase"
-          autoFocus
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void submit();
-          }}
-        />
+        {mode === 'passphrase' ? (
+          <Input
+            type="password"
+            value={passphrase}
+            onChange={(e) => setPassphrase(e.target.value)}
+            placeholder="Master passphrase"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void submit();
+            }}
+          />
+        ) : (
+          <Input
+            value={recoveryKey}
+            onChange={(e) => setRecoveryKey(e.target.value)}
+            placeholder="notai-rk-…"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void submit();
+            }}
+          />
+        )}
+        <button
+          type="button"
+          className="text-muted-foreground hover:text-foreground self-start text-xs underline-offset-2 hover:underline"
+          onClick={() => setMode(mode === 'passphrase' ? 'recovery' : 'passphrase')}
+          disabled={busy}
+        >
+          {mode === 'passphrase' ? 'Use recovery key instead' : 'Use passphrase instead'}
+        </button>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             Cancel
           </Button>
-          <Button onClick={submit} disabled={busy || !passphrase.trim()}>
+          <Button onClick={submit} disabled={busy || !canSubmit}>
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Unlock className="size-4" />}{' '}
             Unlock
           </Button>
@@ -142,14 +180,9 @@ export function UnlockKeyDialog({ open, onOpenChange, onUnlocked, reason }: Unlo
   );
 }
 
-/**
- * Read-only view shown when a note has `isEncrypted = true`. Fetches
- * the ciphertext, decrypts it client-side, renders as preformatted
- * text. The canvas / Excalidraw surface is not mounted for encrypted
- * notes — the user must unlock + disable encryption first to edit.
- */
 export function EncryptedNotePanel({ noteId, title }: { noteId: string; title: string }) {
   const [plaintext, setPlaintext] = React.useState<string | null>(null);
+  const [decryptedTitle, setDecryptedTitle] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [unlockOpen, setUnlockOpen] = React.useState(false);
   const [disabling, setDisabling] = React.useState(false);
@@ -167,8 +200,15 @@ export function EncryptedNotePanel({ noteId, title }: { noteId: string; title: s
         setError('Could not fetch ciphertext.');
         return;
       }
-      const text = await decryptString(key, ct);
+      const text = ct.encryptedBody ? await decryptString(key, ct.encryptedBody) : '';
       setPlaintext(text);
+      if (ct.encryptedTitle) {
+        try {
+          setDecryptedTitle(await decryptString(key, ct.encryptedTitle));
+        } catch {
+          // leave header showing the server placeholder
+        }
+      }
     } catch (err) {
       setError((err as Error).message || 'Decryption failed');
     }
@@ -187,7 +227,11 @@ export function EncryptedNotePanel({ noteId, title }: { noteId: string; title: s
     }
     setDisabling(true);
     try {
-      await disableNoteEncryption({ noteId, plaintext });
+      await disableNoteEncryption({
+        noteId,
+        plaintext,
+        plaintextTitle: decryptedTitle ?? undefined,
+      });
       toast.success('Encryption disabled');
       window.location.reload();
     } catch (err) {
@@ -197,12 +241,14 @@ export function EncryptedNotePanel({ noteId, title }: { noteId: string; title: s
     }
   };
 
+  const displayTitle = decryptedTitle ?? title ?? 'Untitled';
+
   return (
     <div className="flex h-full flex-col">
       <header className="bg-background/70 flex shrink-0 items-center gap-2 border-b px-4 py-2 backdrop-blur">
         <Lock className="text-primary size-4" />
         <span className="text-sm font-medium">End-to-end encrypted · read-only</span>
-        <span className="text-muted-foreground ml-2 truncate text-sm">{title || 'Untitled'}</span>
+        <span className="text-muted-foreground ml-2 truncate text-sm">{displayTitle}</span>
         <div className="ml-auto flex items-center gap-2">
           {plaintext == null && (
             <Button size="sm" variant="outline" onClick={() => setUnlockOpen(true)}>
@@ -240,12 +286,11 @@ export function EncryptedNotePanel({ noteId, title }: { noteId: string; title: s
   );
 }
 
-/**
- * Imperatively lock the given note: derives the master key (prompting
- * the user if not cached), encrypts the plaintext, calls the server
- * action to store ciphertext + flip the flag. Returns true on success.
- */
-export async function lockNoteFlow(noteId: string, plaintext: string): Promise<boolean> {
+export async function lockNoteFlow(
+  noteId: string,
+  plaintext: string,
+  plaintextTitle?: string,
+): Promise<boolean> {
   let key = getCachedMasterKey();
   if (!key) {
     const passphrase = window.prompt(
@@ -260,6 +305,10 @@ export async function lockNoteFlow(noteId: string, plaintext: string): Promise<b
     }
   }
   const blob = await encryptString(key, plaintext);
-  await enableNoteEncryption({ noteId, encryptedBody: blob });
+  const titleBlob =
+    plaintextTitle && plaintextTitle.trim().length > 0
+      ? await encryptString(key, plaintextTitle)
+      : undefined;
+  await enableNoteEncryption({ noteId, encryptedBody: blob, encryptedTitle: titleBlob });
   return true;
 }

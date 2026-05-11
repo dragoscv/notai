@@ -13,6 +13,7 @@ async function requireUser() {
 const lockSchema = z.object({
   noteId: z.string().min(1),
   encryptedBody: z.string().min(20).max(20_000_000),
+  encryptedTitle: z.string().min(20).max(20_000).optional(),
 });
 
 /**
@@ -28,12 +29,14 @@ const lockSchema = z.object({
  */
 export async function enableNoteEncryption(input: z.input<typeof lockSchema>) {
   const userId = await requireUser();
-  const { noteId, encryptedBody } = lockSchema.parse(input);
+  const { noteId, encryptedBody, encryptedTitle } = lockSchema.parse(input);
   await db
     .update(notes)
     .set({
       isEncrypted: true,
       encryptedBody,
+      encryptedTitle: encryptedTitle ?? null,
+      title: '🔒 Encrypted note',
       plaintext: '',
       updatedAt: new Date(),
     })
@@ -44,22 +47,25 @@ export async function enableNoteEncryption(input: z.input<typeof lockSchema>) {
 const unlockSchema = z.object({
   noteId: z.string().min(1),
   plaintext: z.string().max(2_000_000).optional(),
+  plaintextTitle: z.string().max(1000).optional(),
 });
 
 /**
  * Disable encryption on a note. Caller passes the freshly decrypted
- * plaintext so search / embeddings can re-index. The ciphertext is
- * cleared.
+ * plaintext (and optionally the decrypted title) so search /
+ * embeddings can re-index. The ciphertext is cleared.
  */
 export async function disableNoteEncryption(input: z.input<typeof unlockSchema>) {
   const userId = await requireUser();
-  const { noteId, plaintext } = unlockSchema.parse(input);
+  const { noteId, plaintext, plaintextTitle } = unlockSchema.parse(input);
   await db
     .update(notes)
     .set({
       isEncrypted: false,
       encryptedBody: null,
+      encryptedTitle: null,
       plaintext: plaintext ?? '',
+      ...(plaintextTitle ? { title: plaintextTitle } : {}),
       updatedAt: new Date(),
     })
     .where(and(eq(notes.id, noteId), eq(notes.ownerId, userId)));
@@ -67,16 +73,22 @@ export async function disableNoteEncryption(input: z.input<typeof unlockSchema>)
 }
 
 /**
- * Fetch the ciphertext blob for a locked note so the client can
- * decrypt it. Returns null when the note exists but isn't encrypted.
+ * Fetch the ciphertext blobs for a locked note so the client can
+ * decrypt them. Returns null when the note exists but isn't encrypted.
  */
-export async function getNoteCiphertext(noteId: string): Promise<string | null> {
+export async function getNoteCiphertext(
+  noteId: string,
+): Promise<{ encryptedBody: string | null; encryptedTitle: string | null } | null> {
   const userId = await requireUser();
   const [row] = await db
-    .select({ encryptedBody: notes.encryptedBody, isEncrypted: notes.isEncrypted })
+    .select({
+      encryptedBody: notes.encryptedBody,
+      encryptedTitle: notes.encryptedTitle,
+      isEncrypted: notes.isEncrypted,
+    })
     .from(notes)
     .where(and(eq(notes.id, noteId), eq(notes.ownerId, userId)))
     .limit(1);
   if (!row || !row.isEncrypted) return null;
-  return row.encryptedBody;
+  return { encryptedBody: row.encryptedBody, encryptedTitle: row.encryptedTitle };
 }

@@ -1,7 +1,16 @@
 'use client';
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckSquare, FolderInput, Star, Archive, ArchiveRestore, Trash2, X } from 'lucide-react';
+import {
+  CheckSquare,
+  FolderInput,
+  Star,
+  Archive,
+  ArchiveRestore,
+  Trash2,
+  X,
+  Tag,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@notai/ui/components/button';
 import {
@@ -14,6 +23,7 @@ import {
 } from '@notai/ui/components/dropdown-menu';
 import type { Folder } from '@notai/db/schema';
 import { bulkUpdateNotes, bulkDeleteNotes } from '@/server/actions/notes';
+import { bulkAttachTag } from '@/server/actions/tags';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 
 interface SidebarSelectionValue {
@@ -120,6 +130,21 @@ export function SidebarBulkBar({ folders }: { folders: Folder[] }) {
     runPatch({ folderId }, 'Moved');
   };
 
+  const tagAll = () => {
+    const raw = window.prompt('Tag name to apply to selected notes (e.g. "work/clients/acme")');
+    if (!raw || !raw.trim()) return;
+    startTransition(async () => {
+      try {
+        const { attached } = await bulkAttachTag({ noteIds: ids, name: raw });
+        toast.success(`Tagged ${attached} note${attached === 1 ? '' : 's'}`);
+        clear();
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Tag failed');
+      }
+    });
+  };
+
   const doDelete = () => {
     confirm({
       title: `Delete ${ids.length} note${ids.length === 1 ? '' : 's'}?`,
@@ -201,6 +226,9 @@ export function SidebarBulkBar({ folders }: { folders: Folder[] }) {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button size="sm" variant="outline" onClick={tagAll} disabled={pending}>
+            <Tag className="size-3.5" /> Tag
+          </Button>
           <Button
             size="sm"
             variant="destructive"

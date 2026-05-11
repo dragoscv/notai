@@ -1,10 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { Copy, Lock, Loader2, ShieldCheck } from 'lucide-react';
+import { Copy, Lock, Loader2, ShieldCheck, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@notai/ui';
 import {
+  decryptBytes,
   deriveKEKFromPassphrase,
   encryptBytes,
   exportRawKey,
@@ -14,7 +15,7 @@ import {
   importRecoveryKEK,
   randomSalt,
 } from '@/lib/e2e';
-import { getMyKeyEnvelope, setupEncryption } from '@/server/actions/encryption';
+import { getMyKeyEnvelope, rotatePassphrase, setupEncryption } from '@/server/actions/encryption';
 
 type Status = 'loading' | 'not-setup' | 'configured';
 
@@ -33,6 +34,11 @@ export function EncryptionSettingsPanel() {
   const [pass2, setPass2] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [recovery, setRecovery] = React.useState<string | null>(null);
+  const [rotateOpen, setRotateOpen] = React.useState(false);
+  const [oldPass, setOldPass] = React.useState('');
+  const [newPass1, setNewPass1] = React.useState('');
+  const [newPass2, setNewPass2] = React.useState('');
+  const [rotateBusy, setRotateBusy] = React.useState(false);
 
   React.useEffect(() => {
     void getMyKeyEnvelope().then((env) => {
@@ -85,6 +91,55 @@ export function EncryptionSettingsPanel() {
     }
   };
 
+  const onRotate = async () => {
+    if (newPass1.length < 12) {
+      toast.error('New passphrase must be at least 12 characters');
+      return;
+    }
+    if (newPass1 !== newPass2) {
+      toast.error('New passphrases do not match');
+      return;
+    }
+    setRotateBusy(true);
+    try {
+      const envelope = await getMyKeyEnvelope();
+      if (!envelope) {
+        toast.error('Encryption is not set up.');
+        return;
+      }
+      const oldSalt = fromB64(envelope.salt);
+      const oldKEK = await deriveKEKFromPassphrase(oldPass, oldSalt, envelope.kdfIters);
+      let rawMaster: Uint8Array;
+      try {
+        rawMaster = await decryptBytes(oldKEK, envelope.encryptedMasterKey);
+      } catch {
+        toast.error('Current passphrase is wrong');
+        return;
+      }
+      // Re-wrap master key with new salt + new passphrase.
+      const newSalt = randomSalt(16);
+      const newKEK = await deriveKEKFromPassphrase(newPass1, fromB64(newSalt), envelope.kdfIters);
+      // importRawAesKey returns a CryptoKey but we already have the raw — encryptBytes works on raw.
+      const newEncryptedMasterKey = await encryptBytes(newKEK, rawMaster);
+      // Keep the recovery envelope as-is; master key didn't change.
+      await rotatePassphrase({
+        salt: newSalt,
+        encryptedMasterKey: newEncryptedMasterKey,
+        encryptedMasterKeyByRecovery: envelope.encryptedMasterKeyByRecovery,
+        kdfIters: envelope.kdfIters,
+      });
+      toast.success('Passphrase changed');
+      setRotateOpen(false);
+      setOldPass('');
+      setNewPass1('');
+      setNewPass2('');
+    } catch (err) {
+      toast.error((err as Error).message ?? 'Rotation failed');
+    } finally {
+      setRotateBusy(false);
+    }
+  };
+
   if (status === 'loading') {
     return (
       <div className="text-muted-foreground inline-flex items-center gap-2 text-sm">
@@ -95,15 +150,77 @@ export function EncryptionSettingsPanel() {
 
   if (status === 'configured' && !recovery) {
     return (
-      <div className="bg-card rounded-xl border p-4 text-sm">
+      <div className="bg-card space-y-3 rounded-xl border p-4 text-sm">
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-4 text-emerald-600" />
           <p className="font-medium">End-to-end encryption is enabled</p>
         </div>
-        <p className="text-muted-foreground mt-2 text-xs">
-          You can mark individual notes as encrypted (per-note toggle ships in a follow-up).
-          Server-side AI, search, sharing, and real-time collab are skipped for encrypted notes.
+        <p className="text-muted-foreground text-xs">
+          You can mark individual notes as encrypted from the note menu. Server-side AI, search,
+          sharing, and real-time collab are skipped for encrypted notes.
         </p>
+        {!rotateOpen ? (
+          <Button variant="outline" size="sm" onClick={() => setRotateOpen(true)}>
+            <RefreshCcw className="size-4" /> Change passphrase
+          </Button>
+        ) : (
+          <div className="space-y-2 border-t pt-3">
+            <p className="text-xs font-medium">Change passphrase</p>
+            <p className="text-muted-foreground text-xs">
+              Your master key stays the same — we just re-wrap it under a new passphrase. Your
+              recovery key continues to work unchanged.
+            </p>
+            <input
+              type="password"
+              value={oldPass}
+              onChange={(e) => setOldPass(e.target.value)}
+              placeholder="Current passphrase"
+              className="border-input bg-background w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
+              autoComplete="current-password"
+            />
+            <input
+              type="password"
+              value={newPass1}
+              onChange={(e) => setNewPass1(e.target.value)}
+              placeholder="New passphrase (12+ chars)"
+              className="border-input bg-background w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
+              autoComplete="new-password"
+            />
+            <input
+              type="password"
+              value={newPass2}
+              onChange={(e) => setNewPass2(e.target.value)}
+              placeholder="Confirm new passphrase"
+              className="border-input bg-background w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
+              autoComplete="new-password"
+            />
+            <div className="flex gap-2">
+              <Button
+                onClick={onRotate}
+                disabled={rotateBusy || !oldPass || !newPass1 || !newPass2}
+              >
+                {rotateBusy ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <RefreshCcw className="size-4" />
+                )}
+                Change passphrase
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setRotateOpen(false);
+                  setOldPass('');
+                  setNewPass1('');
+                  setNewPass2('');
+                }}
+                disabled={rotateBusy}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

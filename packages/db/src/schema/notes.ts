@@ -197,6 +197,7 @@ export const notes = pgTable(
      */
     isEncrypted: boolean('is_encrypted').notNull().default(false),
     encryptedBody: text('encrypted_body'),
+    encryptedTitle: text('encrypted_title'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

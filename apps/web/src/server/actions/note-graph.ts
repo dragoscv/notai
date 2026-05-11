@@ -11,6 +11,7 @@ export interface GraphNode {
   outDegree: number;
   /** incoming-link count. */
   inDegree: number;
+  isEncrypted: boolean;
 }
 
 export interface GraphEdge {
@@ -54,6 +55,7 @@ export async function getNoteGraph(): Promise<NoteGraph> {
       title: notes.title,
       icon: notes.icon,
       plaintext: notes.plaintext,
+      isEncrypted: notes.isEncrypted,
     })
     .from(notes)
     .leftJoin(
@@ -69,10 +71,18 @@ export async function getNoteGraph(): Promise<NoteGraph> {
     .orderBy(notes.updatedAt)
     .limit(MAX_NOTES);
 
-  const byId = new Map<string, { id: string; title: string; icon: string | null }>();
+  const byId = new Map<
+    string,
+    { id: string; title: string; icon: string | null; isEncrypted: boolean }
+  >();
   const titleToId = new Map<string, string>();
   for (const r of rows) {
-    byId.set(r.id, { id: r.id, title: r.title || 'Untitled', icon: r.icon ?? null });
+    byId.set(r.id, {
+      id: r.id,
+      title: r.title || 'Untitled',
+      icon: r.icon ?? null,
+      isEncrypted: r.isEncrypted ?? false,
+    });
     const key = (r.title ?? '').trim().toLowerCase();
     if (key && !titleToId.has(key)) titleToId.set(key, r.id);
   }
@@ -109,6 +119,7 @@ export async function getNoteGraph(): Promise<NoteGraph> {
       icon: n.icon,
       outDegree: out.get(n.id) ?? 0,
       inDegree: inn.get(n.id) ?? 0,
+      isEncrypted: n.isEncrypted,
     });
   }
 

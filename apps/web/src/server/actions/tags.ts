@@ -125,6 +125,71 @@ export async function detachTag(input: { noteId: string; tagId: string }) {
   revalidatePath(`/app/n/${input.noteId}`);
 }
 
+const bulkTagSchema = z.object({
+  noteIds: z.array(z.string().min(1)).min(1).max(200),
+  name: z
+    .string()
+    .min(1)
+    .max(120)
+    .transform(cleanTagPath)
+    .refine((s) => s.length > 0, { message: 'Tag name cannot be empty.' }),
+  color: z.string().max(30).optional(),
+});
+
+/**
+ * Attach a single tag to many notes. Creates the tag if needed,
+ * filters to notes the caller owns, then inserts join rows.
+ */
+export async function bulkAttachTag(input: z.input<typeof bulkTagSchema>) {
+  const me = await requireUser();
+  const { noteIds, name, color } = bulkTagSchema.parse(input);
+
+  const owned = await db
+    .select({ id: notes.id })
+    .from(notes)
+    .where(and(inArray(notes.id, noteIds), eq(notes.ownerId, me.id)));
+  const ownedIds = owned.map((n) => n.id);
+  if (ownedIds.length === 0) return { attached: 0 };
+
+  const [tag] = await db
+    .insert(tags)
+    .values({ ownerId: me.id, name, color: color ?? 'default' })
+    .onConflictDoUpdate({ target: [tags.ownerId, tags.name], set: { name } })
+    .returning();
+  if (!tag) throw new Error('Could not create tag');
+
+  await db
+    .insert(noteTags)
+    .values(ownedIds.map((noteId) => ({ noteId, tagId: tag.id })))
+    .onConflictDoNothing();
+
+  revalidatePath('/app');
+  return { attached: ownedIds.length, tagId: tag.id };
+}
+
+/**
+ * Detach a tag (by id) from many notes the caller owns. Used by the
+ * bulk action bar's "Remove tag…" entry.
+ */
+export async function bulkDetachTag(input: { noteIds: string[]; tagId: string }) {
+  const me = await requireUser();
+  const noteIds = z.array(z.string().min(1)).min(1).max(200).parse(input.noteIds);
+  const tagId = z.string().min(1).parse(input.tagId);
+
+  const owned = await db
+    .select({ id: notes.id })
+    .from(notes)
+    .where(and(inArray(notes.id, noteIds), eq(notes.ownerId, me.id)));
+  const ownedIds = owned.map((n) => n.id);
+  if (ownedIds.length === 0) return { detached: 0 };
+
+  await db
+    .delete(noteTags)
+    .where(and(inArray(noteTags.noteId, ownedIds), eq(noteTags.tagId, tagId)));
+  revalidatePath('/app');
+  return { detached: ownedIds.length };
+}
+
 /** Tags currently on a note (joined with the user's tag table). */
 export async function listNoteTags(noteId: string) {
   const me = await requireUser();
