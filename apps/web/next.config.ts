@@ -50,6 +50,18 @@ const nextConfig: NextConfig = {
 
   transpilePackages: ['@notai/ui', '@notai/editor', '@notai/lib', '@notai/db'],
 
+  // We run `tsc --noEmit` and `eslint` as their own pre-push and CI
+  // steps; letting `next build` repeat them adds ~20–30s of duplicate
+  // work for no extra signal. Keep both gates active in production
+  // builds (Vercel) — only skip when explicitly opted in (pre-push,
+  // local iteration).
+  typescript: {
+    ignoreBuildErrors: process.env.SKIP_NEXT_BUILD_TS === '1',
+  },
+  eslint: {
+    ignoreDuringBuilds: process.env.SKIP_NEXT_BUILD_TS === '1',
+  },
+
   // Allow serving the Tauri app to talk to the API cross-origin in dev
   async headers() {
     // Content-Security-Policy:

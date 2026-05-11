@@ -35,6 +35,13 @@ const BUILD_ENV = {
   NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
   CI: '1',
   SERWIST_SUPPRESS_TURBOPACK_WARNING: '1',
+  // Next would otherwise re-run tsc + eslint during `next build` —
+  // we already cover both as separate steps below. Saves ~20–30s.
+  SKIP_NEXT_BUILD_TS: '1',
+  // Without this, `pnpm build` -> `turbo run build` keeps the turbo
+  // daemon alive after the build finishes, leaving the spawned shell
+  // hanging on Windows for ~3–4 minutes before the OS reaps it.
+  TURBO_DAEMON: '0',
 };
 
 const STEPS = [
@@ -78,24 +85,6 @@ const STEPS = [
 ];
 
 const VERBOSE = process.env.PREPUSH_VERBOSE === '1' || process.argv.includes('--verbose');
-const HEARTBEAT_MS = 1000;
-const STATUS_MAX_COL = 100;
-
-function lastNonEmptyLine(buf) {
-  // Strip ANSI + carriage returns so transient progress bars don't garble.
-  const cleaned = buf.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '').replace(/\r/g, '\n');
-  const lines = cleaned.split('\n');
-  for (let i = lines.length - 1; i >= 0; i--) {
-    const l = lines[i].trim();
-    if (l) return l;
-  }
-  return '';
-}
-
-function truncate(s, max) {
-  if (s.length <= max) return s;
-  return s.slice(0, max - 1) + '…';
-}
 
 function run({ name, cmd, args, env }) {
   return new Promise((resolve) => {
@@ -104,50 +93,19 @@ function run({ name, cmd, args, env }) {
       cwd: repoRoot,
       shell: true,
       env: { ...process.env, ...(env ?? {}) },
-      // Inherit stdio in verbose mode so output streams to terminal as it happens.
       stdio: VERBOSE ? 'inherit' : 'pipe',
     });
 
     let buf = '';
-    let heartbeat = null;
-    let lastDrawWidth = 0;
-
     if (!VERBOSE) {
-      const onData = (d) => {
-        buf += d.toString();
-      };
-      child.stdout.on('data', onData);
-      child.stderr.on('data', onData);
-
-      if (isTTY) {
-        const draw = () => {
-          const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-          const tail = lastNonEmptyLine(buf);
-          const prefix = `  ${cyan('●')} ${name} ${dim(`(${elapsed}s)`)} `;
-          // Calculate visible width without ANSI for proper clearing.
-          const visibleLen = `  ● ${name} (${elapsed}s) `.length;
-          const room = Math.max(20, STATUS_MAX_COL - visibleLen);
-          const line = prefix + (tail ? dim(truncate(tail, room)) : dim('…'));
-          // Clear the previous line then redraw.
-          process.stdout.write(`\r${' '.repeat(lastDrawWidth)}\r${line}`);
-          lastDrawWidth = visibleLen + Math.min(room, tail.length || 1);
-        };
-        draw();
-        heartbeat = setInterval(draw, HEARTBEAT_MS);
-      }
+      child.stdout.on('data', (d) => { buf += d.toString(); });
+      child.stderr.on('data', (d) => { buf += d.toString(); });
     }
 
     child.on('close', (code) => {
-      if (heartbeat) clearInterval(heartbeat);
-      if (!VERBOSE && isTTY && lastDrawWidth > 0) {
-        // Erase the heartbeat line so the final ✓/✖ printed by the caller is clean.
-        process.stdout.write(`\r${' '.repeat(lastDrawWidth)}\r`);
-      }
       resolve({ name, code, output: buf, ms: Date.now() - start });
     });
-
     child.on('error', (err) => {
-      if (heartbeat) clearInterval(heartbeat);
       resolve({ name, code: 1, output: String(err), ms: Date.now() - start });
     });
   });
@@ -180,19 +138,58 @@ if (VERBOSE) {
 }
 
 const results = [];
-for (const step of STEPS) {
-  if (VERBOSE) {
+if (VERBOSE) {
+  // Verbose mode: keep serial so output stays readable.
+  for (const step of STEPS) {
     console.log();
     console.log(cyan(`▶ ${step.name}`));
+    const r = await run(step);
+    results.push({ ...r, step });
+    const t = `${(r.ms / 1000).toFixed(1)}s`;
+    if (r.code === 0) {
+      process.stdout.write(`  ${green('✓')} ${step.name} ${dim(`(${t})`)}\n`);
+    } else {
+      process.stdout.write(`  ${red('✖')} ${step.name} ${dim(`(${t}, exit ${r.code})`)}\n`);
+    }
   }
-  const r = await run(step);
-  results.push({ ...r, step });
-  const t = `${(r.ms / 1000).toFixed(1)}s`;
-  if (r.code === 0) {
-    process.stdout.write(`  ${green('✓')} ${step.name} ${dim(`(${t})`)}\n`);
-  } else {
-    process.stdout.write(`  ${red('✖')} ${step.name} ${dim(`(${t}, exit ${r.code})`)}\n`);
+} else {
+  // Two lanes:
+  //   A) Lint → Typecheck → Build run serially. They all shell into
+  //      `turbo run …`, which uses a daemon + shared filesystem cache;
+  //      running multiple turbo invocations in parallel deadlocks the
+  //      daemon.
+  //   B) Format check, version-bump audit, secret scan are pure node
+  //      and run concurrently with lane A.
+  // Final wall time ≈ max(lane A, lane B).
+  const turboNames = new Set(['Lint', 'Typecheck', 'Build (web + realtime)']);
+  const laneA = STEPS.filter((s) => turboNames.has(s.name));
+  const laneB = STEPS.filter((s) => !turboNames.has(s.name));
+
+  // Plain append-only logging — append-only is robust on Windows and avoids
+  // the overdraw glitches we get when build's child writes scroll the
+  // terminal mid-redraw.
+  async function runOne(step) {
+    const t0 = Date.now();
+    process.stdout.write(`  ${cyan('▶')} ${step.name} ${dim('started')}\n`);
+    const r = await run(step);
+    const t = `${((Date.now() - t0) / 1000).toFixed(1)}s`;
+    if (r.code === 0) {
+      process.stdout.write(`  ${green('✓')} ${step.name} ${dim(`(${t})`)}\n`);
+    } else {
+      process.stdout.write(`  ${red('✖')} ${step.name} ${dim(`(${t}, exit ${r.code})`)}\n`);
+    }
+    return { ...r, step };
   }
+
+  const laneAPromise = (async () => {
+    const out = [];
+    for (const step of laneA) out.push(await runOne(step));
+    return out;
+  })();
+  const laneBPromise = Promise.all(laneB.map((step) => runOne(step)));
+
+  const [aResults, bResults] = await Promise.all([laneAPromise, laneBPromise]);
+  results.push(...aResults, ...bResults);
 }
 
 const failures = results.filter((r) => r.code !== 0);
