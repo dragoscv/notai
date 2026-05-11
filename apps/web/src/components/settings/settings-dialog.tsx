@@ -42,6 +42,7 @@ import { signOutAction } from '@/server/actions/auth';
 import { updateProfile, exportUserNotes, deleteAccount } from '@/server/actions/account';
 import { exportAllNotesAsZip } from '@/server/actions/export-zip';
 import { EncryptionSettingsPanel } from './encryption-settings-panel';
+import { E2eAuditPanel } from './e2e-audit-panel';
 import { importWorkspaceZip } from '@/server/actions/import-zip';
 import { importEvernoteEnex } from '@/server/actions/import-enex';
 import { exportCalendarIcs } from '@/server/actions/export-ics';
@@ -708,6 +709,8 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
       <SectionHeading title="Account" description="Your data and session." />
 
       <EncryptionSettingsPanel />
+
+      <E2eAuditPanel />
 
       <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
         <div className="flex items-start justify-between gap-4">

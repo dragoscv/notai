@@ -26,3 +26,4 @@ export * from './flashcards';
 export * from './user-snippets';
 export * from './note-presence';
 export * from './user-keys';
+export * from './e2e-audit';

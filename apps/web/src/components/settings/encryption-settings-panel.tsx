@@ -16,6 +16,33 @@ import {
   randomSalt,
 } from '@/lib/e2e';
 import { getMyKeyEnvelope, rotatePassphrase, setupEncryption } from '@/server/actions/encryption';
+import { assessPassphrase, checkPassphraseBreached } from '@/lib/passphrase';
+
+const STRENGTH_COLOR = [
+  'bg-red-500',
+  'bg-orange-500',
+  'bg-yellow-500',
+  'bg-emerald-500',
+  'bg-emerald-600',
+] as const;
+
+function PassphraseStrengthMeter({ value }: { value: string }) {
+  const strength = React.useMemo(() => assessPassphrase(value), [value]);
+  if (!value) return null;
+  return (
+    <div className="space-y-1">
+      <div className="bg-muted h-1 w-full overflow-hidden rounded">
+        <div
+          className={`h-full transition-all ${STRENGTH_COLOR[strength.score]}`}
+          style={{ width: `${((strength.score + 1) / 5) * 100}%` }}
+        />
+      </div>
+      <p className="text-muted-foreground text-[11px]">
+        <span className="font-medium capitalize">{strength.label}</span> · {strength.tip}
+      </p>
+    </div>
+  );
+}
 
 type Status = 'loading' | 'not-setup' | 'configured';
 
@@ -55,8 +82,21 @@ export function EncryptionSettingsPanel() {
       toast.error('Passphrases do not match');
       return;
     }
+    const strength = assessPassphrase(pass1);
+    if (strength.score < 2) {
+      toast.error(`Passphrase too weak — ${strength.tip}`);
+      return;
+    }
     setBusy(true);
     try {
+      const breached = await checkPassphraseBreached(pass1);
+      if (breached && breached > 0) {
+        toast.error(
+          `This passphrase appeared in ${breached.toLocaleString()} known breaches. Pick something else.`,
+        );
+        setBusy(false);
+        return;
+      }
       const masterKey = await generateMasterKey();
       const rawMaster = await exportRawKey(masterKey);
       const salt = randomSalt(16);
@@ -100,8 +140,21 @@ export function EncryptionSettingsPanel() {
       toast.error('New passphrases do not match');
       return;
     }
+    const strength = assessPassphrase(newPass1);
+    if (strength.score < 2) {
+      toast.error(`New passphrase too weak — ${strength.tip}`);
+      return;
+    }
     setRotateBusy(true);
     try {
+      const breached = await checkPassphraseBreached(newPass1);
+      if (breached && breached > 0) {
+        toast.error(
+          `This passphrase appeared in ${breached.toLocaleString()} known breaches. Pick something else.`,
+        );
+        setRotateBusy(false);
+        return;
+      }
       const envelope = await getMyKeyEnvelope();
       if (!envelope) {
         toast.error('Encryption is not set up.');
@@ -186,6 +239,7 @@ export function EncryptionSettingsPanel() {
               className="border-input bg-background w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
               autoComplete="new-password"
             />
+            <PassphraseStrengthMeter value={newPass1} />
             <input
               type="password"
               value={newPass2}
@@ -275,6 +329,7 @@ export function EncryptionSettingsPanel() {
         className="border-input bg-background w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
         autoComplete="new-password"
       />
+      <PassphraseStrengthMeter value={pass1} />
       <input
         type="password"
         value={pass2}

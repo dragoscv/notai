@@ -15,6 +15,25 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Privacy receipts: E2E audit log** — every lifecycle moment of
+  end-to-end encryption is now persisted to a new `e2e_audit_log`
+  table (setup, passphrase rotation, per-note lock / unlock /
+  disable, recovery-key unlock) and rendered in Settings → Security
+  as a read-only "Encryption activity" feed. Rows include captured
+  user-agent and forwarded IP so users can audit their own posture.
+  Failures to record are swallowed — losing a row never blocks the
+  underlying user action. Migration `0039_e2e_audit_log`.
+- **Passphrase strength meter** at E2E setup and rotation. Cheap
+  heuristic (length, character classes, common-password blocklist,
+  sequence / repeat penalties) ranks input 0–4 with a coloured bar
+  and inline tip. No zxcvbn dependency — keeps the Settings bundle
+  small.
+- **HIBP breach check** at E2E setup and rotation. Before wrapping
+  the master key we SHA-1 the passphrase, send only the first 5 hex
+  chars to Have I Been Pwned's k-anonymity range API, and block
+  submission if the suffix appears. Network failures fall back to
+  "skip the check" rather than blocking the user.
+
 - **E2E hardening pass** — locking a note now wipes server-side
   history that would otherwise still hold readable plaintext:
   `note_versions` (manual + auto snapshots), `note_chat_messages`,

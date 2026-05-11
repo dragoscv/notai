@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { db, notes, noteVersions, noteChatMessages, flashcards, eq, and } from '@notai/db';
+import { recordE2eAudit } from './e2e-audit';
 
 async function requireUser() {
   const session = await auth();
@@ -65,6 +66,7 @@ export async function enableNoteEncryption(input: z.input<typeof lockSchema>) {
     db.delete(flashcards).where(eq(flashcards.noteId, noteId)),
   ]);
 
+  void recordE2eAudit({ event: 'note_lock', noteId });
   revalidatePath(`/app/n/${noteId}`);
 }
 
@@ -93,6 +95,7 @@ export async function disableNoteEncryption(input: z.input<typeof unlockSchema>)
       updatedAt: new Date(),
     })
     .where(and(eq(notes.id, noteId), eq(notes.ownerId, userId)));
+  void recordE2eAudit({ event: 'note_disable', noteId });
   revalidatePath(`/app/n/${noteId}`);
 }
 

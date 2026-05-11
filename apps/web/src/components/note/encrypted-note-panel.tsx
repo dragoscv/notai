@@ -23,6 +23,7 @@ import {
   fromB64,
 } from '@/lib/e2e';
 import { getMyKeyEnvelope } from '@/server/actions/encryption';
+import { recordE2eAudit } from '@/server/actions/e2e-audit';
 import {
   enableNoteEncryption,
   disableNoteEncryption,
@@ -135,6 +136,9 @@ export function UnlockKeyDialog({ open, onOpenChange, onUnlocked, reason }: Unlo
           : unlockMasterKeyWithRecovery(recoveryKey));
       unlockPromise = promise;
       const key = await promise;
+      void recordE2eAudit({
+        event: mode === 'passphrase' ? 'note_unlock' : 'recovery_unlock',
+      });
       onUnlocked(key);
       onOpenChange(false);
       toast.success('Notes unlocked for this session');

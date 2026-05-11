@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { auth } from '@/auth';
 import { db, userKeys, eq } from '@notai/db';
+import { recordE2eAudit } from './e2e-audit';
 
 /**
  * Server-side key vault for E2E encryption. The client generates the
@@ -70,6 +71,7 @@ export async function setupEncryption(
     encryptedMasterKeyByRecovery,
     kdfIters,
   });
+  void recordE2eAudit({ event: 'setup' });
   return { ok: true };
 }
 
@@ -95,6 +97,7 @@ export async function rotatePassphrase(input: z.input<typeof rotateSchema>): Pro
       rotatedAt: new Date(),
     })
     .where(eq(userKeys.userId, session.user.id));
+  void recordE2eAudit({ event: 'rotate' });
   return { ok: true };
 }
 
