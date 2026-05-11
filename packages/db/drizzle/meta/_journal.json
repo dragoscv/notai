@@ -239,6 +239,13 @@
       "when": 1781600000000,
       "tag": "0033_workspace_subscriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1781700000000,
+      "tag": "0034_user_snippets",
+      "breakpoints": true
     }
   ]
 }

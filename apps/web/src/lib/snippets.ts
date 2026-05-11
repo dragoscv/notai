@@ -5,10 +5,13 @@
  *
  * Snippets are short keyboard shortcuts the user types as `::name` on
  * the canvas; we replace them in-place with an expanded body. Stored in
- * `localStorage` so the user can edit/import without a server round-trip.
+ * `localStorage` for offline-first edits, AND mirrored to the
+ * `user_snippets` table on the server so they sync across devices.
  *
- * If we ever want sync we can mirror this into a `user_snippets` table
- * with the same shape; the public API should not need to change.
+ * Sync model: on first mount we fire-and-forget `listMySnippets()` and
+ * merge its rows into the local cache (server wins for any name that
+ * exists in both). Every `setSnippets()` writes localStorage immediately
+ * and fires `saveMySnippets()` in the background.
  */
 
 import { useSyncExternalStore } from 'react';
@@ -45,12 +48,40 @@ function read(): Snippet[] {
 
 let cached: Snippet[] = DEFAULT_SNIPPETS;
 let initialized = false;
+let hydratedFromServer = false;
 const listeners = new Set<() => void>();
 
 function ensureInit() {
   if (initialized || typeof window === 'undefined') return;
   cached = read();
   initialized = true;
+  // Best-effort server hydrate on first read. Server values win for any
+  // overlapping name; otherwise we keep the local copy. Fire-and-forget.
+  if (!hydratedFromServer) {
+    hydratedFromServer = true;
+    void hydrateFromServer();
+  }
+}
+
+async function hydrateFromServer() {
+  try {
+    const mod = await import('@/server/actions/snippets');
+    const serverRows = await mod.listMySnippets();
+    if (!serverRows || serverRows.length === 0) return;
+    const byName = new Map<string, string>();
+    for (const s of cached) byName.set(s.name, s.body);
+    for (const s of serverRows) byName.set(s.name, s.body);
+    const merged: Snippet[] = Array.from(byName, ([name, body]) => ({ name, body }));
+    cached = merged;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    } catch {
+      /* localStorage may be full or disabled */
+    }
+    notify();
+  } catch {
+    /* not signed in or offline — ignore */
+  }
 }
 
 function subscribe(cb: () => void) {
@@ -105,6 +136,16 @@ export function setSnippets(next: Snippet[]) {
   cached = cleaned;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
   notify();
+  // Fire-and-forget server sync. Errors swallowed: offline / signed-out
+  // users keep working with the local copy.
+  void (async () => {
+    try {
+      const mod = await import('@/server/actions/snippets');
+      await mod.saveMySnippets({ snippets: cleaned });
+    } catch {
+      /* ignore */
+    }
+  })();
 }
 
 export function useSnippets(): Snippet[] {

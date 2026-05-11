@@ -15,6 +15,14 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Cross-device snippet sync** — text snippets (`::name` expansions
+  inside the canvas) used to live only in `localStorage`. They now also
+  persist to a new `user_snippets` table and rehydrate on every device
+  the user signs in to: the client merges server rows over the local
+  cache on first read, and fire-and-forget pushes the full list every
+  time the user edits snippets in settings. Offline / signed-out users
+  keep working from `localStorage` exactly as before.
+
 - **Templates gallery search + "Save as template"** — `/app/templates`
   now has a live search input that filters by title, description, and
   category, and personal templates show a delete affordance on hover.
