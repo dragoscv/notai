@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db, notes } from '@notai/db';
-import { authenticatePat } from '@/server/pat-auth';
+import { authenticatePat, requireScope } from '@/server/pat-auth';
 
 const bodySchema = z.object({
   title: z.string().min(1).max(300),
@@ -18,6 +18,8 @@ const bodySchema = z.object({
 export async function POST(req: Request) {
   const auth = await authenticatePat(req);
   if (auth instanceof NextResponse) return auth;
+  const scoped = requireScope(auth, 'clipper');
+  if (scoped) return scoped;
 
   let json: unknown;
   try {

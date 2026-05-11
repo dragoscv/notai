@@ -5,6 +5,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { auth } from '@/auth';
 import { db, personalAccessTokens, eq, and, desc } from '@notai/db';
+import { PAT_SCOPES, type PatScope } from '@/server/pat-auth';
 
 async function requireUser() {
   const session = await auth();
@@ -12,9 +13,11 @@ async function requireUser() {
   return session.user as { id: string };
 }
 
+const scopeSchema = z.enum(PAT_SCOPES);
+
 const createSchema = z.object({
   name: z.string().min(1).max(60),
-  scope: z.enum(['clipper']).default('clipper'),
+  scopes: z.array(scopeSchema).min(1).max(PAT_SCOPES.length).default(['clipper']),
 });
 
 /** Returns the raw token ONCE — caller must show it to the user immediately. */
@@ -22,16 +25,22 @@ export async function createPersonalAccessToken(
   input: z.input<typeof createSchema>,
 ): Promise<{ id: string; token: string }> {
   const me = await requireUser();
-  const { name, scope } = createSchema.parse(input);
+  const { name, scopes } = createSchema.parse(input);
   const raw = `notai_pat_${randomBytes(24).toString('base64url')}`;
   const tokenHash = createHash('sha256').update(raw).digest('hex');
+  // Dedupe + canonicalise.
+  const scopeStr = Array.from(new Set<PatScope>(scopes)).sort().join(' ');
   const [row] = await db
     .insert(personalAccessTokens)
-    .values({ userId: me.id, name, scope, tokenHash })
+    .values({ userId: me.id, name, scope: scopeStr, tokenHash })
     .returning({ id: personalAccessTokens.id });
   if (!row) throw new Error('Could not create token');
   revalidatePath('/app/settings/integrations');
   return { id: row.id, token: raw };
+}
+
+export async function listPatScopes(): Promise<readonly string[]> {
+  return PAT_SCOPES;
 }
 
 export async function listPersonalAccessTokens() {

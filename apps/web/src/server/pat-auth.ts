@@ -2,10 +2,28 @@ import { NextResponse } from 'next/server';
 import { createHash } from 'node:crypto';
 import { db, personalAccessTokens, users, eq, and, isNull } from '@notai/db';
 
+export const PAT_SCOPES = [
+  'clipper',
+  'notes:read',
+  'notes:write',
+  'search:read',
+  'ai:read',
+] as const;
+export type PatScope = (typeof PAT_SCOPES)[number];
+
 export interface PatPrincipal {
   userId: string;
   email: string | null;
   tokenId: string;
+  scopes: PatScope[];
+}
+
+function parseScopes(raw: string | null | undefined): PatScope[] {
+  if (!raw) return ['clipper'];
+  return raw
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((s): s is PatScope => (PAT_SCOPES as readonly string[]).includes(s));
 }
 
 /**
@@ -28,6 +46,7 @@ export async function authenticatePat(req: Request): Promise<PatPrincipal | Next
       tokenId: personalAccessTokens.id,
       userId: personalAccessTokens.userId,
       email: users.email,
+      scope: personalAccessTokens.scope,
     })
     .from(personalAccessTokens)
     .innerJoin(users, eq(users.id, personalAccessTokens.userId))
@@ -44,5 +63,19 @@ export async function authenticatePat(req: Request): Promise<PatPrincipal | Next
     .set({ lastUsedAt: new Date() })
     .where(eq(personalAccessTokens.id, row.tokenId))
     .catch(() => undefined);
-  return { userId: row.userId, email: row.email, tokenId: row.tokenId };
+  return {
+    userId: row.userId,
+    email: row.email,
+    tokenId: row.tokenId,
+    scopes: parseScopes(row.scope),
+  };
+}
+
+/** Return 403 if the principal lacks the required scope. */
+export function requireScope(principal: PatPrincipal, scope: PatScope): NextResponse | null {
+  if (principal.scopes.includes(scope)) return null;
+  return NextResponse.json(
+    { error: 'Insufficient scope', required: scope, granted: principal.scopes },
+    { status: 403 },
+  );
 }

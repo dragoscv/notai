@@ -4,7 +4,7 @@ import { parseHTML } from 'linkedom';
 import { Readability } from '@mozilla/readability';
 import TurndownService from 'turndown';
 import { db, notes, assets, eq } from '@notai/db';
-import { authenticatePat } from '@/server/pat-auth';
+import { authenticatePat, requireScope } from '@/server/pat-auth';
 import { buildKey, isAssetsConfigured, presign, publicUrlFor } from '@/server/storage/s3';
 
 export const runtime = 'nodejs';
@@ -171,6 +171,8 @@ function buildPlaintext(input: {
 export async function POST(req: Request) {
   const auth = await authenticatePat(req);
   if (auth instanceof NextResponse) return auth;
+  const scoped = requireScope(auth, 'clipper');
+  if (scoped) return scoped;
 
   let json: unknown;
   try {

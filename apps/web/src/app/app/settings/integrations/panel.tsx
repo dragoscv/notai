@@ -17,21 +17,31 @@ interface TokenRow {
 export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[] }) {
   const [tokens, setTokens] = React.useState(initialTokens);
   const [draftName, setDraftName] = React.useState('Web clipper');
+  const [draftScopes, setDraftScopes] = React.useState<string[]>(['clipper']);
   const [revealed, setRevealed] = React.useState<{ id: string; token: string } | null>(null);
   const [pending, startTransition] = React.useTransition();
 
+  const ALL_SCOPES = ['clipper', 'notes:read', 'notes:write', 'search:read', 'ai:read'] as const;
+
+  const toggleScope = (s: string) =>
+    setDraftScopes((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
+
   const create = () => {
     const name = draftName.trim();
-    if (!name) return;
+    if (!name || draftScopes.length === 0) return;
     startTransition(async () => {
       try {
-        const out = await createPersonalAccessToken({ name, scope: 'clipper' });
+        const out = await createPersonalAccessToken({
+          name,
+          scopes: draftScopes as (typeof ALL_SCOPES)[number][],
+        });
+        const scopeStr = [...draftScopes].sort().join(' ');
         setRevealed(out);
         setTokens((arr) => [
           {
             id: out.id,
             name,
-            scope: 'clipper',
+            scope: scopeStr,
             createdAt: new Date(),
             lastUsedAt: null,
             revokedAt: null,
@@ -39,6 +49,7 @@ export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[
           ...arr,
         ]);
         setDraftName('Web clipper');
+        setDraftScopes(['clipper']);
       } catch (err) {
         toast.error((err as Error).message ?? 'Failed to create token');
       }
@@ -113,9 +124,27 @@ export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[
               className="border-input bg-background flex-1 rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
               placeholder="Token name"
             />
-            <Button onClick={create} disabled={pending}>
+            <Button onClick={create} disabled={pending || draftScopes.length === 0}>
               <Plus className="mr-1 size-4" /> Create token
             </Button>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {ALL_SCOPES.map((s) => (
+              <label
+                key={s}
+                className={`cursor-pointer rounded-full border px-2.5 py-1 text-xs ${
+                  draftScopes.includes(s) ? 'bg-primary text-primary-foreground' : 'bg-background'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={draftScopes.includes(s)}
+                  onChange={() => toggleScope(s)}
+                />
+                {s}
+              </label>
+            ))}
           </div>
 
           {revealed && (
@@ -146,6 +175,9 @@ export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[
             <li key={t.id} className="flex items-center justify-between gap-2 px-4 py-3">
               <div className="min-w-0">
                 <p className="truncate font-medium">{t.name}</p>
+                <p className="text-muted-foreground text-xs">
+                  Scopes: <span className="font-mono">{t.scope || 'clipper'}</span>
+                </p>
                 <p className="text-muted-foreground text-xs">
                   {t.revokedAt
                     ? 'Revoked'

@@ -15,6 +15,13 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Scoped personal access tokens** — PATs can now be issued with one or
+  more scopes from `clipper, notes:read, notes:write, search:read,
+  ai:read`. The integrations panel renders a multi-select chip group;
+  existing single-scope `clipper` tokens continue to work unchanged. New
+  `requireScope()` helper guards the clipper API routes so a token
+  without `clipper` is rejected with a 403 detailing the missing scope.
+
 - **Audit-log export** — new `/admin/audit-log/export` route streams CSV
   or NDJSON of the current filter, capped at 10k rows. "Export CSV /
   Export NDJSON" buttons added to the audit-log page; gated by the same
