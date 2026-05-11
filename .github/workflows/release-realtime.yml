@@ -131,6 +131,8 @@ jobs:
           tags: ${{ steps.tags.outputs.list }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
 
       - name: Deploy to Cloud Run
         id: deploy

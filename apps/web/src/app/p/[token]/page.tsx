@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { getPublicShare } from '@/server/actions/public-share';
+import { getPublicShare, getPublicShareGate } from '@/server/actions/public-share';
+import { UnlockForm } from './unlock-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,8 +45,29 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
  */
 export default async function PublicNotePage({ params }: { params: Promise<Params> }) {
   const { token } = await params;
-  const note = await getPublicShare(token);
-  if (!note) notFound();
+  const gate = await getPublicShareGate(token);
+  if (gate.kind === 'notFound') notFound();
+
+  if (gate.kind === 'locked') {
+    return (
+      <main className="bg-background grid min-h-dvh place-items-center px-6">
+        <div className="w-full max-w-sm space-y-6 rounded-lg border p-8 shadow-sm">
+          <div>
+            <div className="text-muted-foreground mb-2 text-xs uppercase tracking-widest">
+              Shared from Notai
+            </div>
+            <h1 className="font-serif text-2xl font-semibold">Password required</h1>
+            <p className="text-muted-foreground mt-2 text-sm">
+              The owner has protected this note with a password.
+            </p>
+          </div>
+          <UnlockForm token={token} />
+        </div>
+      </main>
+    );
+  }
+
+  const note = gate.note;
 
   return (
     <main className="bg-background min-h-dvh">
