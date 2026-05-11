@@ -15,7 +15,10 @@
         "AUTH_GOOGLE_SECRET",
         "NEXT_PUBLIC_HOCUSPOCUS_URL",
         "NEXT_PUBLIC_APP_URL",
-        "HOCUSPOCUS_JWT_SECRET"
+        "HOCUSPOCUS_JWT_SECRET",
+        "SKIP_ENV_VALIDATION",
+        "SKIP_NEXT_BUILD_TS",
+        "TURBO_DAEMON"
       ]
     },
     "dev": {
