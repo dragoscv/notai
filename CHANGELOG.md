@@ -15,6 +15,15 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Desktop updater operator docs** — the Tauri 2 updater pipeline is
+  already fully wired (sign on build, embedded pubkey,
+  `latest.json` published per release). New `docs/desktop-updater.md`
+  documents the one-time keypair setup, GH Actions secrets, key
+  rotation, and troubleshooting. New `apps/desktop/scripts/generate-updater-key.ps1`
+  wraps `pnpm tauri signer generate` and prints the values needed for
+  `gh secret set`. No code change required to ship updates — bump
+  `apps/desktop/package.json` version and merge.
+
 - **i18n scaffold (English + Romanian)** — `next-intl` wired into the
   app with cookie-based locale (`notai_locale`, no URL restructure).
   Resolves user → cookie → `Accept-Language` → `en`. Messages in
