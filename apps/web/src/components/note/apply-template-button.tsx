@@ -1,9 +1,13 @@
 'use client';
 import * as React from 'react';
-import { FileText, Loader2, Sparkles } from 'lucide-react';
+import { FileText, Loader2, Sparkles, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
-import { listTemplates, type TemplateSummary } from '@/server/actions/templates';
+import {
+  listTemplates,
+  createPersonalTemplate,
+  type TemplateSummary,
+} from '@/server/actions/templates';
 import { applyTemplateToNote } from '@/server/actions/apply-template';
 
 /**
@@ -26,6 +30,31 @@ export function ApplyTemplateButton({
   const [open, setOpen] = React.useState(false);
   const [list, setList] = React.useState<TemplateSummary[] | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
+  const [saveOpen, setSaveOpen] = React.useState(false);
+  const [saveTitle, setSaveTitle] = React.useState('');
+  const [saveDesc, setSaveDesc] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+
+  const onSave = async () => {
+    const title = saveTitle.trim();
+    if (!title) {
+      toast.error('Title is required');
+      return;
+    }
+    setSaving(true);
+    try {
+      await createPersonalTemplate({ noteId, title, description: saveDesc.trim() });
+      toast.success('Saved to your personal templates');
+      setSaveOpen(false);
+      setSaveTitle('');
+      setSaveDesc('');
+      setList(null); // refetch on next open
+    } catch (err) {
+      toast.error((err as Error).message ?? 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   React.useEffect(() => {
     if (!open || list != null) return;
@@ -68,6 +97,72 @@ export function ApplyTemplateButton({
         <FileText className="size-3.5" />
         Template
       </button>
+      <button
+        type="button"
+        onClick={() => setSaveOpen(true)}
+        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs"
+        title="Save this note as a personal template"
+      >
+        <Save className="size-3.5" />
+        Save as template
+      </button>
+
+      <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Save className="size-4" /> Save as personal template
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground -mt-2 text-xs">
+            Stores the current note&apos;s structure so you can re-apply it later. Only you can see
+            your personal templates.
+          </p>
+          <div className="space-y-3">
+            <label className="block text-xs font-medium">
+              Title
+              <input
+                autoFocus
+                value={saveTitle}
+                onChange={(e) => setSaveTitle(e.target.value)}
+                maxLength={120}
+                className="border-input bg-background mt-1 w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
+                placeholder="e.g. Weekly review"
+              />
+            </label>
+            <label className="block text-xs font-medium">
+              Description
+              <textarea
+                value={saveDesc}
+                onChange={(e) => setSaveDesc(e.target.value)}
+                maxLength={280}
+                rows={3}
+                className="border-input bg-background mt-1 w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
+                placeholder="Optional"
+              />
+            </label>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setSaveOpen(false)}
+                disabled={saving}
+                className="hover:bg-muted rounded-md px-3 py-1.5 text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={saving || !saveTitle.trim()}
+                className="inline-flex items-center gap-1.5 rounded-md bg-amber-500 px-3 py-1.5 text-xs text-white disabled:opacity-60"
+              >
+                {saving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
+                Save
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-2xl">

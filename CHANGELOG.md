@@ -15,6 +15,13 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Templates gallery search + "Save as template"** — `/app/templates`
+  now has a live search input that filters by title, description, and
+  category, and personal templates show a delete affordance on hover.
+  The in-note template bar gained a "Save as template" dialog so any
+  note can be saved as a personal template (title + description) and
+  immediately appears in the gallery.
+
 - **Push notifications on share + test push** — generic
   `sendPushToUser(userId, payload)` dispatcher in
   `apps/web/src/server/push/dispatch.ts` fans out a single payload to
