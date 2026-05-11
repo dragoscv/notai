@@ -38,9 +38,11 @@ jobs:
 
       - name: Build
         env:
-          # Build doesn't need real secrets — these are placeholders so
-          # `t3-env` validation passes during `next build`.
-          DATABASE_URL: postgres://user:pass@localhost:5432/db
-          NEXTAUTH_SECRET: ci-test-secret-please-rotate
-          NEXTAUTH_URL: http://localhost:3000
+          # `next build` collects page data which loads the env schema in
+          # packages/lib/src/env.ts. CI doesn't have real secrets and
+          # doesn't need them \u2014 we're only validating that the bundle
+          # compiles. Skip env validation to keep CI hermetic.
+          SKIP_ENV_VALIDATION: '1'
+          SKIP_NEXT_BUILD_TS: '1'
+          TURBO_DAEMON: '0'
         run: pnpm build

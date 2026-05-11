@@ -51,6 +51,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect optional GCS upload
+        id: gcs
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          GCS_BACKUP_BUCKET: ${{ secrets.GCS_BACKUP_BUCKET }}
+        run: |
+          if [ -n "${GCP_SA_KEY:-}" ] && [ -n "${GCS_BACKUP_BUCKET:-}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install postgresql-client (matches Neon / Cloud SQL major)
         # pg_dump must be >= server version. Postgres 17 is the project
         # baseline (see docker/compose.yaml); the PGDG repo ships matching
@@ -116,13 +128,13 @@ jobs:
 
       # ── Optional: upload to GCS for long-term retention ──
       - name: Authenticate to Google Cloud
-        if: ${{ secrets.GCP_SA_KEY != '' && secrets.GCS_BACKUP_BUCKET != '' }}
+        if: ${{ steps.gcs.outputs.enabled == 'true' }}
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Upload to GCS
-        if: ${{ secrets.GCP_SA_KEY != '' && secrets.GCS_BACKUP_BUCKET != '' }}
+        if: ${{ steps.gcs.outputs.enabled == 'true' }}
         uses: google-github-actions/upload-cloud-storage@v2
         with:
           path: ${{ steps.name.outputs.file }}
@@ -138,7 +150,7 @@ jobs:
             echo "- SHA-256: \`$(cat ${{ steps.name.outputs.file }}.sha256 | awk '{print $1}')\`"
             echo "- Size: $(du -h ${{ steps.name.outputs.file }} | awk '{print $1}')"
             echo "- Artifact retention: 30 days"
-            if [ -n "${{ secrets.GCS_BACKUP_BUCKET }}" ]; then
+            if [ "${{ steps.gcs.outputs.enabled }}" = "true" ]; then
               echo "- GCS: \`gs://${{ secrets.GCS_BACKUP_BUCKET }}/notai/${{ steps.name.outputs.ymd }}/${{ steps.name.outputs.file }}\`"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
