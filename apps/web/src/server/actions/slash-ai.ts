@@ -20,6 +20,9 @@ export const SLASH_AI_ACTIONS = [
   'action-items',
   'improve',
   'translate',
+  'outline',
+  'title',
+  'fix-spelling',
 ] as const;
 
 export type SlashAiAction = (typeof SLASH_AI_ACTIONS)[number];
@@ -135,6 +138,36 @@ function buildPrompt(req: SlashAiRequest, noteContext: string): BuiltPrompt {
           'lists, code blocks, links). Output only the translation, no commentary.',
         user: `Translate to ${lang}:\n\n${subject || '(use the note context below)'}${ctxBlock}`,
         temperature: 0.2,
+      };
+    }
+    case 'outline': {
+      return {
+        system:
+          'You produce structured outlines from notes. Output a Markdown nested list ' +
+          '(2 levels max) where top-level bullets are major themes and sub-bullets are ' +
+          'supporting points. No preamble, no headings — just the list.',
+        user: `Outline this:\n\n${subject || noteContext.slice(0, 6000)}`,
+        temperature: 0.2,
+      };
+    }
+    case 'title': {
+      return {
+        system:
+          'You write tight, descriptive titles. Output exactly ONE title — no quotes, ' +
+          'no Markdown, no preamble, no alternatives. 3–8 words. Title Case. No trailing ' +
+          'punctuation.',
+        user: `Suggest a title for this note:\n\n${subject || noteContext.slice(0, 4000)}`,
+        temperature: 0.4,
+      };
+    }
+    case 'fix-spelling': {
+      return {
+        system:
+          'You fix spelling and grammar mistakes ONLY. Do not rewrite, restructure, or ' +
+          'change wording, tone, or meaning. Preserve every Markdown structure exactly. ' +
+          'Output the corrected text directly with no commentary.',
+        user: `Fix spelling and grammar in:\n\n${subject || '(use the note context below)'}${ctxBlock}`,
+        temperature: 0.0,
       };
     }
   }

@@ -72,6 +72,33 @@ export async function rewriteForClarity(noteId: string) {
   );
 }
 
+export async function generateOutline(noteId: string) {
+  return runPrompt(
+    noteId,
+    'You produce structured outlines from notes. Output a Markdown nested list ' +
+      '(2 levels max), no preamble, no headings.',
+    'Outline this note as a nested bullet list. Top-level = major themes, sub-bullets = supporting points.',
+  );
+}
+
+export async function suggestTitle(noteId: string) {
+  return runPrompt(
+    noteId,
+    'You write tight, descriptive titles. Output exactly ONE title \u2014 no quotes, no Markdown, ' +
+      'no preamble, no alternatives. 3\u20138 words, Title Case, no trailing punctuation.',
+    'Suggest a title for this note.',
+  );
+}
+
+export async function fixSpelling(noteId: string) {
+  return runPrompt(
+    noteId,
+    'You fix spelling and grammar mistakes ONLY. Do not rewrite, restructure, or change ' +
+      'wording, tone, or meaning. Preserve every Markdown structure exactly.',
+    'Return the note with spelling and grammar fixed. Output the corrected text only.',
+  );
+}
+
 const continueSchema = z.object({
   noteId: z.string().min(1),
   prefix: z.string().min(1).max(4000),

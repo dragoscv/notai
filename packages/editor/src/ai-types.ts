@@ -14,6 +14,9 @@ export const SLASH_AI_ACTIONS = [
   'action-items',
   'improve',
   'translate',
+  'outline',
+  'title',
+  'fix-spelling',
 ] as const;
 
 export type SlashAiAction = (typeof SLASH_AI_ACTIONS)[number];

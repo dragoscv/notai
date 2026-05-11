@@ -15,6 +15,14 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Three new AI actions** — `outline`, `title`, and `fix-spelling`
+  added to both the inline `/api/ai/slash` endpoint (so any consumer
+  using `runSlashAi` gets them) and the note-level `<NoteAiMenu />`
+  dropdown. `outline` produces a 2-level nested bullet list, `title`
+  emits exactly one Title-Case suggestion (3–8 words), and
+  `fix-spelling` is a strict grammar/spelling pass that preserves
+  wording, tone, and Markdown structure.
+
 - **Public share password gate** — `/p/<token>` now shows an unlock
   form when the owner has set a per-note password (existing
   `notes.passwordHash` column, scrypt format). Correct password sets

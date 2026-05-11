@@ -9,6 +9,9 @@ import {
   Wand2,
   Network,
   PenLine,
+  ListTree,
+  Heading1,
+  SpellCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
@@ -18,15 +21,21 @@ import {
   extractActionItems,
   rewriteForClarity,
   continueWriting,
+  generateOutline,
+  suggestTitle,
+  fixSpelling,
 } from '@/server/actions/ai-actions';
 import { generateMindMap } from '@/server/actions/mind-map';
 
-type Mode = 'summary' | 'actions' | 'rewrite';
+type Mode = 'summary' | 'actions' | 'rewrite' | 'outline' | 'title' | 'fix-spelling';
 
 const META: Record<Mode, { label: string; Icon: React.ComponentType<{ className?: string }> }> = {
   summary: { label: 'Summary', Icon: ScrollText },
   actions: { label: 'Action items', Icon: ListChecks },
   rewrite: { label: 'Rewrite for clarity', Icon: Wand2 },
+  outline: { label: 'Outline', Icon: ListTree },
+  title: { label: 'Suggest title', Icon: Heading1 },
+  'fix-spelling': { label: 'Fix spelling & grammar', Icon: SpellCheck },
 };
 
 /**
@@ -131,7 +140,17 @@ export function NoteAiMenu({
     setLoading(true);
     try {
       const fn =
-        m === 'summary' ? summarizeNote : m === 'actions' ? extractActionItems : rewriteForClarity;
+        m === 'summary'
+          ? summarizeNote
+          : m === 'actions'
+            ? extractActionItems
+            : m === 'rewrite'
+              ? rewriteForClarity
+              : m === 'outline'
+                ? generateOutline
+                : m === 'title'
+                  ? suggestTitle
+                  : fixSpelling;
       const out = await fn(noteId);
       setResult(out);
     } catch (err) {
