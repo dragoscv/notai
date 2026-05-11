@@ -32,12 +32,35 @@ import {
 let cachedMasterKey: CryptoKey | null = null;
 let unlockPromise: Promise<CryptoKey> | null = null;
 
+/** Auto-relock after this many ms of no key use. 15 min default. */
+const IDLE_RELOCK_MS = 15 * 60 * 1000;
+let idleTimer: ReturnType<typeof setTimeout> | null = null;
+
+function bumpIdleTimer() {
+  if (typeof window === 'undefined') return;
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    cachedMasterKey = null;
+    idleTimer = null;
+    try {
+      toast.message('Locked your encrypted notes (idle)');
+    } catch {
+      // toast may not be mounted yet — harmless.
+    }
+  }, IDLE_RELOCK_MS);
+}
+
 export function getCachedMasterKey(): CryptoKey | null {
+  if (cachedMasterKey) bumpIdleTimer();
   return cachedMasterKey;
 }
 
 export function clearCachedMasterKey(): void {
   cachedMasterKey = null;
+  if (idleTimer) {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+  }
 }
 
 export async function unlockMasterKey(passphrase: string): Promise<CryptoKey> {
@@ -54,6 +77,7 @@ export async function unlockMasterKey(passphrase: string): Promise<CryptoKey> {
   }
   const master = await importRawAesKey(raw);
   cachedMasterKey = master;
+  bumpIdleTimer();
   return master;
 }
 
@@ -76,6 +100,7 @@ export async function unlockMasterKeyWithRecovery(recoveryDisplay: string): Prom
   }
   const master = await importRawAesKey(raw);
   cachedMasterKey = master;
+  bumpIdleTimer();
   return master;
 }
 

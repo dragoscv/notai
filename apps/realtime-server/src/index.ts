@@ -60,10 +60,13 @@ const server = new Hocuspocus({
     new Database({
       fetch: async ({ documentName }: { documentName: string }) => {
         const [row] = await db
-          .select({ yjsState: notes.yjsState })
+          .select({ yjsState: notes.yjsState, isEncrypted: notes.isEncrypted })
           .from(notes)
           .where(eq(notes.id, documentName))
           .limit(1);
+        // Locked notes never load their Y.Doc on the server — clients
+        // already render them via the read-only EncryptedNotePanel.
+        if (row?.isEncrypted) return null;
         return row?.yjsState ?? null;
       },
       store: async ({
@@ -75,6 +78,16 @@ const server = new Hocuspocus({
         state: Uint8Array;
         document: Y.Doc;
       }) => {
+        // Skip every write path for encrypted notes: no plaintext
+        // mirror, no Y.Doc binary, no version snapshot. The note's
+        // canonical content is the client-side ciphertext.
+        const [row] = await db
+          .select({ isEncrypted: notes.isEncrypted })
+          .from(notes)
+          .where(eq(notes.id, documentName))
+          .limit(1);
+        if (row?.isEncrypted) return;
+
         const plaintext = extractPlaintext(document);
         await db
           .update(notes)

@@ -15,6 +15,18 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **E2E hardening pass** — locking a note now wipes server-side
+  history that would otherwise still hold readable plaintext:
+  `note_versions` (manual + auto snapshots), `note_chat_messages`,
+  `flashcards`, plus the `notes.yjs_state` Y.Doc binary and the
+  `notes.embedding` vector are cleared. The Hocuspocus realtime
+  server now short-circuits both `fetch` and `store` for encrypted
+  notes, so a stale tab can no longer rewrite `plaintext` after lock.
+  The chat REST route + `listChatMessages` / `clearChat` /
+  `streamChatTurn` server actions now throw on encrypted notes.
+  Browser-side, the cached master key auto-relocks after 15 minutes
+  of idleness instead of persisting until tab close.
+
 - **Encrypted note titles** — when a note is encrypted, its title is
   also encrypted client-side and stored in a new `encrypted_title`
   column (migration 0038). The plaintext `title` is replaced with

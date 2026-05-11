@@ -20,6 +20,7 @@ async function loadNoteForUser(userId: string, noteId: string) {
       id: notes.id,
       title: notes.title,
       plaintext: notes.plaintext,
+      isEncrypted: notes.isEncrypted,
     })
     .from(notes)
     .leftJoin(
@@ -34,6 +35,12 @@ async function loadNoteForUser(userId: string, noteId: string) {
     )
     .limit(1);
   return row ?? null;
+}
+
+function assertNotEncrypted(note: { isEncrypted: boolean } | null) {
+  if (note?.isEncrypted) {
+    throw new Error('This note is end-to-end encrypted. Unlock it to chat with it.');
+  }
 }
 
 export interface ChatMessage {
@@ -51,6 +58,7 @@ export async function listChatMessages(noteId: string): Promise<ChatMessage[]> {
   // returning history for notes the user lost access to.
   const note = await loadNoteForUser(me.id, noteId);
   if (!note) return [];
+  assertNotEncrypted(note);
   const rows = await db
     .select({
       id: noteChatMessages.id,
@@ -75,6 +83,7 @@ export async function clearChat(noteId: string): Promise<void> {
   const me = await requireUser();
   const note = await loadNoteForUser(me.id, noteId);
   if (!note) throw new Error('Not found');
+  assertNotEncrypted(note);
   await db
     .delete(noteChatMessages)
     .where(and(eq(noteChatMessages.noteId, noteId), eq(noteChatMessages.userId, me.id)));
@@ -107,6 +116,7 @@ export async function streamChatTurn(raw: unknown): Promise<ReadableStream<Uint8
   const { noteId, question } = askSchema.parse(raw);
   const note = await loadNoteForUser(me.id, noteId);
   if (!note) throw new Error('Not found');
+  assertNotEncrypted(note);
 
   const enc = new TextEncoder();
   return new ReadableStream<Uint8Array>({

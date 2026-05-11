@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
-import { db, notes, eq, and } from '@notai/db';
+import { db, notes, noteVersions, noteChatMessages, flashcards, eq, and } from '@notai/db';
 
 async function requireUser() {
   const session = await auth();
@@ -30,6 +30,16 @@ const lockSchema = z.object({
 export async function enableNoteEncryption(input: z.input<typeof lockSchema>) {
   const userId = await requireUser();
   const { noteId, encryptedBody, encryptedTitle } = lockSchema.parse(input);
+
+  // Verify ownership BEFORE wiping derived rows so we never destroy
+  // someone else's data on a bad id.
+  const [owned] = await db
+    .select({ id: notes.id })
+    .from(notes)
+    .where(and(eq(notes.id, noteId), eq(notes.ownerId, userId)))
+    .limit(1);
+  if (!owned) throw new Error('Note not found');
+
   await db
     .update(notes)
     .set({
@@ -38,9 +48,23 @@ export async function enableNoteEncryption(input: z.input<typeof lockSchema>) {
       encryptedTitle: encryptedTitle ?? null,
       title: '🔒 Encrypted note',
       plaintext: '',
+      yjsState: null,
+      embedding: null,
+      embeddingUpdatedAt: null,
       updatedAt: new Date(),
     })
     .where(and(eq(notes.id, noteId), eq(notes.ownerId, userId)));
+
+  // Purge server-side history / derived artifacts that would otherwise
+  // still hold readable copies of the plaintext after the user locks
+  // the note. We intentionally keep comments + tags + properties +
+  // assets — those are user-facing metadata, not derived plaintext.
+  await Promise.all([
+    db.delete(noteVersions).where(eq(noteVersions.noteId, noteId)),
+    db.delete(noteChatMessages).where(eq(noteChatMessages.noteId, noteId)),
+    db.delete(flashcards).where(eq(flashcards.noteId, noteId)),
+  ]);
+
   revalidatePath(`/app/n/${noteId}`);
 }
 
