@@ -16,6 +16,19 @@ Each app in this monorepo is versioned independently:
 
 ### Added
 
+- **Passkeys (WebAuthn) sign-in + enrollment** — new
+  `/app/settings/security` page lists registered passkeys and enrolls
+  new ones (Touch ID, Face ID, Windows Hello, hardware keys). Sign-in
+  page grows a "Sign in with a passkey" button that uses discoverable
+  credentials so the authenticator picks the account. Built on
+  `@simplewebauthn/server` v13 with HTTP-only single-use challenge
+  cookies (5 min TTL) and counter-regression detection. After verify
+  the route creates a real Auth.js v5 database session row and sets
+  the session cookie directly. RP id/origin resolved from
+  `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN` (falls back to
+  `NEXTAUTH_URL`). Schema: migration `0023_webauthn`
+  (`webauthn_credentials` table).
+
 - **Bulk export at `GET /api/v1/export`** \u2014 streams every non-trashed
   note as newline-delimited JSON with frontmatter (title, icon,
   folder, pinned, createdAt/updatedAt) + plaintext body. Records are

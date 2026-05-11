@@ -4,6 +4,7 @@ import { ArrowLeft, Check, PenLine, Pin, Sparkles } from 'lucide-react';
 import { auth } from '@/auth';
 import { signInWithGoogle } from '@/server/actions/auth';
 import { SignInGoogleButton } from '@/components/auth/sign-in-google-button';
+import { SignInPasskeyButton } from '@/components/auth/sign-in-passkey-button';
 
 export default async function SignInPage({
   searchParams,
@@ -100,6 +101,10 @@ export default async function SignInPage({
                   <GoogleLogo /> Continue with Google
                 </SignInGoogleButton>
               </form>
+
+              <div className="mt-3">
+                <SignInPasskeyButton callbackUrl={callbackUrl} />
+              </div>
 
               <ul className="text-muted-foreground mt-7 space-y-2 text-sm">
                 <Bullet>End-to-end synced across web, desktop & mobile</Bullet>

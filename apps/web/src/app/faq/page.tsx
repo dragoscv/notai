@@ -181,7 +181,12 @@ const SECTIONS: { title: string; items: QA[] }[] = [
         q: 'How do I sign in?',
         a: (
           <>
-            Google sign-in via Auth.js. Passkey/WebAuthn support is rolling out for the desktop app.
+            Google sign-in via Auth.js, plus passkeys (Touch ID, Face ID, Windows Hello, or any
+            FIDO2 hardware key). Add a passkey under{' '}
+            <Link className="underline" href="/app/settings/security">
+              Settings → Security
+            </Link>
+            .
           </>
         ),
       },

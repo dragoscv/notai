@@ -18,3 +18,4 @@ export * from './note_properties';
 export * from './workspaces';
 export * from './api-keys';
 export * from './webhooks';
+export * from './webauthn';
