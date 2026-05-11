@@ -57,6 +57,34 @@ export default async function AdminAuditLogPage({
           >
             Filter
           </button>
+          <div className="ml-auto flex items-center gap-2">
+            <Link
+              href={{
+                pathname: '/admin/audit-log/export',
+                query: {
+                  format: 'csv',
+                  ...(sp.action ? { action: sp.action } : {}),
+                  ...(sp.resourceType ? { resourceType: sp.resourceType } : {}),
+                },
+              }}
+              className="hover:bg-muted inline-flex h-9 items-center rounded-md border px-3 text-sm"
+            >
+              Export CSV
+            </Link>
+            <Link
+              href={{
+                pathname: '/admin/audit-log/export',
+                query: {
+                  format: 'ndjson',
+                  ...(sp.action ? { action: sp.action } : {}),
+                  ...(sp.resourceType ? { resourceType: sp.resourceType } : {}),
+                },
+              }}
+              className="hover:bg-muted inline-flex h-9 items-center rounded-md border px-3 text-sm"
+            >
+              Export NDJSON
+            </Link>
+          </div>
         </form>
         <DataTable
           rows={rows.map((r) => ({ ...r, id: r.id }))}

@@ -80,6 +80,22 @@ export async function deleteVersion(input: { noteId: string; versionId: string }
   revalidatePath(`/app/n/${input.noteId}`);
 }
 
+const labelSchema = z.object({
+  noteId: z.string().min(1),
+  versionId: z.string().min(1),
+  label: z.string().trim().max(60).nullable(),
+});
+
+export async function labelVersion(input: z.input<typeof labelSchema>) {
+  await requireUserAccess(idSchema.parse(input.noteId));
+  const { noteId, versionId, label } = labelSchema.parse(input);
+  await db
+    .update(noteVersions)
+    .set({ label })
+    .where(and(eq(noteVersions.id, versionId), eq(noteVersions.noteId, noteId)));
+  revalidatePath(`/app/n/${noteId}`);
+}
+
 /**
  * Lazy hourly snapshot guarantee. The realtime server only snapshots
  * when there's edit traffic; if a user opens History after a quiet

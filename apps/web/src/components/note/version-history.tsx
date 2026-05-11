@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { History, RefreshCcw, Loader2, Trash2, GitCompare } from 'lucide-react';
+import { History, RefreshCcw, Loader2, Trash2, GitCompare, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
 import {
@@ -8,6 +8,7 @@ import {
   restoreVersion,
   deleteVersion,
   ensureRecentSnapshot,
+  labelVersion,
 } from '@/server/actions/versions';
 import { getNote } from '@/server/actions/notes';
 
@@ -212,6 +213,35 @@ export function VersionHistory({ noteId }: { noteId: string }) {
                       {(v.sizeBytes / 1024).toFixed(1)} KB
                       {v.label ? ` · ${v.label}` : ''}
                     </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const next = window.prompt('Label this snapshot:', v.label ?? '');
+                      if (next === null) return;
+                      try {
+                        await labelVersion({
+                          noteId,
+                          versionId: v.id,
+                          label: next.trim() ? next.trim() : null,
+                        });
+                        setVersions((rows) =>
+                          rows
+                            ? rows.map((r) =>
+                                r.id === v.id ? { ...r, label: next.trim() || null } : r,
+                              )
+                            : rows,
+                        );
+                        toast.success('Label saved');
+                      } catch (err) {
+                        toast.error((err as Error).message);
+                      }
+                    }}
+                    className="text-muted-foreground hover:text-foreground p-1"
+                    aria-label="Label snapshot"
+                    disabled={pending}
+                  >
+                    <Tag className="size-3.5" />
                   </button>
                   <button
                     type="button"

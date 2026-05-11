@@ -15,6 +15,16 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Audit-log export** — new `/admin/audit-log/export` route streams CSV
+  or NDJSON of the current filter, capped at 10k rows. "Export CSV /
+  Export NDJSON" buttons added to the audit-log page; gated by the same
+  `platform:audit_log` permission as the viewer.
+
+- **Version-history labels** — `labelVersion()` server action plus a Tag
+  icon in the version-history dialog lets users name a snapshot
+  (max 60 chars, blank clears). Existing diff + restore + delete are
+  unchanged.
+
 - **Workspace seat-based billing** — new `workspace_subscriptions` table
   (migration 0033), per-workspace Stripe checkout with seat quantity,
   workspace-scoped billing portal, and a `/app/workspaces/[id]/billing`
