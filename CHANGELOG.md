@@ -15,6 +15,14 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Auto-link suggestions** — beneath the Related-notes rail, the note
+  workspace now surfaces up to four notes you should probably link to
+  via `[[…]]` based on pgvector cosine similarity (distance ≤ 0.30).
+  Suggestions hide titles already mentioned in the current note's
+  plaintext, dismiss individually with × on hover, and one-click insert
+  `[[Title]]` into the canvas. Falls back to clipboard copy when no
+  insertion hook is supplied.
+
 - **Cross-device snippet sync** — text snippets (`::name` expansions
   inside the canvas) used to live only in `localStorage`. They now also
   persist to a new `user_snippets` table and rehydrate on every device

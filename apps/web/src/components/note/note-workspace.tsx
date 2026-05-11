@@ -42,6 +42,7 @@ import { BacklinksPanel } from './backlinks-panel';
 import { NoteMiniGraph } from './note-mini-graph';
 import { NoteLinkPreviews } from './note-link-previews';
 import { RelatedNotesRail } from './related-notes-rail';
+import { AutoLinkSuggestions } from './auto-link-suggestions';
 import { RolloverBanner } from './rollover-banner';
 import { CanvasMigrationBanner } from './canvas-migration-banner';
 import { TagChips } from './tag-chips';
@@ -696,6 +697,16 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
               <NoteLinkPreviews plaintext={note.plaintext} />
               <NoteMiniGraph noteId={note.id} />
               <RelatedNotesRail noteId={note.id} />
+              <AutoLinkSuggestions
+                noteId={note.id}
+                onInsertLink={(title) => {
+                  const api = canvasRef.current?.getExcalidrawApi();
+                  if (!api) return;
+                  void import('@notai/editor').then(({ appendTextToScene }) => {
+                    appendTextToScene(api as never, `[[${title}]]`, { focus: false });
+                  });
+                }}
+              />
             </>
           )}
         </div>
