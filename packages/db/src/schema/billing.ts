@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp, integer, pgEnum, uniqueIndex } from 'drizzle-orm/pg-core';
 import { users } from './auth';
+import { workspaces } from './workspaces';
 import { plans, billingInterval, billingCurrency } from './plans';
 
 export const planTier = pgEnum('plan_tier', ['free', 'pro', 'teams']);
@@ -55,3 +56,32 @@ export const billingEvents = pgTable('billing_events', {
 });
 
 export type Subscription = typeof subscriptions.$inferSelect;
+
+/**
+ * Workspace-scoped subscription (Teams plan). One row per workspace.
+ * Webhook updates `seats` from the Stripe subscription item quantity.
+ */
+export const workspaceSubscriptions = pgTable(
+  'workspace_subscriptions',
+  {
+    workspaceId: text('workspace_id')
+      .primaryKey()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    planId: text('plan_id').references(() => plans.id, { onDelete: 'set null' }),
+    stripeCustomerId: text('stripe_customer_id'),
+    stripeSubscriptionId: text('stripe_subscription_id'),
+    stripePriceId: text('stripe_price_id'),
+    tier: planTier('tier').notNull().default('free'),
+    status: subStatus('status').notNull().default('active'),
+    interval: billingInterval('interval'),
+    currency: billingCurrency('currency'),
+    seats: integer('seats').notNull().default(1),
+    currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
+    cancelAtPeriodEnd: integer('cancel_at_period_end').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('wsubs_customer_unq').on(t.stripeCustomerId)],
+);
+
+export type WorkspaceSubscription = typeof workspaceSubscriptions.$inferSelect;

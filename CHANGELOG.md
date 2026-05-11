@@ -15,6 +15,15 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Workspace seat-based billing** — new `workspace_subscriptions` table
+  (migration 0033), per-workspace Stripe checkout with seat quantity,
+  workspace-scoped billing portal, and a `/app/workspaces/[id]/billing`
+  page with seat picker, cycle, and currency. Member invites now enforce
+  paid seat quota (throws `SEAT_LIMIT_REACHED:<n>` when exceeded). Stripe
+  webhook routes events by `metadata.workspaceId` to update the new
+  table; existing per-user `subscriptions` flow is unaffected. Billing
+  shortcut icon appears in workspace manager for owners/admins.
+
 - **Spaced-repetition flashcards** — new `flashcards` and `flashcard_reviews`
   tables, an SM-2 scheduler in `@notai/lib` (`scheduleNext()`), and a
   `/app/review` route with three tabs: Review (graded 0–5 with Again /

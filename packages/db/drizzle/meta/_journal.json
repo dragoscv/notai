@@ -232,6 +232,13 @@
       "when": 1781500000000,
       "tag": "0032_flashcards",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1781600000000,
+      "tag": "0033_workspace_subscriptions",
+      "breakpoints": true
     }
   ]
 }

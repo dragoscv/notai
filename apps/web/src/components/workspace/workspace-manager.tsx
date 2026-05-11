@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, UserPlus, Trash2, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, UserPlus, Trash2, Loader2, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@notai/ui/components/button';
 import {
@@ -76,6 +77,13 @@ export function WorkspaceManager({ initial }: { initial: WorkspaceSummary[] }) {
                 >
                   {openId === ws.id ? 'Hide' : 'Manage'}
                 </Button>
+                {(ws.role === 'owner' || ws.role === 'admin') && (
+                  <Button size="sm" variant="ghost" asChild>
+                    <Link href={`/app/workspaces/${ws.id}/billing`} title="Billing">
+                      <CreditCard className="size-4" />
+                    </Link>
+                  </Button>
+                )}
                 {ws.role === 'owner' && (
                   <Button
                     size="sm"

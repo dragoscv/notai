@@ -118,6 +118,9 @@ export async function inviteMember(
   const { workspaceId, email, role } = inviteSchema.parse(input);
   // Only owner / admin can invite.
   await assertWorkspaceRole(workspaceId, session.user.id, ['owner', 'admin']);
+  // Seat enforcement for paid workspace plans (Teams). Free is unlimited here.
+  const { assertWorkspaceSeatAvailable } = await import('@/server/billing/workspace-checkout');
+  await assertWorkspaceSeatAvailable(workspaceId, 1);
   const token = randomBytes(24).toString('base64url');
   const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
   await db
