@@ -16,6 +16,13 @@ Each app in this monorepo is versioned independently:
 
 ### Added
 
+- **Bulk export at `GET /api/v1/export`** \u2014 streams every non-trashed
+  note as newline-delimited JSON with frontmatter (title, icon,
+  folder, pinned, createdAt/updatedAt) + plaintext body. Records are
+  shaped `{ path, content }` so the existing markdown importer can
+  round-trip a dump back into another Notai instance. Settings page
+  now exposes a one-click "Download .ndjson" button next to the
+  importer.
 - **Webhook redelivery + replay protection**. Outgoing webhook
   deliveries now sign `${unixSeconds}.${body}` with HMAC-SHA256 and
   include both `X-Notai-Timestamp` and `X-Notai-Signature: t=…,v1=…`
