@@ -16,6 +16,36 @@ Each app in this monorepo is versioned independently:
 
 ### Added
 
+- **Nightly Postgres backups** — new
+  `.github/workflows/db-backup-nightly.yml` runs `pg_dump --format=custom`
+  every day at 02:30 UTC against `DATABASE_URL_PRODUCTION`, uploads
+  the dump as a 30-day workflow artifact (with SHA-256), and
+  optionally pushes it to `gs://$GCS_BACKUP_BUCKET/notai/<YYYY>/<MM>/<DD>/`
+  when `GCP_SA_KEY` + `GCS_BACKUP_BUCKET` secrets are set. Uses the
+  PGDG repo's matching `postgresql-client-17` so the dump catalog
+  version always matches the server. Pairs with new
+  `scripts/restore-backup.mjs` (live-streamed `pg_restore`, requires
+  typing the literal "restore" for production targets, supports
+  `--clean`, `--schema-only`, `--data-only`). Setup + verification
+  flow documented in `docs/backups.md`.
+
+- **Resend bounce/complaint webhook + email suppression list** —
+  new `POST /api/webhooks/resend` verifies Svix signatures
+  (`svix-id` / `svix-timestamp` / `svix-signature: v1,…`) with a 5 min
+  replay tolerance and records hard bounces and spam complaints into a
+  new `email_suppressions` table (migration `0024`). `sendEmail()`
+  now consults the table on every send and short-circuits suppressed
+  recipients. One-click unsubscribe lives at
+  `/unsubscribe?token=<hmac>` (HMAC-signed email payload). Gated by
+  `RESEND_WEBHOOK_SECRET` — route returns 503 when the env var is
+  unset so dev/CI never accept unsigned webhooks.
+
+- **Pre-push live progress** — `scripts/pre-push.mjs` now redraws each
+  step with elapsed seconds and the most recent log line every second,
+  so the multi-minute build no longer looks frozen. Set
+  `$env:PREPUSH_VERBOSE=1` (or pass `--verbose`) to stream full step
+  output via `stdio: 'inherit'`.
+
 - **Passkeys (WebAuthn) sign-in + enrollment** — new
   `/app/settings/security` page lists registered passkeys and enrolls
   new ones (Touch ID, Face ID, Windows Hello, hardware keys). Sign-in
