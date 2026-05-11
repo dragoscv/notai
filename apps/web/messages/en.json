@@ -1,0 +1,49 @@
+{
+  "common": {
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading…",
+    "remove": "Remove",
+    "add": "Add",
+    "saved": "Saved",
+    "error": "Something went wrong"
+  },
+  "language": {
+    "label": "Language",
+    "description": "Notai will display in your chosen language. Note content is never translated.",
+    "english": "English",
+    "romanian": "Romanian (Română)"
+  },
+  "auth": {
+    "welcomeBack": "Welcome back.",
+    "signInSubtitle": "Sign in to your calm place to think.",
+    "continueWithGoogle": "Continue with Google",
+    "signInWithPasskey": "Sign in with a passkey",
+    "freeNoCard": "Free · No credit card",
+    "leftHeading1": "Pick up exactly where you ",
+    "leftHeading2": "left off",
+    "leftSubtitle": "Your sticky notes, drawings, and lists are waiting on every device — synced the moment you sign in.",
+    "bullet1": "End-to-end synced across web, desktop & mobile",
+    "bullet2": "Works fully offline — even your first session",
+    "bullet3": "We never train on your notes",
+    "termsConsent": "By continuing you agree to the terms and privacy policy."
+  },
+  "cookieConsent": {
+    "bannerTitle": "We use cookies",
+    "bannerBody": "We use essential cookies to make Notai work, and optional cookies for analytics. You can change this at any time from the footer.",
+    "acceptAll": "Accept all",
+    "rejectAll": "Reject non-essential",
+    "customize": "Customize",
+    "settingsTitle": "Cookie preferences",
+    "necessary": "Necessary",
+    "necessaryDesc": "Required for sign-in, security, and to remember your preferences. Cannot be disabled.",
+    "preferences": "Preferences",
+    "preferencesDesc": "Stores your UI choices (theme, layout) on your device.",
+    "analytics": "Analytics",
+    "analyticsDesc": "Helps us understand which features are used and where the app is slow.",
+    "marketing": "Marketing",
+    "marketingDesc": "Used to measure ad campaigns. We do not currently use any.",
+    "saveChoices": "Save choices"
+  }
+}

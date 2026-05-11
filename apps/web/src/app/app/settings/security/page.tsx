@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, KeyRound, ShieldCheck, Smartphone, Trash2 } from 'lucide-react';
+import { ArrowLeft, KeyRound, Languages, ShieldCheck, Smartphone, Trash2 } from 'lucide-react';
 import { db, eq, desc, webauthnCredentials } from '@notai/db';
 import { auth } from '@/auth';
 import { PasskeyManager } from '@/components/settings/passkey-manager';
 import { TotpManager } from '@/components/settings/totp-manager';
 import { DangerZone } from '@/components/settings/danger-zone';
+import { LocaleSwitcher } from '@/components/settings/locale-switcher';
 import { getDeletionStatus } from '@/server/actions/account-deletion';
 import { getTotpStatus } from '@/server/totp';
 
@@ -51,6 +52,17 @@ export default async function SecurityPage() {
           Hello, or any FIDO2 hardware key.
         </p>
       </div>
+
+      <section className="bg-card rounded-2xl border p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <Languages className="size-4" />
+          <h2 className="text-base font-medium">Language</h2>
+        </div>
+        <p className="text-muted-foreground mb-3 text-sm">
+          Notai will display in your chosen language. Note content is never translated.
+        </p>
+        <LocaleSwitcher />
+      </section>
 
       <section className="bg-card rounded-2xl border p-6">
         <div className="mb-4 flex items-center gap-2">

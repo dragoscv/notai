@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Check, PenLine, Pin, Sparkles } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { auth } from '@/auth';
 import { signInWithGoogle } from '@/server/actions/auth';
 import { SignInGoogleButton } from '@/components/auth/sign-in-google-button';
@@ -16,6 +17,8 @@ export default async function SignInPage({
   if (session?.user) {
     redirect(isSafeCallback(callbackUrl) ? callbackUrl! : '/app');
   }
+  const t = await getTranslations('auth');
+  const tc = await getTranslations('common');
 
   return (
     <div className="bg-background text-foreground relative min-h-dvh overflow-hidden">
@@ -25,7 +28,7 @@ export default async function SignInPage({
         href="/"
         className="text-muted-foreground hover:bg-card/60 hover:text-foreground absolute left-5 top-5 z-20 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors"
       >
-        <ArrowLeft className="size-3.5" /> Back
+        <ArrowLeft className="size-3.5" /> {tc('back')}
       </Link>
 
       <main className="relative mx-auto grid min-h-dvh max-w-6xl grid-cols-1 items-center gap-10 px-6 py-10 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
@@ -39,16 +42,13 @@ export default async function SignInPage({
           </Link>
 
           <h2 className="mt-10 max-w-md text-balance font-serif text-4xl font-semibold leading-[1.1] tracking-tight xl:text-5xl">
-            Pick up exactly where you{' '}
+            {t('leftHeading1')}
             <span className="from-primary to-primary/60 bg-gradient-to-br bg-clip-text text-transparent">
-              left off
+              {t('leftHeading2')}
             </span>
             .
           </h2>
-          <p className="text-muted-foreground mt-4 max-w-md text-pretty">
-            Your sticky notes, drawings, and lists are waiting on every device — synced the moment
-            you sign in.
-          </p>
+          <p className="text-muted-foreground mt-4 max-w-md text-pretty">{t('leftSubtitle')}</p>
 
           <StickyShowcase />
         </aside>
@@ -80,15 +80,13 @@ export default async function SignInPage({
             <div className="relative">
               <span className="bg-background/60 text-muted-foreground inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px]">
                 <Sparkles className="text-primary size-3" />
-                Free · No credit card
+                {t('freeNoCard')}
               </span>
 
               <h1 className="mt-4 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
-                Welcome back.
+                {t('welcomeBack')}
               </h1>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Sign in to your calm place to think.
-              </p>
+              <p className="text-muted-foreground mt-2 text-sm">{t('signInSubtitle')}</p>
 
               <form
                 className="mt-7"
@@ -98,7 +96,7 @@ export default async function SignInPage({
                 }}
               >
                 <SignInGoogleButton>
-                  <GoogleLogo /> Continue with Google
+                  <GoogleLogo /> {t('continueWithGoogle')}
                 </SignInGoogleButton>
               </form>
 
@@ -107,13 +105,13 @@ export default async function SignInPage({
               </div>
 
               <ul className="text-muted-foreground mt-7 space-y-2 text-sm">
-                <Bullet>End-to-end synced across web, desktop & mobile</Bullet>
-                <Bullet>Works fully offline — even your first session</Bullet>
-                <Bullet>We never train on your notes</Bullet>
+                <Bullet>{t('bullet1')}</Bullet>
+                <Bullet>{t('bullet2')}</Bullet>
+                <Bullet>{t('bullet3')}</Bullet>
               </ul>
 
               <p className="text-muted-foreground mt-7 text-center text-[11px]">
-                By continuing you agree to the terms and privacy policy.
+                {t('termsConsent')}
               </p>
             </div>
           </div>

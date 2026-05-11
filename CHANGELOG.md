@@ -15,6 +15,14 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **i18n scaffold (English + Romanian)** — `next-intl` wired into the
+  app with cookie-based locale (`notai_locale`, no URL restructure).
+  Resolves user → cookie → `Accept-Language` → `en`. Messages in
+  `apps/web/messages/en.json` + `ro.json`. Sign-in page is fully
+  translated and a new "Language" section appears in
+  `/app/settings/security`. Adding more locales is a copy-paste + entry
+  in `SUPPORTED_LOCALES`. See `docs/i18n.md`.
+
 - **TOTP two-factor auth (authenticator app)** — new `user_totp` table
   (migration 0026) and `/app/settings/security` section to enroll an
   authenticator app via QR code (Google Authenticator, 1Password,

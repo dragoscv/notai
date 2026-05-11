@@ -1,0 +1,49 @@
+{
+  "common": {
+    "back": "Înapoi",
+    "save": "Salvează",
+    "cancel": "Anulează",
+    "loading": "Se încarcă…",
+    "remove": "Șterge",
+    "add": "Adaugă",
+    "saved": "Salvat",
+    "error": "Ceva nu a mers bine"
+  },
+  "language": {
+    "label": "Limbă",
+    "description": "Notai va fi afișat în limba aleasă. Conținutul notițelor nu este tradus.",
+    "english": "Engleză (English)",
+    "romanian": "Română"
+  },
+  "auth": {
+    "welcomeBack": "Bine ai revenit.",
+    "signInSubtitle": "Conectează-te la locul tău liniștit de gândit.",
+    "continueWithGoogle": "Continuă cu Google",
+    "signInWithPasskey": "Conectează-te cu passkey",
+    "freeNoCard": "Gratuit · Fără card",
+    "leftHeading1": "Continuă exact ",
+    "leftHeading2": "de unde ai rămas",
+    "leftSubtitle": "Notițele tale lipicioase, desenele și listele te așteaptă pe orice dispozitiv — sincronizate în clipa în care te conectezi.",
+    "bullet1": "Sincronizate complet pe web, desktop și mobil",
+    "bullet2": "Funcționează offline — chiar și la prima sesiune",
+    "bullet3": "Nu folosim notițele tale pentru antrenarea AI",
+    "termsConsent": "Continuând, ești de acord cu termenii și politica de confidențialitate."
+  },
+  "cookieConsent": {
+    "bannerTitle": "Folosim cookie-uri",
+    "bannerBody": "Folosim cookie-uri esențiale pentru ca Notai să funcționeze și cookie-uri opționale pentru analytics. Poți schimba alegerea oricând din footer.",
+    "acceptAll": "Acceptă toate",
+    "rejectAll": "Refuză opționalele",
+    "customize": "Personalizează",
+    "settingsTitle": "Preferințe cookie-uri",
+    "necessary": "Necesare",
+    "necessaryDesc": "Necesare pentru autentificare, securitate și pentru a-ți reține preferințele. Nu pot fi dezactivate.",
+    "preferences": "Preferințe",
+    "preferencesDesc": "Memorează alegerile de interfață (temă, aspect) pe dispozitivul tău.",
+    "analytics": "Analytics",
+    "analyticsDesc": "Ne ajută să vedem ce funcții sunt folosite și unde aplicația e lentă.",
+    "marketing": "Marketing",
+    "marketingDesc": "Folosit pentru a măsura campaniile publicitare. În prezent nu folosim niciuna.",
+    "saveChoices": "Salvează alegerile"
+  }
+}

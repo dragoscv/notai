@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
 import { ThemeProvider } from '@notai/ui/components/theme-provider';
 import { Toaster } from '@notai/ui/components/toaster';
 import { TooltipProvider } from '@notai/ui/components/tooltip';
@@ -9,6 +11,7 @@ import { PreferencesApplier } from '@/components/settings/preferences-applier';
 import { CapacitorDeepLinkBridge } from '@/components/mobile/capacitor-deep-link-bridge';
 import { UpgradeModalProvider } from '@/components/upgrade-modal';
 import { ConsentAwareAnalytics } from '@/components/analytics/consent-aware-analytics';
+import { resolveLocale } from '@/../i18n';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -39,24 +42,28 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await resolveLocale();
+  const messages = await getMessages();
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
-        <ThemeProvider>
-          <TooltipProvider delayDuration={200}>
-            <ConsentProvider>
-              <UpgradeModalProvider>
-                <PreferencesApplier />
-                <CapacitorDeepLinkBridge />
-                {children}
-                <CookieConsent />
-                <ConsentAwareAnalytics />
-                <Toaster position="bottom-right" richColors />
-              </UpgradeModalProvider>
-            </ConsentProvider>
-          </TooltipProvider>
-        </ThemeProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <ThemeProvider>
+            <TooltipProvider delayDuration={200}>
+              <ConsentProvider>
+                <UpgradeModalProvider>
+                  <PreferencesApplier />
+                  <CapacitorDeepLinkBridge />
+                  {children}
+                  <CookieConsent />
+                  <ConsentAwareAnalytics />
+                  <Toaster position="bottom-right" richColors />
+                </UpgradeModalProvider>
+              </ConsentProvider>
+            </TooltipProvider>
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

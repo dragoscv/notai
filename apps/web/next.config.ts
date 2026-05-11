@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 import withSerwistInit from '@serwist/next';
 import withBundleAnalyzer from '@next/bundle-analyzer';
+import createNextIntlPlugin from 'next-intl/plugin';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -119,5 +120,5 @@ const nextConfig: NextConfig = {
 };
 
 export default withBundleAnalyzer({ enabled: process.env.ANALYZE === 'true' })(
-  withSerwist(nextConfig),
+  createNextIntlPlugin('./i18n.ts')(withSerwist(nextConfig)),
 );
