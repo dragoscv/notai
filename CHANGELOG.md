@@ -15,6 +15,17 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Native push registration bridge (mobile)** — new
+  `<CapacitorPushBridge />` mounted in the root layout requests push
+  permission, registers with APNs/FCM, and forwards the resulting
+  device token to the existing `registerPushSubscription` server action
+  (with `platform: 'ios' | 'android'` and a stable `deviceId`). The
+  unified `push_subscriptions` table + FCM dispatcher (shipped earlier)
+  then fans out notifications to the device. Adds
+  `@capacitor/push-notifications` and `@capacitor/device` to
+  `apps/mobile` deps. Native APNs cert / google-services.json wiring
+  still required on first device build.
+
 - **Auto-link suggestions** — beneath the Related-notes rail, the note
   workspace now surfaces up to four notes you should probably link to
   via `[[…]]` based on pgvector cosine similarity (distance ≤ 0.30).

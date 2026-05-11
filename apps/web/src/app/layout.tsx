@@ -9,6 +9,7 @@ import { ConsentProvider } from '@notai/ui/components/consent-provider';
 import { CookieConsent } from '@notai/ui/components/cookie-consent';
 import { PreferencesApplier } from '@/components/settings/preferences-applier';
 import { CapacitorDeepLinkBridge } from '@/components/mobile/capacitor-deep-link-bridge';
+import { CapacitorPushBridge } from '@/components/mobile/capacitor-push-bridge';
 import { UpgradeModalProvider } from '@/components/upgrade-modal';
 import { ConsentAwareAnalytics } from '@/components/analytics/consent-aware-analytics';
 import { resolveLocale } from '@/../i18n';
@@ -55,6 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <UpgradeModalProvider>
                   <PreferencesApplier />
                   <CapacitorDeepLinkBridge />
+                  <CapacitorPushBridge />
                   {children}
                   <CookieConsent />
                   <ConsentAwareAnalytics />
