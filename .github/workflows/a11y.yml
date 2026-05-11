@@ -1,0 +1,56 @@
+name: a11y
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'packages/ui/**'
+      - 'packages/editor/**'
+      - '.github/workflows/a11y.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: a11y-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  axe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      AUTH_SECRET: ci-only-not-a-real-secret-${{ github.sha }}
+      NEXTAUTH_URL: http://127.0.0.1:15600
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/notai
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: notai
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @notai/db migrate
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+      - run: pnpm --filter @notai/web build
+      - run: pnpm --filter @notai/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @notai/web exec playwright test a11y
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14

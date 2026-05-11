@@ -13,8 +13,27 @@ Each app in this monorepo is versioned independently:
 | `@notai/desktop`          | tag `desktop-v*` (also auto-tagged on `apps/desktop` bump)   |
 
 ## [Unreleased]
-
 ### Added
+
+- **a11y CI** — new `.github/workflows/a11y.yml` runs Playwright with
+  `@axe-core/playwright` against `/`, `/pricing`, `/faq`,
+  `/privacy-policy`, `/terms`, `/signin` on every PR that touches the
+  web app or shared UI. Fails on serious / critical WCAG 2.1 AA
+  violations (color contrast tolerated for now). Local run: `pnpm
+  --filter @notai/web e2e`.
+- **GDPR audit doc** — new `docs/gdpr-audit.md` lists every personal
+  data field, sub-processor, cookie, and how each user right is
+  satisfied. Includes the open-follow-ups list (DPA template, SAR
+  runbook, regional routing, pen-test cadence).
+
+### Changed
+
+- **Cookie consent v2 — analytics actually gated** — Sentry replay /
+  traces and PostHog autocapture now wait for analytics consent before
+  initialising, and re-init when the user grants consent later via the
+  banner. Essential cookies (Auth.js session, Stripe Checkout fraud,
+  consent record itself) remain always-on. No analytics cookies are set
+  for visitors who reject the banner.
 
 - **Nightly Postgres backups** — new
   `.github/workflows/db-backup-nightly.yml` runs `pg_dump --format=custom`

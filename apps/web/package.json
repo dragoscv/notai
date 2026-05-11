@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps",
     "clean": "rimraf .next .turbo",
     "analyze": "cross-env ANALYZE=true next build"
   },
@@ -86,6 +88,9 @@
     "@types/react-dom": "catalog:",
     "@types/turndown": "^5.0.5",
     "@types/web-push": "^3.6.4",
+    "@playwright/test": "catalog:",
+    "@axe-core/playwright": "catalog:",
+    "playwright": "catalog:",
     "babel-plugin-react-compiler": "^1.0.0",
     "cross-env": "^7.0.3",
     "eslint": "catalog:",
