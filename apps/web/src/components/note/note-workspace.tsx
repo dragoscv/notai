@@ -57,6 +57,7 @@ import { useHotkey } from '@notai/ui/hooks/use-hotkey';
 import { NoteLockOverlay } from './note-lock-overlay';
 import { CanvasQuickMath } from './canvas-quick-math';
 import { CanvasSnippets } from './canvas-snippets';
+import { CanvasFileDropZone } from './canvas-file-drop-zone';
 import { StickyFromSelection } from './sticky-from-selection';
 import { VoiceRecorder } from './voice-recorder';
 import { VoiceModeButton } from './voice-mode-button';
@@ -655,29 +656,31 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
                     style={surfaceStyle}
                   />
                 )}
-                <CanvasNote
-                  // Remount once Hocuspocus reports the initial snapshot
-                  // has been applied. Without this, a fast race between
-                  // CanvasNote subscribing to the Y.Doc and the IDB /
-                  // websocket payload landing left the canvas blank
-                  // until the user switched notes or drew something.
-                  key={synced ? `${note.id}:ready` : `${note.id}:pending`}
-                  ref={canvasRef}
-                  doc={doc}
-                  provider={provider}
-                  user={{ name: user.name, color: colorFor(user.id) }}
-                  searchBacklinks={searchBacklinkCandidates}
-                  createBacklink={createNoteFromBacklink}
-                  aiContext={{ run: runSlashAi, noteId: note.id }}
-                  onCommentBlock={onCommentBlock}
-                  viewportKey={`notai:viewport:${note.id}`}
-                  minimap={surface.minimap}
-                  onMinimapCornerChange={(corner) =>
-                    setSurface({ ...surface, minimap: { ...surface.minimap, corner } })
-                  }
-                  onUrlPaste={handleUrlPaste}
-                  onLongTextPaste={handleLongTextPaste}
-                />
+                <CanvasFileDropZone noteId={note.id} canvasRef={canvasRef}>
+                  <CanvasNote
+                    // Remount once Hocuspocus reports the initial snapshot
+                    // has been applied. Without this, a fast race between
+                    // CanvasNote subscribing to the Y.Doc and the IDB /
+                    // websocket payload landing left the canvas blank
+                    // until the user switched notes or drew something.
+                    key={synced ? `${note.id}:ready` : `${note.id}:pending`}
+                    ref={canvasRef}
+                    doc={doc}
+                    provider={provider}
+                    user={{ name: user.name, color: colorFor(user.id) }}
+                    searchBacklinks={searchBacklinkCandidates}
+                    createBacklink={createNoteFromBacklink}
+                    aiContext={{ run: runSlashAi, noteId: note.id }}
+                    onCommentBlock={onCommentBlock}
+                    viewportKey={`notai:viewport:${note.id}`}
+                    minimap={surface.minimap}
+                    onMinimapCornerChange={(corner) =>
+                      setSurface({ ...surface, minimap: { ...surface.minimap, corner } })
+                    }
+                    onUrlPaste={handleUrlPaste}
+                    onLongTextPaste={handleLongTextPaste}
+                  />
+                </CanvasFileDropZone>
                 <FocusModeOverlay
                   getApi={() => (canvasRef.current?.getExcalidrawApi() as never) ?? null}
                 />
