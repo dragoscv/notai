@@ -15,6 +15,16 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Push notifications on share + test push** — generic
+  `sendPushToUser(userId, payload)` dispatcher in
+  `apps/web/src/server/push/dispatch.ts` fans out a single payload to
+  every registered device (web via VAPID, mobile via FCM), pruning
+  endpoints that return 404/410. `inviteToNote` now sends a push to
+  existing collaborators the moment they're added, and a new
+  `POST /api/push/test` route plus a "Send test" button on
+  `/app/settings/notifications` lets users verify their subscription
+  end-to-end without waiting for the daily-review cron.
+
 - **Scoped personal access tokens** — PATs can now be issued with one or
   more scopes from `clipper, notes:read, notes:write, search:read,
   ai:read`. The integrations panel renders a multi-select chip group;

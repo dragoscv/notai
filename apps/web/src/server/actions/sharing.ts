@@ -6,6 +6,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { auth } from '@/auth';
 import { db, notes, noteCollaborators, noteInvites, users, eq, and, or, sql } from '@notai/db';
 import { sendEmail } from '@/server/email';
+import { sendPushToUser } from '@/server/push/dispatch';
 
 async function requireUser() {
   const session = await auth();
@@ -156,6 +157,18 @@ export async function inviteToNote(input: z.input<typeof inviteSchema>) {
         target: [noteCollaborators.noteId, noteCollaborators.userId],
         set: { role },
       });
+    const [noteRow] = await db
+      .select({ title: notes.title })
+      .from(notes)
+      .where(eq(notes.id, noteId))
+      .limit(1);
+    const inviterName = me.name || me.email || 'Someone';
+    await sendPushToUser(existing.id, {
+      title: `${inviterName} shared a note with you`,
+      body: noteRow?.title || 'Open Notai to view it',
+      url: `/app/n/${noteId}`,
+      tag: `note-share-${noteId}`,
+    }).catch(() => undefined);
     revalidatePath(`/app/n/${noteId}`);
     return { ok: true, status: 'added' as const };
   }

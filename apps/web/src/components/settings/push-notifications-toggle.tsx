@@ -101,21 +101,42 @@ export function PushNotificationsToggle() {
     );
   }
   return (
-    <Button
-      type="button"
-      variant={subscribed ? 'outline' : 'default'}
-      disabled={busy}
-      onClick={subscribed ? onDisable : onEnable}
-    >
-      {busy ? (
-        <Loader2 className="size-4 animate-spin" />
-      ) : subscribed ? (
-        <BellOff className="size-4" />
-      ) : (
-        <Bell className="size-4" />
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        type="button"
+        variant={subscribed ? 'outline' : 'default'}
+        disabled={busy}
+        onClick={subscribed ? onDisable : onEnable}
+      >
+        {busy ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : subscribed ? (
+          <BellOff className="size-4" />
+        ) : (
+          <Bell className="size-4" />
+        )}
+        {subscribed ? 'Disable push notifications' : 'Enable push notifications'}
+      </Button>
+      {subscribed && (
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={busy}
+          onClick={async () => {
+            try {
+              const r = await fetch('/api/push/test', { method: 'POST' });
+              if (!r.ok) throw new Error(await r.text());
+              const j = (await r.json()) as { sent: number };
+              toast.success(`Test sent to ${j.sent} device${j.sent === 1 ? '' : 's'}`);
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : 'Test failed');
+            }
+          }}
+        >
+          Send test
+        </Button>
       )}
-      {subscribed ? 'Disable push notifications' : 'Enable push notifications'}
-    </Button>
+    </div>
   );
 }
 
