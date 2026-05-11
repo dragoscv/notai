@@ -15,6 +15,31 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Public share password gate** — `/p/<token>` now shows an unlock
+  form when the owner has set a per-note password (existing
+  `notes.passwordHash` column, scrypt format). Correct password sets
+  an httpOnly cookie scoped to `/p/<token>` for 7 days. Uses the same
+  hash format as the in-app `unlockNote` flow so a single password
+  protects both surfaces.
+
+- **Daily-digest in-app notification** — new hourly cron at
+  `/api/cron/daily-digest` (Vercel schedule `20 * * * *`) inserts a
+  single `daily_digest` notification per user per day at user-local
+  08:00\u201310:00, summarising notes edited and created in the previous
+  24h. Migration `0027_notification_kind_daily_digest` extends the
+  `notification_kind` enum. Email channel is opt-in and deferred.
+
+- **SLSA build provenance + SBOM on the realtime image** — the
+  `release-realtime` workflow now passes `provenance: mode=max` and
+  `sbom: true` to `docker/build-push-action`, producing in-toto
+  attestations attached to the image manifest in Artifact Registry.
+
+- **Unit tests for note-password hashing** — extracted
+  `hashNotePassword` / `verifyNotePassword` to `apps/web/src/lib/note-password.ts`
+  (shared by the in-app lock and the public-share gate). Covered by
+  Vitest specs for happy-path, wrong password, salt uniqueness, malformed
+  input, and Unicode passwords.
+
 - **Desktop updater operator docs** — the Tauri 2 updater pipeline is
   already fully wired (sign on build, embedded pubkey,
   `latest.json` published per release). New `docs/desktop-updater.md`

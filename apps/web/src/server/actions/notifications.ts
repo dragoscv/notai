@@ -12,7 +12,7 @@ async function requireUser() {
 
 export interface NotificationRow {
   id: string;
-  kind: 'comment_mention' | 'comment_reply' | 'invite_received';
+  kind: 'comment_mention' | 'comment_reply' | 'invite_received' | 'daily_digest';
   payload: {
     noteId?: string;
     noteTitle?: string;
@@ -20,6 +20,10 @@ export interface NotificationRow {
     fromUserId?: string;
     fromUserName?: string;
     snippet?: string;
+    // daily_digest fields
+    dateKey?: string;
+    editedCount?: number;
+    createdCount?: number;
   };
   readAt: string | null;
   createdAt: string;

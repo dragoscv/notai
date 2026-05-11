@@ -158,7 +158,9 @@ function NotificationItem({
       ? 'mentioned you'
       : n.kind === 'comment_reply'
         ? 'replied to your comment'
-        : 'invited you';
+        : n.kind === 'daily_digest'
+          ? `wrapped up your day — ${n.payload.editedCount ?? 0} edited, ${n.payload.createdCount ?? 0} new`
+          : 'invited you';
   return (
     <Link
       href={href}

@@ -1,33 +1,13 @@
 'use server';
 
-import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { auth } from '@/auth';
 import { db, notes, eq, and, or, isNull } from '@notai/db';
+import { hashNotePassword, verifyNotePassword } from '@/lib/note-password';
 
 const SHARE_PW_COOKIE = (noteId: string) => `notai_share_pw_${noteId}`;
-
-/**
- * Verifies a password against the hash format produced by
- * `setNotePassword` (note-password.ts): `scrypt$N$saltHex$hashHex`.
- * Returns false on any malformed hash so we never throw to the
- * unlock form.
- */
-function verifySharePassword(stored: string, password: string): boolean {
-  const parts = stored.split('$');
-  if (parts.length !== 4 || parts[0] !== 'scrypt') return false;
-  const nStr = parts[1] ?? '';
-  const saltHex = parts[2] ?? '';
-  const hashHex = parts[3] ?? '';
-  const N = Number(nStr);
-  if (!Number.isFinite(N) || N <= 0) return false;
-  const salt = Buffer.from(saltHex, 'hex');
-  const expected = Buffer.from(hashHex, 'hex');
-  if (expected.length === 0) return false;
-  const got = scryptSync(password, salt, expected.length, { N });
-  return got.length === expected.length && timingSafeEqual(got, expected);
-}
 
 const enableSchema = z.object({
   noteId: z.string().min(1),
@@ -110,10 +90,7 @@ export async function setPublicSharePassword(input: {
   const trimmed = input.password.trim();
   if (trimmed.length < 4) throw new Error('Password must be at least 4 characters');
   if (trimmed.length > 200) throw new Error('Password is too long');
-  const salt = randomBytes(16);
-  const N = 16384;
-  const derived = scryptSync(trimmed, salt, 64, { N });
-  const hash = `scrypt$${N}$${salt.toString('hex')}$${derived.toString('hex')}`;
+  const hash = hashNotePassword(trimmed);
   const updated = await db
     .update(notes)
     .set({ passwordHash: hash, passwordSetAt: new Date(), updatedAt: new Date() })
@@ -262,7 +239,7 @@ export async function unlockPublicShare(
   if (row.expiresAt && row.expiresAt.getTime() < Date.now()) {
     return { ok: false, error: 'This link has expired' };
   }
-  const ok = verifySharePassword(row.passwordHash, password);
+  const ok = verifyNotePassword(row.passwordHash, password);
   if (!ok) return { ok: false, error: 'Wrong password' };
   const jar = await cookies();
   jar.set(SHARE_PW_COOKIE(row.id), row.passwordHash, {

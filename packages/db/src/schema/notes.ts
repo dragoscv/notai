@@ -357,6 +357,7 @@ export const notificationKind = pgEnum('notification_kind', [
   'comment_mention',
   'comment_reply',
   'invite_received',
+  'daily_digest',
 ]);
 
 export const notifications = pgTable(
@@ -377,6 +378,10 @@ export const notifications = pgTable(
         fromUserId?: string;
         fromUserName?: string;
         snippet?: string;
+        // daily_digest fields
+        dateKey?: string;
+        editedCount?: number;
+        createdCount?: number;
       }>()
       .notNull(),
     readAt: timestamp('read_at', { withTimezone: true }),

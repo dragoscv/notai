@@ -1,40 +1,20 @@
 'use server';
 
-import { scryptSync, randomBytes, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { auth } from '@/auth';
 import { db, notes, eq, and, isNull } from '@notai/db';
 import { revalidatePath } from 'next/cache';
+import { hashNotePassword, verifyNotePassword } from '@/lib/note-password';
 
 /**
- * Per-note password lock. The hash is `scrypt$N$saltHex$hashHex` so we
- * can rotate parameters later without a schema change. Verification
- * uses `timingSafeEqual` to avoid timing attacks. On success we set a
- * short-lived signed cookie keyed by note id so refreshes don't keep
- * prompting.
+ * Per-note password lock. Hash format and the `notai-unlock-<id>`
+ * session cookie are documented in `@/lib/note-password`. The same
+ * format is used by the public share gate so a single password
+ * unlocks both flows.
  */
 
-const SCRYPT_N = 16384;
-const SCRYPT_KEYLEN = 64;
 const COOKIE_TTL_SECONDS = 60 * 60 * 4; // 4 hours
-
-function hash(password: string): string {
-  const salt = randomBytes(16);
-  const derived = scryptSync(password, salt, SCRYPT_KEYLEN, { N: SCRYPT_N });
-  return `scrypt$${SCRYPT_N}$${salt.toString('hex')}$${derived.toString('hex')}`;
-}
-
-function verify(password: string, stored: string): boolean {
-  const parts = stored.split('$');
-  if (parts.length !== 4 || parts[0] !== 'scrypt') return false;
-  const [, nStr, saltHex, hashHex] = parts as [string, string, string, string];
-  const N = Number(nStr);
-  const salt = Buffer.from(saltHex, 'hex');
-  const expected = Buffer.from(hashHex, 'hex');
-  const derived = scryptSync(password, salt, expected.length, { N });
-  return derived.length === expected.length && timingSafeEqual(derived, expected);
-}
 
 const setSchema = z.object({
   noteId: z.string().min(1),
@@ -48,7 +28,11 @@ export async function setNotePassword(input: z.input<typeof setSchema>) {
   if (!session?.user?.id) throw new Error('Not signed in');
   const updated = await db
     .update(notes)
-    .set({ passwordHash: hash(password), passwordSetAt: new Date(), updatedAt: new Date() })
+    .set({
+      passwordHash: hashNotePassword(password),
+      passwordSetAt: new Date(),
+      updatedAt: new Date(),
+    })
     .where(and(eq(notes.id, noteId), eq(notes.ownerId, session.user.id), isNull(notes.deletedAt)))
     .returning({ id: notes.id });
   if (updated.length === 0) throw new Error('Note not found');
@@ -91,7 +75,7 @@ export async function unlockNote(input: {
     .where(eq(notes.id, input.noteId))
     .limit(1);
   if (!row?.hash) return { ok: true }; // not locked \u2014 treat as success
-  if (!verify(input.password, row.hash)) return { ok: false };
+  if (!verifyNotePassword(row.hash, input.password)) return { ok: false };
   const cookieStore = await cookies();
   cookieStore.set(`notai-unlock-${input.noteId}`, '1', {
     httpOnly: true,
