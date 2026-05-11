@@ -225,6 +225,13 @@
       "when": 1781400000000,
       "tag": "0031_blog_publish_at",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1781500000000,
+      "tag": "0032_flashcards",
+      "breakpoints": true
     }
   ]
 }

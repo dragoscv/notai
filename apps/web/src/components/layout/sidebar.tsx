@@ -14,6 +14,7 @@ import {
   Sparkles,
   CalendarDays,
   Network,
+  Brain,
   PanelLeftClose,
   PanelLeftOpen,
   X,
@@ -235,6 +236,13 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
           icon={<Network />}
           label="Graph"
           active={pathname === '/app/graph'}
+          collapsed={collapsed}
+        />
+        <NavItem
+          href="/app/review"
+          icon={<Brain />}
+          label="Review"
+          active={pathname === '/app/review'}
           collapsed={collapsed}
         />
         <NavItem

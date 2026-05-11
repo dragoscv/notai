@@ -22,3 +22,4 @@ export * from './webauthn';
 export * from './email-suppressions';
 export * from './email-messages';
 export * from './user-totp';
+export * from './flashcards';

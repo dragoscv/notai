@@ -15,6 +15,12 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **Spaced-repetition flashcards** — new `flashcards` and `flashcard_reviews`
+  tables, an SM-2 scheduler in `@notai/lib` (`scheduleNext()`), and a
+  `/app/review` route with three tabs: Review (graded 0–5 with Again /
+  Hard / Good / Easy buttons), All cards (list + delete), and New card
+  (front/back form). Sidebar link "Review" added with the Brain icon.
+
 - **FCM mobile push primitive** — `push_subscriptions` table now stores
   native mobile tokens alongside the existing web push rows. New
   `platform` column (`'web' | 'ios' | 'android'`, default `'web'`) and
