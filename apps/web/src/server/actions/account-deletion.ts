@@ -4,8 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { db, eq, sql, users } from '@notai/db';
 import { auth, signOut } from '@/auth';
+import { hasFreshStepUp, verifyTotp } from '@/server/totp';
 
 const GRACE_DAYS = Number(process.env.ACCOUNT_DELETION_GRACE_DAYS ?? 30);
+const STEP_UP_WINDOW_SECONDS = 5 * 60;
 
 export async function getDeletionStatus(): Promise<{
   requestedAt: string | null;
@@ -27,16 +29,26 @@ export async function getDeletionStatus(): Promise<{
   };
 }
 
-export async function requestAccountDeletion(): Promise<{ ok: boolean }> {
+export async function requestAccountDeletion(
+  totpCode?: string,
+): Promise<{ ok: boolean; stepUpRequired?: boolean; error?: string }> {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false };
+  if (!session?.user?.id) return { ok: false, error: 'unauthenticated' };
+
+  // If the user has TOTP enrolled, require a fresh step-up. The UI may
+  // pass a `totpCode` to satisfy it inline.
+  const fresh = await hasFreshStepUp(session.user.id, STEP_UP_WINDOW_SECONDS);
+  if (!fresh) {
+    if (!totpCode) return { ok: false, stepUpRequired: true };
+    const v = await verifyTotp(session.user.id, totpCode);
+    if (!v.ok) return { ok: false, stepUpRequired: true, error: 'Invalid code' };
+  }
+
   await db
     .update(users)
     .set({ deletionRequestedAt: sql`now()` })
     .where(eq(users.id, session.user.id));
   revalidatePath('/app/settings/security');
-  // Sign the user out — they have to sign back in within the grace
-  // window to cancel.
   await signOut({ redirectTo: '/' });
   return { ok: true };
 }

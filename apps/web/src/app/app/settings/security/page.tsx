@@ -1,11 +1,13 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, KeyRound, ShieldCheck, Trash2 } from 'lucide-react';
+import { ArrowLeft, KeyRound, ShieldCheck, Smartphone, Trash2 } from 'lucide-react';
 import { db, eq, desc, webauthnCredentials } from '@notai/db';
 import { auth } from '@/auth';
 import { PasskeyManager } from '@/components/settings/passkey-manager';
+import { TotpManager } from '@/components/settings/totp-manager';
 import { DangerZone } from '@/components/settings/danger-zone';
 import { getDeletionStatus } from '@/server/actions/account-deletion';
+import { getTotpStatus } from '@/server/totp';
 
 export const metadata = { title: 'Security — Notai' };
 export const dynamic = 'force-dynamic';
@@ -14,7 +16,7 @@ export default async function SecurityPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/signin?callbackUrl=/app/settings/security');
 
-  const [creds, deletion] = await Promise.all([
+  const [creds, deletion, totp] = await Promise.all([
     db
       .select({
         id: webauthnCredentials.id,
@@ -29,6 +31,7 @@ export default async function SecurityPage() {
       .where(eq(webauthnCredentials.userId, session.user.id))
       .orderBy(desc(webauthnCredentials.createdAt)),
     getDeletionStatus(),
+    getTotpStatus(session.user.id),
   ]);
 
   return (
@@ -65,6 +68,14 @@ export default async function SecurityPage() {
             createdAt: c.createdAt.toISOString(),
           }))}
         />
+      </section>
+
+      <section className="bg-card rounded-2xl border p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <Smartphone className="size-4" />
+          <h2 className="text-base font-medium">Authenticator app (TOTP)</h2>
+        </div>
+        <TotpManager initial={totp} />
       </section>
 
       <section className="border-destructive/30 bg-destructive/5 rounded-2xl border p-6">

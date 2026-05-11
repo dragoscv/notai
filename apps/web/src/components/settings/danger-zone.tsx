@@ -13,6 +13,7 @@ interface Props {
 
 export function DangerZone({ deletion, userEmail }: Props) {
   const [confirmText, setConfirmText] = useState('');
+  const [stepUpCode, setStepUpCode] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   if (deletion.requestedAt && deletion.purgesAt) {
@@ -62,6 +63,21 @@ export function DangerZone({ deletion, userEmail }: Props) {
           className="bg-background mt-1 w-full rounded-md border px-2.5 py-1.5"
         />
       </label>
+      {stepUpCode !== null ? (
+        <label className="block">
+          <span className="text-muted-foreground text-xs">
+            Enter your authenticator code to confirm:
+          </span>
+          <input
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            value={stepUpCode}
+            onChange={(e) => setStepUpCode(e.target.value)}
+            className="bg-background mt-1 w-40 rounded-md border px-2.5 py-1.5 font-mono"
+            placeholder="123456"
+          />
+        </label>
+      ) : null}
       <Button
         variant="destructive"
         disabled={!matches || pending}
@@ -69,8 +85,14 @@ export function DangerZone({ deletion, userEmail }: Props) {
           if (!matches) return;
           if (!confirm('Schedule account deletion?')) return;
           startTransition(async () => {
-            const r = await requestAccountDeletion();
-            if (!r.ok) toast.error('Could not schedule deletion');
+            const r = await requestAccountDeletion(stepUpCode ?? undefined);
+            if (r.stepUpRequired) {
+              setStepUpCode((c) => c ?? '');
+              if (r.error) toast.error(r.error);
+              else toast.message('Enter your authenticator code to confirm');
+              return;
+            }
+            if (!r.ok) toast.error(r.error ?? 'Could not schedule deletion');
             // On success the action signs you out and redirects to '/'.
           });
         }}

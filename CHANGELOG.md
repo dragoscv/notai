@@ -15,6 +15,14 @@ Each app in this monorepo is versioned independently:
 ## [Unreleased]
 ### Added
 
+- **TOTP two-factor auth (authenticator app)** — new `user_totp` table
+  (migration 0026) and `/app/settings/security` section to enroll an
+  authenticator app via QR code (Google Authenticator, 1Password,
+  Bitwarden, etc). Generates 10 single-use recovery codes (sha256
+  hashed, shown once on enrollment). Step-up auth: when TOTP is enabled,
+  scheduling account deletion now requires a fresh code (5-minute
+  freshness window). Powered by `otplib` + `qrcode`.
+
 - **a11y CI** — new `.github/workflows/a11y.yml` runs Playwright with
   `@axe-core/playwright` against `/`, `/pricing`, `/faq`,
   `/privacy-policy`, `/terms`, `/signin` on every PR that touches the

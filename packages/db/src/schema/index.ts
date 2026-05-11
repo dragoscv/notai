@@ -20,3 +20,4 @@ export * from './api-keys';
 export * from './webhooks';
 export * from './webauthn';
 export * from './email-suppressions';
+export * from './user-totp';
