@@ -286,5 +286,58 @@
         }
       }
     }
+  },
+  "about": {
+    "metaTitle": "About",
+    "metaDescription": "Notai is built solo in Romania, for ADHD and creative minds. Local-first, EU-hosted, no AI training on your notes — ever.",
+    "badge": "Made in Romania",
+    "title": "A calm place to think, built by one person.",
+    "intro": "I built Notai because every notes app I tried was either too rigid (Notion), too noisy (Obsidian plugin soup), or too lossy (Apple Notes). I wanted something that respects ADHD brains: forgives interruptions, lets ideas land in any shape, and never punishes you for not having a system.",
+    "whatIsTitle": "What Notai is",
+    "whatIsBody": "A local-first notebook with sticky windows, drawings, real-time sync, and a small amount of AI for when you need it. Web, Windows, macOS, and a browser clipper today; mobile and Linux next.",
+    "whatItIsNotTitle": "What Notai is not",
+    "whatItIsNot": {
+      "notion": "Not a Notion clone. No databases, no relations, no formula language.",
+      "wiki": "Not a wiki. Hierarchy and tags exist, but they are optional.",
+      "ai": "Not an AI-first product. AI helps; it never gets in the way.",
+      "surveillance": "Not surveillance-ware. No analytics inside your notes, no AI training."
+    },
+    "whereTitle": "Where your notes live",
+    "whereBody1Prefix": "Hosted on Google Cloud in ",
+    "whereBody1Region": "europe-west1",
+    "whereBody1Suffix": " (Belgium). PostgreSQL for metadata, encrypted Cloud Storage for attachments. Realtime collaboration runs on a dedicated Hocuspocus server. We never train AI models on your notes, never sell or share your data, and never embed analytics inside notes you write.",
+    "whereBody2Prefix": "You can export everything as Markdown at any time, and you can fully delete your account from inside the app. See the ",
+    "whereBody2Link": "sync, storage & privacy",
+    "whereBody2Suffix": " doc for the full picture.",
+    "whyTitle": "Why I am building this",
+    "whyBody": "Calm, respectful software is rare. I want Notai to feel like a friend that quietly keeps your thoughts in order, not another tool that demands you adapt to its system. The rules are simple: capture must be instant, the editor must never lock you in, and your data must always be yours.",
+    "operatorTitle": "Operator",
+    "operatorBodyPrefix": "Notai is operated by Vlăduțescu Dragoș Cătălin, persoană fizică, Romania. ",
+    "operatorBodyLink": "Get in touch",
+    "operatorBodySuffix": " for questions, partnerships, or feedback.",
+    "ctaTitle": "Try the calm notebook",
+    "ctaText": "Free forever for personal use. No credit card. Works offline.",
+    "seeFeatures": "See features"
+  },
+  "pricing": {
+    "metaTitle": "Pricing",
+    "metaDescription": "Free forever for personal use. Pro unlocks AI, unlimited storage, and collaboration.",
+    "title": "Pricing as simple as the app.",
+    "subtitle": "Free forever for personal use. Pro unlocks AI, unlimited storage, and collaboration.",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "save": "save ~17%",
+    "mostPopular": "Most popular",
+    "perMonth": "mo",
+    "perYear": "yr",
+    "seat": "seat",
+    "priceUnavailable": "Pricing not available in {currency}",
+    "trial": "{days}-day free trial · no card needed",
+    "openApp": "Open app",
+    "getStarted": "Get started",
+    "redirecting": "Redirecting…",
+    "startTrial": "Start free trial",
+    "upgradeTo": "Upgrade to {plan}",
+    "footer": "Prices include VAT where applicable. Cancel anytime from the app. Payments handled by Stripe — we never see your card details."
   }
 }

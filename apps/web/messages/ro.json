@@ -286,5 +286,58 @@
         }
       }
     }
+  },
+  "about": {
+    "metaTitle": "Despre",
+    "metaDescription": "Notai e construit solo în România, pentru minți ADHD și creative. Local-first, găzduit în UE, niciodată antrenament AI pe notițele tale.",
+    "badge": "Făcut în România",
+    "title": "Un loc liniștit ca să gândești, construit de un singur om.",
+    "intro": "Am construit Notai pentru că fiecare aplicație de notițe pe care am încercat-o era fie prea rigidă (Notion), fie prea zgomotoasă (supă de plugin-uri Obsidian), fie prea fragilă (Apple Notes). Voiam ceva care respectă creierele ADHD: iartă întreruperile, lasă ideile să aterizeze în orice formă și nu te pedepsește că nu ai un sistem.",
+    "whatIsTitle": "Ce este Notai",
+    "whatIsBody": "Un caiet local-first cu ferestre lipicioase, desene, sincronizare în timp real și puțin AI pentru când ai nevoie. Web, Windows, macOS și un clipper de browser astăzi; mobil și Linux urmează.",
+    "whatItIsNotTitle": "Ce NU este Notai",
+    "whatItIsNot": {
+      "notion": "Nu e o clonă Notion. Fără baze de date, fără relații, fără limbaj de formule.",
+      "wiki": "Nu e un wiki. Ierarhia și tag-urile există, dar sunt opționale.",
+      "ai": "Nu e un produs AI-first. AI-ul ajută; niciodată nu te încurcă.",
+      "surveillance": "Nu e surveillance-ware. Fără analytics în interiorul notițelor, fără antrenament AI."
+    },
+    "whereTitle": "Unde stau notițele tale",
+    "whereBody1Prefix": "Găzduit pe Google Cloud în ",
+    "whereBody1Region": "europe-west1",
+    "whereBody1Suffix": " (Belgia). PostgreSQL pentru metadate, Cloud Storage criptat pentru atașamente. Colaborarea în timp real rulează pe un server Hocuspocus dedicat. Nu antrenăm niciodată modele AI pe notițele tale, nu vindem sau distribuim datele și nu integrăm analytics în notițele pe care le scrii.",
+    "whereBody2Prefix": "Poți exporta totul ca Markdown oricând și îți poți șterge complet contul din interiorul aplicației. Vezi documentul ",
+    "whereBody2Link": "sincronizare, stocare și confidențialitate",
+    "whereBody2Suffix": " pentru imaginea completă.",
+    "whyTitle": "De ce construiesc asta",
+    "whyBody": "Software-ul calm și respectuos e rar. Vreau ca Notai să se simtă ca un prieten care îți ține gândurile în ordine în liniște, nu ca încă o unealtă care îți cere să te adaptezi sistemului ei. Regulile sunt simple: capturarea trebuie să fie instantă, editorul nu te poate ține prizonier, iar datele tale trebuie să fie mereu ale tale.",
+    "operatorTitle": "Operator",
+    "operatorBodyPrefix": "Notai este operat de Vlăduțescu Dragoș Cătălin, persoană fizică, România. ",
+    "operatorBodyLink": "Ia legătura",
+    "operatorBodySuffix": " pentru întrebări, parteneriate sau feedback.",
+    "ctaTitle": "Încearcă caietul liniștit",
+    "ctaText": "Gratuit pentru uz personal. Fără card. Merge offline.",
+    "seeFeatures": "Vezi funcționalitățile"
+  },
+  "pricing": {
+    "metaTitle": "Tarife",
+    "metaDescription": "Gratuit pentru uz personal. Pro deblochează AI, stocare nelimitată și colaborare.",
+    "title": "Tarife la fel de simple ca aplicația.",
+    "subtitle": "Gratuit pentru uz personal. Pro deblochează AI, stocare nelimitată și colaborare.",
+    "monthly": "Lunar",
+    "yearly": "Anual",
+    "save": "economisești ~17%",
+    "mostPopular": "Cel mai popular",
+    "perMonth": "lună",
+    "perYear": "an",
+    "seat": "loc",
+    "priceUnavailable": "Tarifele nu sunt disponibile în {currency}",
+    "trial": "{days} zile gratuite · fără card",
+    "openApp": "Deschide aplicația",
+    "getStarted": "Începe acum",
+    "redirecting": "Te redirecționăm…",
+    "startTrial": "Începe perioada gratuită",
+    "upgradeTo": "Treci la {plan}",
+    "footer": "Tarifele includ TVA acolo unde se aplică. Anulezi oricând din aplicație. Plățile sunt gestionate de Stripe — nu vedem niciodată detaliile cardului tău."
   }
 }

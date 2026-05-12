@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui';
 import { cn } from '@notai/lib/utils';
 import { startDynamicCheckout } from '@/server/actions/billing';
@@ -36,6 +37,7 @@ function formatPrice(minor: number, currency: Currency) {
 }
 
 export function PricingClient({ plans, signedIn }: { plans: PublicPlan[]; signedIn: boolean }) {
+  const t = useTranslations('pricing');
   const [currency, setCurrency] = React.useState<Currency>('eur');
   const [interval, setInterval] = React.useState<Interval>('year');
   const [pending, start] = React.useTransition();
@@ -75,11 +77,9 @@ export function PricingClient({ plans, signedIn }: { plans: PublicPlan[]; signed
         className="text-center"
       >
         <h1 className="font-serif text-4xl font-semibold tracking-tight md:text-5xl">
-          Pricing as simple as the app.
+          {t('title')}
         </h1>
-        <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-lg">
-          Free forever for personal use. Pro unlocks AI, unlimited storage, and collaboration.
-        </p>
+        <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-lg">{t('subtitle')}</p>
       </motion.div>
 
       <div className="mt-10 flex items-center justify-center gap-3">
@@ -100,10 +100,10 @@ export function PricingClient({ plans, signedIn }: { plans: PublicPlan[]; signed
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               ) : null}
-              {i === 'month' ? 'Monthly' : 'Yearly'}
+              {i === 'month' ? t('monthly') : t('yearly')}
               {i === 'year' ? (
                 <span className="text-primary ml-1.5 text-[10px] font-semibold uppercase">
-                  save ~17%
+                  {t('save')}
                 </span>
               ) : null}
             </button>
@@ -154,7 +154,7 @@ export function PricingClient({ plans, signedIn }: { plans: PublicPlan[]; signed
               {isPro ? (
                 <div className="from-primary to-primary/70 absolute -top-3 left-6 flex items-center gap-1 rounded-full bg-gradient-to-r px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white shadow-sm">
                   <Sparkles className="size-3" />
-                  Most popular
+                  {t('mostPopular')}
                 </div>
               ) : null}
 
@@ -176,20 +176,20 @@ export function PricingClient({ plans, signedIn }: { plans: PublicPlan[]; signed
                       {formatPrice(price.unitAmount, currency)}
                     </span>
                     <span className="text-muted-foreground text-sm">
-                      / {interval === 'month' ? 'mo' : 'yr'}
-                      {plan.slug === 'teams' ? ' · seat' : ''}
+                      / {interval === 'month' ? t('perMonth') : t('perYear')}
+                      {plan.slug === 'teams' ? ` · ${t('seat')}` : ''}
                     </span>
                   </>
                 ) : (
                   <span className="text-muted-foreground text-sm">
-                    Pricing not available in {currency.toUpperCase()}
+                    {t('priceUnavailable', { currency: currency.toUpperCase() })}
                   </span>
                 )}
               </div>
 
               {plan.trialDays > 0 ? (
                 <p className="text-primary mt-1 text-xs font-medium">
-                  {plan.trialDays}-day free trial · no card needed
+                  {t('trial', { days: plan.trialDays })}
                 </p>
               ) : null}
 
@@ -206,7 +206,7 @@ export function PricingClient({ plans, signedIn }: { plans: PublicPlan[]; signed
                 {isFree ? (
                   <Button asChild variant="outline" className="w-full">
                     <Link href={signedIn ? '/app' : '/signin'}>
-                      {signedIn ? 'Open app' : 'Get started'}
+                      {signedIn ? t('openApp') : t('getStarted')}
                       <ArrowRight className="ml-1 size-4" />
                     </Link>
                   </Button>
@@ -218,10 +218,10 @@ export function PricingClient({ plans, signedIn }: { plans: PublicPlan[]; signed
                     variant={isPro ? 'default' : 'outline'}
                   >
                     {pendingSlug === plan.slug
-                      ? 'Redirecting…'
+                      ? t('redirecting')
                       : plan.trialDays > 0
-                        ? 'Start free trial'
-                        : `Upgrade to ${plan.displayName}`}
+                        ? t('startTrial')
+                        : t('upgradeTo', { plan: plan.displayName })}
                   </Button>
                 )}
               </div>
@@ -231,8 +231,7 @@ export function PricingClient({ plans, signedIn }: { plans: PublicPlan[]; signed
       </div>
 
       <p className="text-muted-foreground mx-auto mt-12 max-w-xl text-center text-xs">
-        Prices include VAT where applicable. Cancel anytime from the app. Payments handled by Stripe
-        — we never see your card details.
+        {t('footer')}
       </p>
     </div>
   );
