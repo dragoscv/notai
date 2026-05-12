@@ -134,6 +134,7 @@ export function MarketingFooter() {
           title="Help"
           links={[
             { href: '/docs', label: 'Docs' },
+            { href: '/changelog', label: 'Changelog' },
             { href: '/faq', label: 'FAQ' },
             { href: '/support', label: 'My tickets' },
             { href: '/support/new', label: 'Open a ticket' },
