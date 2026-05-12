@@ -45,5 +45,45 @@
     "marketing": "Marketing",
     "marketingDesc": "Used to measure ad campaigns. We do not currently use any.",
     "saveChoices": "Save choices"
+  },
+  "marketing": {
+    "header": {
+      "nav": {
+        "features": "Features",
+        "pricing": "Pricing",
+        "docs": "Docs",
+        "about": "About"
+      },
+      "openApp": "Open app",
+      "signIn": "Sign in",
+      "getStarted": "Get started"
+    },
+    "footer": {
+      "tagline": "A calm, local-first notes app with sticky windows, drawings, and optional cloud sync. Made with care in Romania.",
+      "copyright": "© {year} Notai · Operated by Vlăduțescu Dragoș Cătălin (PFA), Romania.",
+      "product": "Product",
+      "help": "Help",
+      "legal": "Legal",
+      "links": {
+        "home": "Home",
+        "features": "Features",
+        "pricing": "Pricing",
+        "about": "About",
+        "signIn": "Sign in",
+        "docs": "Docs",
+        "changelog": "Changelog",
+        "roadmap": "Roadmap",
+        "faq": "FAQ",
+        "myTickets": "My tickets",
+        "openTicket": "Open a ticket",
+        "contact": "Contact",
+        "terms": "Terms",
+        "privacy": "Privacy",
+        "refund": "Refund",
+        "aup": "Acceptable use",
+        "cookies": "Cookies",
+        "accessibility": "Accessibility"
+      }
+    }
   }
 }

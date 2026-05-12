@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { ArrowRight, PenLine } from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
 import { ThemeToggle } from '@notai/ui/components/theme-toggle';
+import { getTranslations } from 'next-intl/server';
+import { MarketingLocaleToggle } from './locale-toggle';
 
 /**
  * Soft aurora + dot grid background used across the marketing site
@@ -29,14 +31,14 @@ export function AuroraBackground() {
   );
 }
 
-const NAV_LINKS: { href: string; label: string }[] = [
-  { href: '/features', label: 'Features' },
-  { href: '/pricing', label: 'Pricing' },
-  { href: '/docs', label: 'Docs' },
-  { href: '/about', label: 'About' },
-];
-
-export function MarketingHeader({ signedIn }: { signedIn: boolean }) {
+export async function MarketingHeader({ signedIn }: { signedIn: boolean }) {
+  const t = await getTranslations('marketing.header');
+  const navLinks: { href: string; label: string }[] = [
+    { href: '/features', label: t('nav.features') },
+    { href: '/pricing', label: t('nav.pricing') },
+    { href: '/docs', label: t('nav.docs') },
+    { href: '/about', label: t('nav.about') },
+  ];
   return (
     <header className="relative z-20">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
@@ -48,7 +50,7 @@ export function MarketingHeader({ signedIn }: { signedIn: boolean }) {
         </Link>
 
         <div className="text-muted-foreground hidden items-center gap-7 text-sm md:flex">
-          {NAV_LINKS.map((l) => (
+          {navLinks.map((l) => (
             <Link key={l.href} href={l.href} className="hover:text-foreground">
               {l.label}
             </Link>
@@ -56,20 +58,21 @@ export function MarketingHeader({ signedIn }: { signedIn: boolean }) {
         </div>
 
         <div className="flex items-center gap-2">
+          <MarketingLocaleToggle />
           <ThemeToggle />
           {signedIn ? (
             <Button asChild size="sm">
               <Link href="/app">
-                Open app <ArrowRight />
+                {t('openApp')} <ArrowRight />
               </Link>
             </Button>
           ) : (
             <>
               <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex">
-                <Link href="/signin">Sign in</Link>
+                <Link href="/signin">{t('signIn')}</Link>
               </Button>
               <Button asChild size="sm">
-                <Link href="/signin">Get started</Link>
+                <Link href="/signin">{t('getStarted')}</Link>
               </Button>
             </>
           )}
@@ -96,7 +99,8 @@ function FooterCol({ title, links }: { title: string; links: { href: string; lab
   );
 }
 
-export function MarketingFooter() {
+export async function MarketingFooter() {
+  const t = await getTranslations('marketing.footer');
   const year = new Date().getFullYear();
   return (
     <footer className="relative mx-auto max-w-6xl px-6 pb-10">
@@ -112,45 +116,42 @@ export function MarketingFooter() {
             <span className="font-semibold tracking-tight">Notai</span>
           </div>
           <p className="text-muted-foreground mt-3 max-w-xs text-sm leading-relaxed">
-            A calm, local-first notes app with sticky windows, drawings, and optional cloud sync.
-            Made with care in Romania.
+            {t('tagline')}
           </p>
-          <p className="text-muted-foreground/80 mt-4 text-xs">
-            © {year} Notai · Operated by Vlăduțescu Dragoș Cătălin (PFA), Romania.
-          </p>
+          <p className="text-muted-foreground/80 mt-4 text-xs">{t('copyright', { year })}</p>
         </div>
 
         <FooterCol
-          title="Product"
+          title={t('product')}
           links={[
-            { href: '/', label: 'Home' },
-            { href: '/features', label: 'Features' },
-            { href: '/pricing', label: 'Pricing' },
-            { href: '/about', label: 'About' },
-            { href: '/signin', label: 'Sign in' },
+            { href: '/', label: t('links.home') },
+            { href: '/features', label: t('links.features') },
+            { href: '/pricing', label: t('links.pricing') },
+            { href: '/about', label: t('links.about') },
+            { href: '/signin', label: t('links.signIn') },
           ]}
         />
         <FooterCol
-          title="Help"
+          title={t('help')}
           links={[
-            { href: '/docs', label: 'Docs' },
-            { href: '/changelog', label: 'Changelog' },
-            { href: '/roadmap', label: 'Roadmap' },
-            { href: '/faq', label: 'FAQ' },
-            { href: '/support', label: 'My tickets' },
-            { href: '/support/new', label: 'Open a ticket' },
-            { href: '/contact', label: 'Contact' },
+            { href: '/docs', label: t('links.docs') },
+            { href: '/changelog', label: t('links.changelog') },
+            { href: '/roadmap', label: t('links.roadmap') },
+            { href: '/faq', label: t('links.faq') },
+            { href: '/support', label: t('links.myTickets') },
+            { href: '/support/new', label: t('links.openTicket') },
+            { href: '/contact', label: t('links.contact') },
           ]}
         />
         <FooterCol
-          title="Legal"
+          title={t('legal')}
           links={[
-            { href: '/terms', label: 'Terms' },
-            { href: '/privacy-policy', label: 'Privacy' },
-            { href: '/refund', label: 'Refund' },
-            { href: '/aup', label: 'Acceptable use' },
-            { href: '/cookies', label: 'Cookies' },
-            { href: '/accessibility', label: 'Accessibility' },
+            { href: '/terms', label: t('links.terms') },
+            { href: '/privacy-policy', label: t('links.privacy') },
+            { href: '/refund', label: t('links.refund') },
+            { href: '/aup', label: t('links.aup') },
+            { href: '/cookies', label: t('links.cookies') },
+            { href: '/accessibility', label: t('links.accessibility') },
           ]}
         />
       </div>

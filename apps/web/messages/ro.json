@@ -45,5 +45,45 @@
     "marketing": "Marketing",
     "marketingDesc": "Folosit pentru a măsura campaniile publicitare. În prezent nu folosim niciuna.",
     "saveChoices": "Salvează alegerile"
+  },
+  "marketing": {
+    "header": {
+      "nav": {
+        "features": "Funcționalități",
+        "pricing": "Tarife",
+        "docs": "Ghiduri",
+        "about": "Despre"
+      },
+      "openApp": "Deschide aplicația",
+      "signIn": "Autentificare",
+      "getStarted": "Începe acum"
+    },
+    "footer": {
+      "tagline": "O aplicație de notițe calmă, local-first, cu ferestre lipicioase, desene și sincronizare opțională în cloud. Făcută cu grijă în România.",
+      "copyright": "© {year} Notai · Operat de Vlăduțescu Dragoș Cătălin (PFA), România.",
+      "product": "Produs",
+      "help": "Ajutor",
+      "legal": "Legal",
+      "links": {
+        "home": "Acasă",
+        "features": "Funcționalități",
+        "pricing": "Tarife",
+        "about": "Despre",
+        "signIn": "Autentificare",
+        "docs": "Ghiduri",
+        "changelog": "Noutăți",
+        "roadmap": "Plan",
+        "faq": "Întrebări frecvente",
+        "myTickets": "Tichetele mele",
+        "openTicket": "Deschide un tichet",
+        "contact": "Contact",
+        "terms": "Termeni",
+        "privacy": "Confidențialitate",
+        "refund": "Rambursare",
+        "aup": "Utilizare acceptabilă",
+        "cookies": "Cookie-uri",
+        "accessibility": "Accesibilitate"
+      }
+    }
   }
 }
