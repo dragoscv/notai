@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { DOCS, DOCS_BY_SLUG } from '../_content';
+import { resolveLocale } from '../../../../i18n';
+import { DOC_SLUGS, DOCS_BY_SLUG_EN, getLocalizedDoc, getLocalizedDocs } from '../_content';
 import { DocsShell } from '../_shell';
 import { JsonLd, articleSchema, breadcrumbSchema } from '@/components/seo/json-ld';
 
@@ -11,12 +12,13 @@ interface PageProps {
 }
 
 export function generateStaticParams() {
-  return DOCS.map((d) => ({ slug: d.slug }));
+  return DOC_SLUGS.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const doc = DOCS_BY_SLUG.get(slug);
+  const locale = await resolveLocale();
+  const doc = (await getLocalizedDoc(slug, locale)) ?? DOCS_BY_SLUG_EN.get(slug);
   if (!doc) return { title: 'Not found' };
   return {
     title: doc.title,
@@ -27,11 +29,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function DocsArticlePage({ params }: PageProps) {
   const { slug } = await params;
-  const doc = DOCS_BY_SLUG.get(slug);
+  const locale = await resolveLocale();
+  const doc = (await getLocalizedDoc(slug, locale)) ?? DOCS_BY_SLUG_EN.get(slug);
   if (!doc) notFound();
 
-  const idx = DOCS.findIndex((d) => d.slug === doc.slug);
-  const next = DOCS[idx + 1];
+  const docs = await getLocalizedDocs(locale);
+  const idx = docs.findIndex((d) => d.slug === doc.slug);
+  const next = docs[idx + 1];
+  const nextLabel = locale === 'ro' ? 'Următor' : 'Next';
 
   return (
     <DocsShell
@@ -63,7 +68,7 @@ export default async function DocsArticlePage({ params }: PageProps) {
             className="border-border/60 hover:border-primary/40 hover:bg-muted/40 focus-visible:ring-ring group flex items-center justify-between rounded-lg border p-4 transition-colors focus-visible:outline-none focus-visible:ring-2"
           >
             <div>
-              <p className="text-muted-foreground text-xs uppercase tracking-wide">Next</p>
+              <p className="text-muted-foreground text-xs uppercase tracking-wide">{nextLabel}</p>
               <p className="mt-1 font-medium">{next.title}</p>
             </div>
             <ArrowRight

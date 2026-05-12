@@ -1,31 +1,37 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { DOCS } from './_content';
+import { resolveLocale } from '../../../i18n';
+import { DOC_GROUP_KEYS, DOC_GROUP_LABELS, DOCS_INDEX_STRINGS, getLocalizedDocs } from './_content';
 import { DocsShell } from './_shell';
 
-export const metadata: Metadata = {
-  title: 'Documentation',
-  description:
-    'Notai documentation — getting started, keyboard shortcuts, AI features, sync, billing, and the public API.',
-  alternates: { canonical: '/docs' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await resolveLocale();
+  const isRo = locale === 'ro';
+  return {
+    title: isRo ? 'Documentație' : 'Documentation',
+    description: isRo
+      ? 'Documentație Notai — primii pași, scurtături, funcționalități AI, sincronizare, facturare și API public.'
+      : 'Notai documentation — getting started, keyboard shortcuts, AI features, sync, billing, and the public API.',
+    alternates: { canonical: '/docs' },
+  };
+}
 
-const GROUPS = ['Getting started', 'Features', 'Account & billing', 'Developers'] as const;
+export default async function DocsIndexPage() {
+  const locale = await resolveLocale();
+  const docs = await getLocalizedDocs(locale);
+  const strings = DOCS_INDEX_STRINGS[locale];
+  const labels = DOC_GROUP_LABELS[locale];
 
-export default function DocsIndexPage() {
   return (
-    <DocsShell
-      title="Documentation"
-      subtitle="Short guides for Notai. If something is missing, write to hello@notai.ro and we will add it."
-    >
+    <DocsShell title={strings.title} subtitle={strings.subtitle}>
       <div className="not-prose space-y-10">
-        {GROUPS.map((group) => {
-          const items = DOCS.filter((d) => d.group === group);
+        {DOC_GROUP_KEYS.map((group) => {
+          const items = docs.filter((d) => d.group === group);
           if (items.length === 0) return null;
           return (
             <section key={group}>
-              <h2 className="text-xl font-semibold tracking-tight">{group}</h2>
+              <h2 className="text-xl font-semibold tracking-tight">{labels[group]}</h2>
               <ul className="mt-4 grid gap-3 sm:grid-cols-2">
                 {items.map((doc) => (
                   <li key={doc.slug}>
@@ -42,7 +48,7 @@ export default function DocsIndexPage() {
                       </div>
                       <p className="text-muted-foreground mt-1 text-sm">{doc.summary}</p>
                       <p className="text-muted-foreground/70 mt-2 text-xs">
-                        {doc.readingMinutes} min read
+                        {strings.minRead(doc.readingMinutes)}
                       </p>
                     </Link>
                   </li>
