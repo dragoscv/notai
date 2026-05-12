@@ -175,13 +175,37 @@ await server.listen();
 console.log(`✓ Hocuspocus listening on :${PORT}`);
 
 function extractPlaintext(doc: Y.Doc): string {
-  // Canvas-first scene model (v0.2+): blocks live under getMap('scene').get('blocks')
-  // and their TipTap content under getMap('blocks-content').get(id) as Y.XmlFragment.
-  // Legacy block ids point at top-level fragments. We walk all sources and
-  // concatenate so plaintext stays correct across the migration boundary.
+  // Canvas-first scene model. Two coexisting shapes:
+  //
+  //  1. Native Excalidraw (current): doc.getMap('excalidraw').get('elements')
+  //     is a JSON array of Excalidraw elements; text elements expose their
+  //     copy as `text` / `originalText`. This is the canonical surface
+  //     post TipTap removal.
+  //
+  //  2. Legacy block model (pre-migration): doc.getMap('scene').get('blocks')
+  //     points at TipTap fragments under doc.getMap('blocks-content').
+  //
+  // We walk both so unmigrated notes still mirror plaintext correctly.
   try {
     const parts: string[] = [];
 
+    // (1) Native Excalidraw elements.
+    const excaliMap = doc.getMap('excalidraw');
+    const rawElements = excaliMap.get('elements');
+    if (Array.isArray(rawElements)) {
+      for (const el of rawElements as Array<Record<string, unknown>>) {
+        if (!el || typeof el !== 'object') continue;
+        if (el.isDeleted) continue;
+        const text =
+          (typeof el.originalText === 'string' && el.originalText) ||
+          (typeof el.text === 'string' && el.text) ||
+          '';
+        const trimmed = text.trim();
+        if (trimmed) parts.push(trimmed);
+      }
+    }
+
+    // (2) Legacy TipTap-via-blocks fragments.
     const scene = doc.getMap('scene');
     const blocks = scene.get('blocks');
     const blockArr =
