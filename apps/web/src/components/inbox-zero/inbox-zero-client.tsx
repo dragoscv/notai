@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Folder, Sparkles, Inbox, ArrowRight, Trash2, Archive } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { Spinner } from '@notai/ui/components/spinner';
 import { listFolders } from '@/server/actions/folders';
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function InboxZeroClient({ initial }: Props) {
+  const t = useTranslations('appFeatures.inboxZero');
   const router = useRouter();
   const [items, setItems] = React.useState<UnfiledSuggestion[]>(initial);
   const [busy, setBusy] = React.useState<Record<string, boolean>>({});
@@ -45,7 +47,13 @@ export function InboxZeroClient({ initial }: Props) {
   const [bulkArchiving, setBulkArchiving] = React.useState(false);
   const bulkDelete = React.useCallback(async () => {
     if (selected.size === 0) return;
-    if (!window.confirm(`Move ${selected.size} note${selected.size === 1 ? '' : 's'} to Trash?`))
+    if (
+      !window.confirm(
+        selected.size === 1
+          ? t('bulkDeleteConfirmOne', { count: selected.size })
+          : t('bulkDeleteConfirmOther', { count: selected.size }),
+      )
+    )
       return;
     setBulkDeleting(true);
     const ids = Array.from(selected);
@@ -55,7 +63,7 @@ export function InboxZeroClient({ initial }: Props) {
       }
       setItems((xs) => xs.filter((x) => !selected.has(x.noteId)));
       clearSelection();
-      toast.success(`Moved ${ids.length} to Trash.`);
+      toast.success(t('movedToTrash', { count: ids.length }));
       router.refresh();
     } catch (err) {
       toast.error((err as Error).message);
@@ -74,7 +82,11 @@ export function InboxZeroClient({ initial }: Props) {
       }
       setItems((xs) => xs.filter((x) => !selected.has(x.noteId)));
       clearSelection();
-      toast.success(`Archived ${ids.length} note${ids.length === 1 ? '' : 's'}.`);
+      toast.success(
+        ids.length === 1
+          ? t('archivedToastOne', { count: ids.length })
+          : t('archivedToastOther', { count: ids.length }),
+      );
       router.refresh();
     } catch (err) {
       toast.error((err as Error).message);
@@ -97,15 +109,15 @@ export function InboxZeroClient({ initial }: Props) {
       try {
         await moveNote({ noteId, folderId });
         setItems((xs) => xs.filter((x) => x.noteId !== noteId));
-        toast.success('Filed.', {
+        toast.success(t('filed'), {
           action: {
-            label: 'Undo',
+            label: t('undo'),
             onClick: () => {
               void (async () => {
                 try {
                   await moveNote({ noteId, folderId: null });
                   if (removed) setItems((xs) => [removed, ...xs]);
-                  toast.message('Move undone.');
+                  toast.message(t('undoToast'));
                   router.refresh();
                 } catch (err) {
                   toast.error((err as Error).message);
@@ -147,25 +159,30 @@ export function InboxZeroClient({ initial }: Props) {
         moved.push({ noteId: it.noteId, folderId, item: it });
       }
       setItems((xs) => xs.filter((x) => !moved.find((m) => m.noteId === x.noteId)));
-      toast.success(`Filed ${moved.length} note${moved.length === 1 ? '' : 's'}.`, {
-        action: {
-          label: 'Undo all',
-          onClick: () => {
-            void (async () => {
-              try {
-                for (const m of moved) {
-                  await moveNote({ noteId: m.noteId, folderId: null });
+      toast.success(
+        moved.length === 1
+          ? t('filedManyOne', { count: moved.length })
+          : t('filedManyOther', { count: moved.length }),
+        {
+          action: {
+            label: t('undoAll'),
+            onClick: () => {
+              void (async () => {
+                try {
+                  for (const m of moved) {
+                    await moveNote({ noteId: m.noteId, folderId: null });
+                  }
+                  setItems((xs) => [...moved.map((m) => m.item), ...xs]);
+                  toast.message(t('undoAllToast'));
+                  router.refresh();
+                } catch (err) {
+                  toast.error((err as Error).message);
                 }
-                setItems((xs) => [...moved.map((m) => m.item), ...xs]);
-                toast.message('All moves undone.');
-                router.refresh();
-              } catch (err) {
-                toast.error((err as Error).message);
-              }
-            })();
+              })();
+            },
           },
         },
-      });
+      );
       router.refresh();
     } catch (err) {
       toast.error((err as Error).message);
@@ -183,7 +200,7 @@ export function InboxZeroClient({ initial }: Props) {
       const next = await summarizeInboxItems({ noteIds: targetIds });
       setGists((g) => ({ ...g, ...next }));
     } catch (err) {
-      toast.error((err as Error).message || 'Could not summarise');
+      toast.error((err as Error).message || t('gistFailed'));
     } finally {
       setGistBusy(false);
     }
@@ -193,8 +210,8 @@ export function InboxZeroClient({ initial }: Props) {
     return (
       <div className="bg-card flex flex-col items-center gap-3 rounded-xl border p-10 text-center">
         <Inbox className="text-muted-foreground size-8" />
-        <p className="font-medium">Inbox zero.</p>
-        <p className="text-muted-foreground text-sm">Every note is filed. Nice work.</p>
+        <p className="font-medium">{t('emptyHeading')}</p>
+        <p className="text-muted-foreground text-sm">{t('emptyBody')}</p>
       </div>
     );
   }
@@ -203,12 +220,14 @@ export function InboxZeroClient({ initial }: Props) {
     <div className="space-y-3">
       {selected.size > 0 && (
         <div className="bg-card sticky top-0 z-10 flex items-center gap-2 rounded-xl border p-3 shadow-sm">
-          <span className="text-sm font-medium">{selected.size} selected</span>
+          <span className="text-sm font-medium">
+            {t('selectedCount', { count: selected.size })}
+          </span>
           <Button size="sm" variant="ghost" onClick={selectAll}>
-            Select all
+            {t('selectAll')}
           </Button>
           <Button size="sm" variant="ghost" onClick={clearSelection}>
-            Clear
+            {t('clear')}
           </Button>
           <div className="flex-1" />
           <Button size="sm" variant="outline" onClick={bulkArchive} disabled={bulkArchiving}>
@@ -216,7 +235,7 @@ export function InboxZeroClient({ initial }: Props) {
               <Spinner className="size-3.5" />
             ) : (
               <>
-                <Archive className="size-3.5" /> Archive
+                <Archive className="size-3.5" /> {t('archive')}
               </>
             )}
           </Button>
@@ -225,7 +244,7 @@ export function InboxZeroClient({ initial }: Props) {
               <Spinner className="size-3.5" />
             ) : (
               <>
-                <Trash2 className="size-3.5" /> Move to Trash
+                <Trash2 className="size-3.5" /> {t('moveToTrash')}
               </>
             )}
           </Button>
@@ -235,17 +254,16 @@ export function InboxZeroClient({ initial }: Props) {
         <div className="bg-card flex items-center gap-3 rounded-xl border p-3">
           <Sparkles className="text-primary size-4" />
           <div className="flex-1 text-sm">
-            <span className="font-medium">{confidentItems.length}</span>{' '}
-            <span className="text-muted-foreground">
-              note{confidentItems.length === 1 ? '' : 's'} ready to auto-file (\u226565% match).
-            </span>
+            {confidentItems.length === 1
+              ? t('readyAutoFileOne', { count: confidentItems.length })
+              : t('readyAutoFileOther', { count: confidentItems.length })}
           </div>
           <Button size="sm" onClick={bulkFile} disabled={bulkBusy}>
             {bulkBusy ? (
               <Spinner className="size-3.5" />
             ) : (
               <>
-                File all <ArrowRight className="size-3.5" />
+                {t('fileAll')} <ArrowRight className="size-3.5" />
               </>
             )}
           </Button>
@@ -255,7 +273,7 @@ export function InboxZeroClient({ initial }: Props) {
         <div className="flex justify-end">
           <Button size="sm" variant="ghost" onClick={fetchGists} disabled={gistBusy}>
             {gistBusy ? <Spinner className="size-3.5" /> : <Sparkles className="size-3.5" />}
-            AI gist for each
+            {t('aiGistEach')}
           </Button>
         </div>
       )}
@@ -274,7 +292,7 @@ export function InboxZeroClient({ initial }: Props) {
                   type="checkbox"
                   checked={selected.has(it.noteId)}
                   onChange={() => toggleSelect(it.noteId)}
-                  aria-label={`Select ${it.noteTitle || 'Untitled'}`}
+                  aria-label={t('selectAria', { title: it.noteTitle || t('untitled') })}
                   className="mt-1 size-4 cursor-pointer accent-current"
                 />
                 <span className="text-xl leading-none" aria-hidden>
@@ -285,7 +303,7 @@ export function InboxZeroClient({ initial }: Props) {
                     href={`/app/n/${it.noteId}`}
                     className="hover:text-foreground block truncate font-medium"
                   >
-                    {it.noteTitle || 'Untitled'}
+                    {it.noteTitle || t('untitled')}
                   </Link>
                   {it.notePlaintext && (
                     <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
@@ -301,14 +319,14 @@ export function InboxZeroClient({ initial }: Props) {
                     {targetFolderId ? (
                       <>
                         <Sparkles className="text-primary size-3.5" />
-                        <span className="text-muted-foreground text-xs">Suggested:</span>
+                        <span className="text-muted-foreground text-xs">{t('suggested')}</span>
                         <span className="bg-muted inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs">
                           <Folder className="size-3" />
                           {targetFolderName}
                         </span>
                         {confidence != null && override[it.noteId] == null && (
                           <span className="text-muted-foreground text-xs">
-                            ({confidence}% match)
+                            {t('matchPercent', { percent: confidence })}
                           </span>
                         )}
                         <Button
@@ -321,15 +339,13 @@ export function InboxZeroClient({ initial }: Props) {
                             <Spinner className="size-3.5" />
                           ) : (
                             <>
-                              File here <ArrowRight className="size-3.5" />
+                              {t('fileHere')} <ArrowRight className="size-3.5" />
                             </>
                           )}
                         </Button>
                       </>
                     ) : (
-                      <span className="text-muted-foreground text-xs">
-                        No clear match — pick a folder:
-                      </span>
+                      <span className="text-muted-foreground text-xs">{t('noClearMatch')}</span>
                     )}
                   </div>
                   {folders && folders.length > 0 && (

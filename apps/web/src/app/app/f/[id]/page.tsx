@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { Plus, Folder as FolderGlyph, Sparkles } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { listNotes, createNote } from '@/server/actions/notes';
 import { getFolder, listFolders } from '@/server/actions/folders';
 import { Button } from '@notai/ui/components/button';
@@ -7,7 +8,10 @@ import { NoteCardGrid } from '@/components/note/note-card-grid';
 import { SidebarToggle } from '@/components/layout/sidebar-toggle';
 import { NoteIcon } from '@/components/ui/note-icon';
 
-export const metadata = { title: 'Folder' };
+export async function generateMetadata() {
+  const t = await getTranslations('pages.folder');
+  return { title: t('metaTitle') };
+}
 
 /**
  * Folder page — shows all notes (direct children + descendants) belonging
@@ -17,10 +21,11 @@ export const metadata = { title: 'Folder' };
 export default async function FolderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [folder, allFolders, allNotes] = await Promise.all([
+  const [folder, allFolders, allNotes, t] = await Promise.all([
     getFolder(id),
     listFolders(),
     listNotes(),
+    getTranslations('pages.folder'),
   ]);
   if (!folder) notFound();
 
@@ -42,6 +47,14 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
   const pinned = notesInFolder.filter((n) => n.isPinned);
   const rest = notesInFolder.filter((n) => !n.isPinned);
   const subfolders = allFolders.filter((f) => f.parentId === folder.id);
+  const notesLabel =
+    notesInFolder.length === 1
+      ? t('noteCountOne', { count: notesInFolder.length })
+      : t('noteCountOther', { count: notesInFolder.length });
+  const subfolderLabel =
+    subfolders.length === 1
+      ? t('subfolderCountOne', { count: subfolders.length })
+      : t('subfolderCountOther', { count: subfolders.length });
 
   async function createHere(formData: FormData) {
     'use server';
@@ -63,9 +76,8 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
           <div className="min-w-0">
             <h1 className="truncate text-lg font-semibold tracking-tight">{folder.name}</h1>
             <p className="text-muted-foreground truncate text-sm">
-              {notesInFolder.length} note{notesInFolder.length === 1 ? '' : 's'}
-              {subfolders.length > 0 &&
-                ` · ${subfolders.length} subfolder${subfolders.length === 1 ? '' : 's'}`}
+              {notesLabel}
+              {subfolders.length > 0 && ` · ${subfolderLabel}`}
             </p>
           </div>
         </div>
@@ -78,7 +90,7 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
             size="sm"
             className="hidden sm:inline-flex"
           >
-            <Sparkles /> New sticky
+            <Sparkles /> {t('newSticky')}
           </Button>
           <Button
             type="submit"
@@ -87,7 +99,7 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
             variant="outline"
             size="icon-sm"
             className="sm:hidden"
-            aria-label="New sticky"
+            aria-label={t('newSticky')}
           >
             <Sparkles />
           </Button>
@@ -98,7 +110,7 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
             size="sm"
             className="hidden sm:inline-flex"
           >
-            <Plus /> New note
+            <Plus /> {t('newNote')}
           </Button>
           <Button
             type="submit"
@@ -106,7 +118,7 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
             value="note"
             size="icon-sm"
             className="sm:hidden"
-            aria-label="New note"
+            aria-label={t('newNote')}
           >
             <Plus />
           </Button>
@@ -120,12 +132,12 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
           <>
             {pinned.length > 0 && (
               <section className="mb-8">
-                <h2 className="text-muted-foreground mb-3 text-sm font-medium">Pinned</h2>
+                <h2 className="text-muted-foreground mb-3 text-sm font-medium">{t('pinned')}</h2>
                 <NoteCardGrid notes={pinned} />
               </section>
             )}
             <section>
-              <h2 className="text-muted-foreground mb-3 text-sm font-medium">All notes</h2>
+              <h2 className="text-muted-foreground mb-3 text-sm font-medium">{t('allNotes')}</h2>
               <NoteCardGrid notes={rest} />
             </section>
           </>
@@ -135,17 +147,16 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
   );
 }
 
-function EmptyState() {
+async function EmptyState() {
+  const t = await getTranslations('pages.folder');
   return (
     <div className="grid place-items-center rounded-xl border border-dashed py-20">
       <div className="text-center">
         <div className="bg-primary/10 text-primary mx-auto grid size-12 place-items-center rounded-full">
           <Plus />
         </div>
-        <h3 className="mt-4 font-medium">This folder is empty</h3>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Create a note inside this folder to get started.
-        </p>
+        <h3 className="mt-4 font-medium">{t('emptyTitle')}</h3>
+        <p className="text-muted-foreground mt-1 text-sm">{t('emptyBody')}</p>
       </div>
     </div>
   );

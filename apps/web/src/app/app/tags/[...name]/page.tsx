@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect, notFound } from 'next/navigation';
 import { Hash, FileText, ChevronRight } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { auth } from '@/auth';
 import { listNotesByTagPath, listChildTagSegments } from '@/server/actions/tags';
 
@@ -16,8 +17,11 @@ export default async function TagPage({ params }: Props) {
   const { name } = await params;
   const segments = name.map(decodeURIComponent).filter(Boolean);
   const path = segments.join('/');
-  const { tag, notes, includesDescendants } = await listNotesByTagPath(path);
-  const children = await listChildTagSegments(path);
+  const [{ tag, notes, includesDescendants }, children, t] = await Promise.all([
+    listNotesByTagPath(path),
+    listChildTagSegments(path),
+    getTranslations('pages.tags'),
+  ]);
   if (!tag && children.length === 0) notFound();
 
   const ancestors: Array<{ label: string; href: string }> = segments.slice(0, -1).map((_, i) => ({
@@ -35,10 +39,10 @@ export default async function TagPage({ params }: Props) {
     <div className="mx-auto max-w-3xl space-y-4 p-4 md:p-6">
       <nav
         className="text-muted-foreground flex flex-wrap items-center gap-1 text-xs"
-        aria-label="Tag breadcrumbs"
+        aria-label={t('breadcrumbsAria')}
       >
         <Link href="/app" className="hover:underline">
-          All
+          {t('all')}
         </Link>
         {ancestors.map((a) => (
           <span key={a.href} className="flex items-center gap-1">
@@ -54,8 +58,10 @@ export default async function TagPage({ params }: Props) {
         <Hash className="text-muted-foreground size-5" />
         <h1 className="font-serif text-3xl font-semibold tracking-tight">{leaf}</h1>
         <span className="text-muted-foreground ml-auto text-sm">
-          {notes.length} note{notes.length === 1 ? '' : 's'}
-          {includesDescendants ? ' (incl. sub-tags)' : ''}
+          {notes.length === 1
+            ? t('noteCountOne', { count: notes.length })
+            : t('noteCountOther', { count: notes.length })}
+          {includesDescendants ? t('includesSubTags') : ''}
         </span>
       </div>
 
@@ -80,7 +86,7 @@ export default async function TagPage({ params }: Props) {
       )}
 
       {notes.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No notes carry this tag yet.</p>
+        <p className="text-muted-foreground text-sm">{t('empty')}</p>
       ) : (
         <ul className="bg-card divide-y rounded-2xl border">
           {notes.map((n) => (
@@ -92,7 +98,7 @@ export default async function TagPage({ params }: Props) {
                 <span className="size-5 shrink-0 text-center">
                   {n.icon || <FileText className="size-4 opacity-60" />}
                 </span>
-                <span className="truncate font-medium">{n.title || 'Untitled'}</span>
+                <span className="truncate font-medium">{n.title || t('untitled')}</span>
                 <span className="text-muted-foreground ml-auto shrink-0 text-xs">
                   {new Date(n.updatedAt).toLocaleDateString(undefined, {
                     month: 'short',

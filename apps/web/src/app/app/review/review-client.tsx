@@ -3,16 +3,17 @@
 import * as React from 'react';
 import { Button, Input, Textarea } from '@notai/ui';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { createFlashcard, deleteFlashcard, reviewFlashcard } from '@/server/actions/flashcards';
 
 type DueCard = { id: string; front: string; back: string };
 type AnyCard = DueCard & { dueAt: string; intervalDays: number };
 
 const GRADES = [
-  { q: 0, label: 'Again', hint: 'Forgot — show soon' },
-  { q: 3, label: 'Hard', hint: 'Recalled with effort' },
-  { q: 4, label: 'Good', hint: 'Recalled' },
-  { q: 5, label: 'Easy', hint: 'Trivial' },
+  { q: 0, labelKey: 'gradeAgainLabel', hintKey: 'gradeAgainHint' },
+  { q: 3, labelKey: 'gradeHardLabel', hintKey: 'gradeHardHint' },
+  { q: 4, labelKey: 'gradeGoodLabel', hintKey: 'gradeGoodHint' },
+  { q: 5, labelKey: 'gradeEasyLabel', hintKey: 'gradeEasyHint' },
 ] as const;
 
 export function ReviewClient({
@@ -22,6 +23,7 @@ export function ReviewClient({
   initialDue: DueCard[];
   allCards: AnyCard[];
 }) {
+  const t = useTranslations('appFeatures.review');
   const [queue, setQueue] = React.useState(initialDue);
   const [revealed, setRevealed] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
@@ -52,7 +54,7 @@ export function ReviewClient({
     setBusy(true);
     try {
       await createFlashcard({ front, back });
-      toast.success('Card added');
+      toast.success(t('cardAdded'));
       setFront('');
       setBack('');
     } catch (err) {
@@ -63,10 +65,10 @@ export function ReviewClient({
   };
 
   const removeCard = async (id: string) => {
-    if (!confirm('Delete this card?')) return;
+    if (!confirm(t('deleteConfirm'))) return;
     try {
       await deleteFlashcard(id);
-      toast.success('Deleted');
+      toast.success(t('deleted'));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -75,16 +77,20 @@ export function ReviewClient({
   return (
     <div className="space-y-4">
       <div className="flex gap-2 border-b">
-        {(['review', 'all', 'new'] as const).map((t) => (
+        {(['review', 'all', 'new'] as const).map((tabKey) => (
           <button
-            key={t}
+            key={tabKey}
             type="button"
-            onClick={() => setTab(t)}
+            onClick={() => setTab(tabKey)}
             className={`px-3 py-2 text-sm capitalize ${
-              tab === t ? 'border-foreground border-b-2 font-medium' : 'text-muted-foreground'
+              tab === tabKey ? 'border-foreground border-b-2 font-medium' : 'text-muted-foreground'
             }`}
           >
-            {t === 'review' ? `Review (${queue.length})` : t === 'all' ? 'All cards' : 'New card'}
+            {tabKey === 'review'
+              ? t('tabReview', { count: queue.length })
+              : tabKey === 'all'
+                ? t('tabAll')
+                : t('tabNew')}
           </button>
         ))}
       </div>
@@ -105,9 +111,9 @@ export function ReviewClient({
                         variant={g.q === 0 ? 'destructive' : g.q === 5 ? 'default' : 'secondary'}
                         onClick={() => grade(g.q)}
                         disabled={busy}
-                        title={g.hint}
+                        title={t(g.hintKey)}
                       >
-                        {g.label}
+                        {t(g.labelKey)}
                       </Button>
                     ))}
                   </div>
@@ -115,14 +121,14 @@ export function ReviewClient({
               ) : (
                 <div className="mt-6">
                   <Button onClick={() => setRevealed(true)} disabled={busy}>
-                    Show answer
+                    {t('showAnswer')}
                   </Button>
                 </div>
               )}
             </div>
           ) : (
             <div className="bg-card text-muted-foreground rounded-lg border p-6 text-center">
-              No cards due right now. Add some, or come back later.
+              {t('noneDue')}
             </div>
           )}
         </div>
@@ -132,7 +138,7 @@ export function ReviewClient({
         <div className="space-y-2">
           {allCards.length === 0 && (
             <div className="bg-card text-muted-foreground rounded-lg border p-6 text-center">
-              No cards yet.
+              {t('noCards')}
             </div>
           )}
           {allCards.map((c) => (
@@ -142,11 +148,14 @@ export function ReviewClient({
                   <div className="truncate text-sm font-medium">{c.front}</div>
                   <div className="text-muted-foreground truncate text-xs">{c.back}</div>
                   <div className="text-muted-foreground mt-1 text-xs">
-                    Interval: {c.intervalDays}d · Due {new Date(c.dueAt).toLocaleDateString()}
+                    {t('intervalDueLine', {
+                      days: c.intervalDays,
+                      date: new Date(c.dueAt).toLocaleDateString(),
+                    })}
                   </div>
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => removeCard(c.id)}>
-                  Delete
+                  {t('delete')}
                 </Button>
               </div>
             </div>
@@ -157,24 +166,24 @@ export function ReviewClient({
       {tab === 'new' && (
         <div className="bg-card space-y-3 rounded-lg border p-4">
           <div className="space-y-1">
-            <label className="text-sm font-medium">Front</label>
+            <label className="text-sm font-medium">{t('frontLabel')}</label>
             <Input
               value={front}
               onChange={(e) => setFront(e.target.value)}
-              placeholder="Question or prompt"
+              placeholder={t('frontPlaceholder')}
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium">Back</label>
+            <label className="text-sm font-medium">{t('backLabel')}</label>
             <Textarea
               value={back}
               onChange={(e) => setBack(e.target.value)}
-              placeholder="Answer"
+              placeholder={t('backPlaceholder')}
               rows={4}
             />
           </div>
           <Button onClick={addCard} disabled={busy || !front.trim() || !back.trim()}>
-            Add card
+            {t('addCard')}
           </Button>
         </div>
       )}

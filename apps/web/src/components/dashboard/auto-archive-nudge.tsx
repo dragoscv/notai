@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { Archive } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import {
   autoArchiveStale,
   unarchiveMany,
@@ -14,6 +15,7 @@ import {
  * toast restores everything via `unarchiveMany`.
  */
 export function AutoArchiveNudge() {
+  const t = useTranslations('dashboard.autoArchive');
   const [count, setCount] = React.useState<number | null>(null);
   const [busy, setBusy] = React.useState(false);
 
@@ -30,16 +32,21 @@ export function AutoArchiveNudge() {
     try {
       const { archived, archivedIds } = await autoArchiveStale();
       setCount(0);
-      toast.success(`Archived ${archived} stale note${archived === 1 ? '' : 's'}.`, {
-        action: {
-          label: 'Undo',
-          onClick: () => {
-            void unarchiveMany(archivedIds)
-              .then(() => toast.message('Archive undone.'))
-              .catch((err: unknown) => toast.error((err as Error).message));
+      toast.success(
+        archived === 1
+          ? t('archivedToastOne', { count: archived })
+          : t('archivedToastOther', { count: archived }),
+        {
+          action: {
+            label: t('undo'),
+            onClick: () => {
+              void unarchiveMany(archivedIds)
+                .then(() => toast.message(t('undoToast')))
+                .catch((err: unknown) => toast.error((err as Error).message));
+            },
           },
         },
-      });
+      );
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -52,9 +59,7 @@ export function AutoArchiveNudge() {
       <Archive className="text-muted-foreground size-4" />
       <div className="flex-1 text-sm">
         <span className="font-medium">{count}</span>{' '}
-        <span className="text-muted-foreground">
-          note{count === 1 ? '' : 's'} untouched for 90+ days.
-        </span>
+        <span className="text-muted-foreground">{count === 1 ? t('bodyOne') : t('bodyOther')}</span>
       </div>
       <button
         type="button"
@@ -62,7 +67,7 @@ export function AutoArchiveNudge() {
         disabled={busy}
         className="bg-foreground text-background inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium hover:opacity-90 disabled:opacity-50"
       >
-        {busy ? 'Archiving\u2026' : 'Archive all'}
+        {busy ? t('archiving') : t('archiveAll')}
       </button>
     </div>
   );

@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { Pin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { type ViewSpec, type SortKey, DEFAULT_VIEW_SPEC } from '@/lib/view-spec';
 import { type SavedView } from '@/server/actions/views';
 import { type NoteWithPreview } from '@/components/note/note-card';
@@ -41,6 +42,7 @@ export function DashboardView({
   folders: Folder[];
   tags: DashboardTag[];
 }) {
+  const t = useTranslations('dashboard.view');
   const defaultView = views.find((v) => v.isDefault) ?? views[0]!;
 
   const [activeId, setActiveId] = React.useState(() => {
@@ -98,10 +100,8 @@ export function DashboardView({
               exit={{ opacity: 0 }}
               className="bg-card/60 mx-auto mt-12 max-w-md rounded-2xl border p-8 text-center"
             >
-              <p className="font-serif text-lg">No notes match your filters</p>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Try adjusting the filters or resetting them.
-              </p>
+              <p className="font-serif text-lg">{t('noMatchTitle')}</p>
+              <p className="text-muted-foreground mt-1 text-sm">{t('noMatchBody')}</p>
               <button
                 type="button"
                 onClick={() =>
@@ -121,7 +121,7 @@ export function DashboardView({
                 }
                 className="text-primary mt-3 text-sm underline-offset-2 hover:underline"
               >
-                Reset filters
+                {t('resetFilters')}
               </button>
             </motion.div>
           ) : (
@@ -135,7 +135,7 @@ export function DashboardView({
               {pinned.length > 0 ? (
                 <section className="mb-8">
                   <h2 className="text-muted-foreground mb-3 flex items-center gap-2 text-sm font-medium">
-                    <Pin className="size-3.5" /> Pinned on Today
+                    <Pin className="size-3.5" /> {t('pinnedOnToday')}
                   </h2>
                   <SortableNoteGrid
                     notes={pinned}
@@ -148,7 +148,9 @@ export function DashboardView({
 
               <section>
                 {pinned.length > 0 ? (
-                  <h2 className="text-muted-foreground mb-3 text-sm font-medium">Notes</h2>
+                  <h2 className="text-muted-foreground mb-3 text-sm font-medium">
+                    {t('notesHeading')}
+                  </h2>
                 ) : null}
                 <SortableNoteGrid
                   notes={rest}

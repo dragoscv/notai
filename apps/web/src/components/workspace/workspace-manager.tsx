@@ -4,6 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { Plus, UserPlus, Trash2, Loader2, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import {
   type WorkspaceSummary,
@@ -21,6 +22,7 @@ import {
  * its own UI hook from the sidebar (separate change).
  */
 export function WorkspaceManager({ initial }: { initial: WorkspaceSummary[] }) {
+  const t = useTranslations('appFeatures.workspace');
   const [list, setList] = React.useState(initial);
   const [creating, setCreating] = React.useState('');
   const [busy, setBusy] = React.useState(false);
@@ -34,9 +36,9 @@ export function WorkspaceManager({ initial }: { initial: WorkspaceSummary[] }) {
       const { id } = await createWorkspace({ name: creating.trim() });
       setList((rows) => [...rows, { id, name: creating.trim(), role: 'owner', memberCount: 1 }]);
       setCreating('');
-      toast.success('Workspace created');
+      toast.success(t('created'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not create');
+      toast.error(err instanceof Error ? err.message : t('createFailed'));
     } finally {
       setBusy(false);
     }
@@ -48,17 +50,17 @@ export function WorkspaceManager({ initial }: { initial: WorkspaceSummary[] }) {
         <input
           value={creating}
           onChange={(e) => setCreating(e.target.value)}
-          placeholder="New workspace name\u2026"
+          placeholder={t('newPlaceholder')}
           maxLength={60}
           className="bg-background flex-1 rounded-md border px-3 py-2 text-sm"
         />
         <Button type="submit" disabled={busy || !creating.trim()}>
-          <Plus className="size-4" /> Create
+          <Plus className="size-4" /> {t('create')}
         </Button>
       </form>
 
       {list.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No workspaces yet.</p>
+        <p className="text-muted-foreground text-sm">{t('none')}</p>
       ) : (
         <ul className="divide-y rounded-2xl border">
           {list.map((ws) => (
@@ -67,7 +69,21 @@ export function WorkspaceManager({ initial }: { initial: WorkspaceSummary[] }) {
                 <div className="min-w-0 flex-1">
                   <div className="font-medium">{ws.name}</div>
                   <div className="text-muted-foreground text-xs">
-                    {ws.role} \u00b7 {ws.memberCount} member{ws.memberCount === 1 ? '' : 's'}
+                    {t('summary', {
+                      role: t(
+                        ws.role === 'owner'
+                          ? 'roleOwner'
+                          : ws.role === 'admin'
+                            ? 'roleAdmin'
+                            : ws.role === 'editor'
+                              ? 'roleEditor'
+                              : 'roleViewer',
+                      ),
+                      members:
+                        ws.memberCount === 1
+                          ? t('memberCountOne', { count: ws.memberCount })
+                          : t('memberCountOther', { count: ws.memberCount }),
+                    })}
                   </div>
                 </div>
                 <Button
@@ -75,11 +91,11 @@ export function WorkspaceManager({ initial }: { initial: WorkspaceSummary[] }) {
                   variant="outline"
                   onClick={() => setOpenId(openId === ws.id ? null : ws.id)}
                 >
-                  {openId === ws.id ? 'Hide' : 'Manage'}
+                  {openId === ws.id ? t('hide') : t('manage')}
                 </Button>
                 {(ws.role === 'owner' || ws.role === 'admin') && (
                   <Button size="sm" variant="ghost" asChild>
-                    <Link href={`/app/workspaces/${ws.id}/billing`} title="Billing">
+                    <Link href={`/app/workspaces/${ws.id}/billing`} title={t('billingTitle')}>
                       <CreditCard className="size-4" />
                     </Link>
                   </Button>
@@ -89,15 +105,14 @@ export function WorkspaceManager({ initial }: { initial: WorkspaceSummary[] }) {
                     size="sm"
                     variant="ghost"
                     onClick={async () => {
-                      if (!window.confirm(`Delete "${ws.name}"? Members lose access immediately.`))
-                        return;
+                      if (!window.confirm(t('deleteConfirm', { name: ws.name }))) return;
                       try {
                         await deleteWorkspace(ws.id);
                         setList((rows) => rows.filter((r) => r.id !== ws.id));
                         if (openId === ws.id) setOpenId(null);
-                        toast.success('Deleted');
+                        toast.success(t('deleted'));
                       } catch (err) {
-                        toast.error(err instanceof Error ? err.message : 'Failed');
+                        toast.error(err instanceof Error ? err.message : t('failed'));
                       }
                     }}
                   >
@@ -115,6 +130,7 @@ export function WorkspaceManager({ initial }: { initial: WorkspaceSummary[] }) {
 }
 
 function WorkspacePanel({ workspaceId }: { workspaceId: string }) {
+  const t = useTranslations('appFeatures.workspace');
   const [members, setMembers] = React.useState<WorkspaceMemberRow[] | null>(null);
   const [email, setEmail] = React.useState('');
   const [role, setRole] = React.useState<'admin' | 'editor' | 'viewer'>('editor');
@@ -139,13 +155,13 @@ function WorkspacePanel({ workspaceId }: { workspaceId: string }) {
       const fullUrl = `${window.location.origin}${url}`;
       try {
         await navigator.clipboard.writeText(fullUrl);
-        toast.success(`Invite link copied for ${email}`);
+        toast.success(t('inviteCopied', { email }));
       } catch {
-        toast.success(`Invite created: ${fullUrl}`);
+        toast.success(t('inviteCreated', { url: fullUrl }));
       }
       setEmail('');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not invite');
+      toast.error(err instanceof Error ? err.message : t('inviteFailed'));
     } finally {
       setBusy(false);
     }
@@ -154,7 +170,7 @@ function WorkspacePanel({ workspaceId }: { workspaceId: string }) {
   if (members === null) {
     return (
       <div className="text-muted-foreground mt-4 flex items-center gap-2 text-xs">
-        <Loader2 className="size-3 animate-spin" /> Loading\u2026
+        <Loader2 className="size-3 animate-spin" /> {t('loading')}
       </div>
     );
   }
@@ -166,7 +182,7 @@ function WorkspacePanel({ workspaceId }: { workspaceId: string }) {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="invitee@example.com"
+          placeholder={t('inviteEmailPlaceholder')}
           required
           className="bg-background flex-1 rounded-md border px-3 py-1.5 text-sm"
         />
@@ -175,12 +191,12 @@ function WorkspacePanel({ workspaceId }: { workspaceId: string }) {
           onChange={(e) => setRole(e.target.value as typeof role)}
           className="bg-background rounded-md border px-2 py-1.5 text-sm"
         >
-          <option value="admin">Admin</option>
-          <option value="editor">Editor</option>
-          <option value="viewer">Viewer</option>
+          <option value="admin">{t('roleAdminOption')}</option>
+          <option value="editor">{t('roleEditorOption')}</option>
+          <option value="viewer">{t('roleViewerOption')}</option>
         </select>
         <Button type="submit" size="sm" disabled={busy || !email}>
-          <UserPlus className="size-4" /> Invite
+          <UserPlus className="size-4" /> {t('invite')}
         </Button>
       </form>
       <ul className="divide-y rounded-md border">
@@ -196,12 +212,12 @@ function WorkspacePanel({ workspaceId }: { workspaceId: string }) {
                 size="sm"
                 variant="ghost"
                 onClick={async () => {
-                  if (!window.confirm(`Remove ${m.email ?? m.userId}?`)) return;
+                  if (!window.confirm(t('removeConfirm', { who: m.email ?? m.userId }))) return;
                   try {
                     await removeMember({ workspaceId, userId: m.userId });
                     setMembers((rows) => rows!.filter((r) => r.userId !== m.userId));
                   } catch (err) {
-                    toast.error(err instanceof Error ? err.message : 'Failed');
+                    toast.error(err instanceof Error ? err.message : t('failed'));
                   }
                 }}
               >

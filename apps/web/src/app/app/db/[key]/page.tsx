@@ -1,9 +1,13 @@
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { listNotesByPropertyKey, listPropertyKeys } from '@/server/actions/note-properties';
 import { DatabaseTable } from '@/components/database/database-table';
 
-export const metadata = { title: 'Database' };
+export async function generateMetadata() {
+  const t = await getTranslations('pages.db');
+  return { title: t('metaTitleDetail') };
+}
 
 interface PageProps {
   params: Promise<{ key: string }>;
@@ -16,6 +20,7 @@ export default async function DatabasePage({ params }: PageProps) {
     listNotesByPropertyKey(decoded),
     listPropertyKeys(),
   ]);
+  const t = await getTranslations('pages.db');
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
@@ -24,11 +29,13 @@ export default async function DatabasePage({ params }: PageProps) {
         className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1 text-sm"
       >
         <ChevronLeft className="size-4" />
-        All databases
+        {t('allDatabases')}
       </Link>
       <h1 className="font-serif text-3xl font-semibold tracking-tight">{decoded}</h1>
       <p className="text-muted-foreground mt-1 text-sm">
-        {projection.rows.length} note{projection.rows.length === 1 ? '' : 's'} with this property.
+        {projection.rows.length === 1
+          ? t('rowCountOne', { count: projection.rows.length })
+          : t('rowCountOther', { count: projection.rows.length })}
       </p>
       <div className="mt-6">
         <DatabaseTable projection={projection} primaryKey={decoded} />
@@ -37,7 +44,7 @@ export default async function DatabasePage({ params }: PageProps) {
       {allKeys.length > 1 && (
         <div className="mt-8">
           <h2 className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wide">
-            Other databases
+            {t('otherDatabases')}
           </h2>
           <div className="flex flex-wrap gap-1.5">
             {allKeys

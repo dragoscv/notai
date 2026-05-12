@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
 import { Flame } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { getWritingStreak, type StreakInfo } from '@/server/actions/streak';
 
 /**
@@ -10,6 +11,7 @@ import { getWritingStreak, type StreakInfo } from '@/server/actions/streak';
  * habit signal is consistent.
  */
 export function StreakBadge() {
+  const t = useTranslations('dashboard.streak');
   const [info, setInfo] = React.useState<StreakInfo | null>(null);
 
   React.useEffect(() => {
@@ -28,15 +30,15 @@ export function StreakBadge() {
     <div
       title={
         info.activeToday
-          ? `Day ${info.current} of your current streak. Best ever: ${info.best}.`
-          : `Your streak is at ${info.current}. Write today to keep it alive — best ever: ${info.best}.`
+          ? t('titleActive', { current: info.current, best: info.best })
+          : t('titleInactive', { current: info.current, best: info.best })
       }
       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs ${tone}`}
     >
       <Flame className="size-3.5" />
-      <span className="font-medium">{info.current}-day streak</span>
+      <span className="font-medium">{t('streakLabel', { days: info.current })}</span>
       {info.best > info.current && (
-        <span className="text-muted-foreground">&middot; best {info.best}</span>
+        <span className="text-muted-foreground">{t('bestLabel', { count: info.best })}</span>
       )}
     </div>
   );

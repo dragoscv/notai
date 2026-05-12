@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { getSentimentLast30, type SentimentDay } from '@/server/actions/sentiment';
 import { HeartPulse } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 function colorFor(score: number | null, notes: number): string {
   if (score === null) return 'rgb(127 127 127 / 0.06)';
@@ -20,6 +21,7 @@ function colorFor(score: number | null, notes: number): string {
  * renders a small inline grid with hover tooltips.
  */
 export function SentimentHeatmap() {
+  const t = useTranslations('dashboard.sentimentHeatmap');
   const [days, setDays] = React.useState<SentimentDay[] | null>(null);
 
   React.useEffect(() => {
@@ -43,26 +45,33 @@ export function SentimentHeatmap() {
     <section className="bg-card rounded-xl border p-4">
       <div className="text-muted-foreground mb-3 flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
         <HeartPulse className="size-3.5" />
-        <span>Mood, last 30 days</span>
-        <span className="ml-auto normal-case tracking-normal">wrote on {wrote} of 30 days</span>
+        <span>{t('label')}</span>
+        <span className="ml-auto normal-case tracking-normal">
+          {t('wroteOn', { count: wrote })}
+        </span>
       </div>
       <div className="grid grid-cols-[repeat(30,minmax(0,1fr))] gap-1">
-        {days.map((d) => (
-          <div
-            key={d.date}
-            title={
-              d.score === null
-                ? `${d.date}: nothing written`
-                : `${d.date}: ${d.score > 0.15 ? 'positive' : d.score < -0.15 ? 'tense' : 'neutral'} (${d.notes} note${d.notes === 1 ? '' : 's'})`
-            }
-            style={{ background: colorFor(d.score, d.notes) }}
-            className="aspect-square rounded-sm border border-black/5 dark:border-white/5"
-          />
-        ))}
+        {days.map((d) => {
+          const noteWord = d.notes === 1 ? t('noteWordOne') : t('noteWordOther');
+          const title =
+            d.score === null
+              ? t('tooltipNothing', { date: d.date })
+              : d.score > 0.15
+                ? t('tooltipPositive', { date: d.date, count: d.notes, noteWord })
+                : d.score < -0.15
+                  ? t('tooltipTense', { date: d.date, count: d.notes, noteWord })
+                  : t('tooltipNeutral', { date: d.date, count: d.notes, noteWord });
+          return (
+            <div
+              key={d.date}
+              title={title}
+              style={{ background: colorFor(d.score, d.notes) }}
+              className="aspect-square rounded-sm border border-black/5 dark:border-white/5"
+            />
+          );
+        })}
       </div>
-      <p className="text-muted-foreground mt-2 text-[10px]">
-        Tinted by keyword sentiment of what you wrote. Stays on your server, no external AI calls.
-      </p>
+      <p className="text-muted-foreground mt-2 text-[10px]">{t('footer')}</p>
     </section>
   );
 }

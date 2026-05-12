@@ -2,6 +2,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { FileText, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { NoteGraph, GraphNode } from '@/server/actions/note-graph';
 import { listActiveViewers, type ActiveViewer } from '@/server/actions/presence';
 
@@ -36,6 +37,7 @@ const FRICTION = 0.86;
  * the note. Hover highlights direct neighbours.
  */
 export function NoteGraphView({ data }: Props) {
+  const t = useTranslations('appFeatures.graph');
   const [hovered, setHovered] = React.useState<string | null>(null);
   const [viewers, setViewers] = React.useState<Map<string, ActiveViewer[]>>(new Map());
   const [hideEncrypted, setHideEncrypted] = React.useState(false);
@@ -127,7 +129,7 @@ export function NoteGraphView({ data }: Props) {
     return (
       <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 text-sm">
         <Sparkles className="size-6 opacity-40" />
-        <p>No notes yet — start writing and your graph will grow.</p>
+        <p>{t('empty')}</p>
       </div>
     );
   }
@@ -137,9 +139,9 @@ export function NoteGraphView({ data }: Props) {
       <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-sm">
         <FileText className="size-6 opacity-40" />
         <p>
-          Your notes don&apos;t reference each other yet. Type{' '}
-          <code className="bg-muted rounded px-1">[[</code> in any note to start linking — the graph
-          will fill in as you go.
+          {t('noEdgesBefore')}
+          <code className="bg-muted rounded px-1">[[</code>
+          {t('noEdgesAfter')}
         </p>
       </div>
     );
@@ -168,7 +170,7 @@ export function NoteGraphView({ data }: Props) {
               if (e.target.checked) setEncryptedOnly(false);
             }}
           />
-          Hide encrypted
+          {t('hideEncrypted')}
         </label>
         <label className="flex items-center gap-1.5">
           <input
@@ -179,7 +181,7 @@ export function NoteGraphView({ data }: Props) {
               if (e.target.checked) setHideEncrypted(false);
             }}
           />
-          Encrypted only
+          {t('encryptedOnly')}
         </label>
         <span className="text-muted-foreground">
           {filteredData.nodes.length} / {data.nodes.length}
@@ -190,7 +192,7 @@ export function NoteGraphView({ data }: Props) {
         preserveAspectRatio="xMidYMid meet"
         className="block h-full w-full"
         role="img"
-        aria-label="Note graph"
+        aria-label={t('graphAria')}
       >
         {/* Edges */}
         <g stroke="currentColor" strokeOpacity={0.25} strokeWidth={1}>
@@ -236,8 +238,8 @@ export function NoteGraphView({ data }: Props) {
                   >
                     <title>
                       {liveViewers.length === 1
-                        ? `${liveViewers[0]!.name ?? 'Someone'} is here`
-                        : `${liveViewers.length} people viewing`}
+                        ? t('someoneHere', { name: liveViewers[0]!.name ?? t('someone') })
+                        : t('viewerCountOther', { count: liveViewers.length })}
                     </title>
                   </circle>
                 )}
@@ -273,6 +275,7 @@ function HoverCard({
   neighbours: Set<string>;
   byId: Map<string, SimNode>;
 }) {
+  const t = useTranslations('appFeatures.graph');
   const linked = Array.from(neighbours)
     .map((id) => byId.get(id))
     .filter((n): n is SimNode => Boolean(n))
@@ -281,7 +284,7 @@ function HoverCard({
     <div className="bg-card text-foreground pointer-events-none absolute right-4 top-4 max-w-xs space-y-1 rounded-lg border p-3 text-xs shadow-md">
       <p className="font-medium">{node.title}</p>
       <p className="text-muted-foreground">
-        {node.outDegree} outgoing · {node.inDegree} incoming
+        {t('outgoingIncoming', { out: node.outDegree, in: node.inDegree })}
       </p>
       {linked.length > 0 && (
         <ul className="text-muted-foreground space-y-0.5 pt-1">
@@ -291,7 +294,9 @@ function HoverCard({
             </li>
           ))}
           {neighbours.size > linked.length && (
-            <li className="opacity-60">+{neighbours.size - linked.length} more</li>
+            <li className="opacity-60">
+              {t('moreOther', { count: neighbours.size - linked.length })}
+            </li>
           )}
         </ul>
       )}

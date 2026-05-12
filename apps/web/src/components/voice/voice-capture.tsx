@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Mic, Square, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
 import { useHotkey } from '@notai/ui/hooks/use-hotkey';
 import { createNoteFromVoice } from '@/server/actions/transcribe';
@@ -16,6 +17,7 @@ type State = 'idle' | 'recording' | 'transcribing';
  * transcript becomes a fresh note and the user is taken straight into it.
  */
 export function VoiceCapture() {
+  const t = useTranslations('appFeatures.voice');
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [state, setState] = React.useState<State>('idle');
@@ -48,7 +50,7 @@ export function VoiceCapture() {
       const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
       cleanup();
       if (blob.size < 800) {
-        toast.info('Recording was too short.');
+        toast.info(t('tooShort'));
         setState('idle');
         setOpen(false);
         return;
@@ -57,7 +59,7 @@ export function VoiceCapture() {
       fd.append('audio', blob, 'voice.webm');
       const result = await createNoteFromVoice(fd);
       haptic('success');
-      toast.success('Voice note saved');
+      toast.success(t('saved'));
       setOpen(false);
       setState('idle');
       router.push(`/app/n/${result.id}`);
@@ -90,7 +92,7 @@ export function VoiceCapture() {
       setElapsed(0);
       setState('recording');
     } catch (err) {
-      toast.error("Couldn't access your microphone");
+      toast.error(t('micError'));
       console.error(err);
       setOpen(false);
     }
@@ -147,7 +149,7 @@ export function VoiceCapture() {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="text-primary size-4" /> Voice capture
+            <Sparkles className="text-primary size-4" /> {t('title')}
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 py-6">
@@ -156,7 +158,7 @@ export function VoiceCapture() {
               <button
                 type="button"
                 onClick={stopRecording}
-                aria-label="Stop recording"
+                aria-label={t('stopLabel')}
                 className="bg-destructive text-destructive-foreground flex size-24 items-center justify-center rounded-full shadow-lg transition hover:scale-105"
               >
                 <Square className="size-9" fill="currentColor" />
@@ -166,7 +168,7 @@ export function VoiceCapture() {
               </div>
               <div className="text-muted-foreground flex items-center gap-2 text-xs">
                 <span className="bg-destructive inline-block size-2 animate-pulse rounded-full" />
-                Recording — click to stop
+                {t('recording')}
               </div>
             </>
           )}
@@ -175,7 +177,7 @@ export function VoiceCapture() {
               <div className="bg-muted text-muted-foreground flex size-24 items-center justify-center rounded-full">
                 <Loader2 className="size-9 animate-spin" />
               </div>
-              <div className="text-muted-foreground text-sm">Transcribing…</div>
+              <div className="text-muted-foreground text-sm">{t('transcribing')}</div>
             </>
           )}
           {state === 'idle' && (
@@ -183,13 +185,16 @@ export function VoiceCapture() {
               <div className="bg-muted text-muted-foreground flex size-24 items-center justify-center rounded-full">
                 <Mic className="size-9" />
               </div>
-              <div className="text-muted-foreground text-sm">Requesting microphone…</div>
+              <div className="text-muted-foreground text-sm">{t('requesting')}</div>
             </>
           )}
         </div>
         <p className="text-muted-foreground text-center text-xs">
-          Press <kbd className="bg-muted rounded px-1.5 py-0.5 font-mono text-[10px]">Esc</kbd> to
-          cancel
+          {t.rich('escHint', {
+            key: () => (
+              <kbd className="bg-muted rounded px-1.5 py-0.5 font-mono text-[10px]">Esc</kbd>
+            ),
+          })}
         </p>
       </DialogContent>
     </Dialog>

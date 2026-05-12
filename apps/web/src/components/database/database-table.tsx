@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { ChevronUp, ChevronDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { DatabaseProjection } from '@/server/actions/note-properties';
 
 /**
@@ -18,6 +19,7 @@ export function DatabaseTable({
   projection: DatabaseProjection;
   primaryKey: string;
 }) {
+  const t = useTranslations('appFeatures.database');
   const [sortKey, setSortKey] = React.useState<string>(primaryKey);
   const [sortDir, setSortDir] = React.useState<'asc' | 'desc'>('asc');
 
@@ -51,7 +53,7 @@ export function DatabaseTable({
   if (projection.rows.length === 0) {
     return (
       <div className="bg-card text-muted-foreground rounded-xl border border-dashed px-6 py-10 text-center text-sm">
-        No notes carry this property yet.
+        {t('empty')}
       </div>
     );
   }
@@ -61,7 +63,13 @@ export function DatabaseTable({
       <table className="w-full text-sm">
         <thead className="bg-muted/50 text-muted-foreground border-b text-xs uppercase tracking-wide">
           <tr>
-            <Th label="Title" k="__title__" sortKey={sortKey} sortDir={sortDir} onToggle={toggle} />
+            <Th
+              label={t('title')}
+              k="__title__"
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onToggle={toggle}
+            />
             {projection.columns.map((c) => (
               <Th key={c} label={c} k={c} sortKey={sortKey} sortDir={sortDir} onToggle={toggle} />
             ))}
@@ -76,7 +84,7 @@ export function DatabaseTable({
                   className="hover:text-primary truncate font-medium"
                 >
                   {row.noteIcon ? <span className="mr-1">{row.noteIcon}</span> : null}
-                  {row.noteTitle || 'Untitled'}
+                  {row.noteTitle || t('untitled')}
                 </Link>
               </td>
               {projection.columns.map((c) => (

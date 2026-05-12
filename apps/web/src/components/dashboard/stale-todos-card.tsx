@@ -2,6 +2,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { ListTodo, ArrowRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { getStaleTodos, type StaleTodo } from '@/server/actions/stale-todos';
 
 /**
@@ -10,6 +11,7 @@ import { getStaleTodos, type StaleTodo } from '@/server/actions/stale-todos';
  * are none — silence is a good outcome.
  */
 export function StaleTodosCard() {
+  const t = useTranslations('dashboard.staleTodos');
   const [items, setItems] = React.useState<StaleTodo[] | null>(null);
 
   React.useEffect(() => {
@@ -24,7 +26,7 @@ export function StaleTodosCard() {
     <div className="bg-card rounded-2xl border p-4">
       <div className="text-muted-foreground mb-3 flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
         <ListTodo className="size-3.5" />
-        <span>Stale TODOs &middot; not touched in 14+ days</span>
+        <span>{t('label')}</span>
       </div>
       <ul className="space-y-1.5">
         {items.map((it, i) => (
@@ -38,7 +40,7 @@ export function StaleTodosCard() {
                 <span className="line-clamp-1">{it.text}</span>
                 <span className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[11px]">
                   <span aria-hidden>{it.noteIcon ?? '📝'}</span>
-                  <span className="truncate">{it.noteTitle || 'Untitled'}</span>
+                  <span className="truncate">{it.noteTitle || t('untitled')}</span>
                   <span>&middot;</span>
                   <span>{formatDays(it.daysAgo)}</span>
                 </span>

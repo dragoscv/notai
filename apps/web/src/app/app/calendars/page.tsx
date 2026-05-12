@@ -2,11 +2,16 @@ import { CalendarsManager } from '@/components/settings/calendars-manager';
 import { listCalendarSubscriptions } from '@/server/actions/calendar-subs';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 
-export const metadata = { title: 'Calendars' };
+export async function generateMetadata() {
+  const t = await getTranslations('pages.calendars');
+  return { title: t('metaTitle') };
+}
 
 export default async function CalendarsPage() {
   const subs = await listCalendarSubscriptions();
+  const t = await getTranslations('pages.calendars');
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
       <Link
@@ -14,30 +19,30 @@ export default async function CalendarsPage() {
         className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1 text-sm"
       >
         <ChevronLeft className="size-4" />
-        Back
+        {t('back')}
       </Link>
-      <h1 className="font-serif text-3xl font-semibold tracking-tight">Calendars</h1>
-      <p className="text-muted-foreground mt-2 text-sm">
-        Subscribe to a calendar via its public iCal/webcal URL. Events from the next 7 days will
-        show on your dashboard. Read-only — Notai never writes back to the calendar source.
-      </p>
+      <h1 className="font-serif text-3xl font-semibold tracking-tight">{t('title')}</h1>
+      <p className="text-muted-foreground mt-2 text-sm">{t('description')}</p>
       <div className="mt-6">
         <CalendarsManager initial={subs} />
       </div>
       <details className="text-muted-foreground mt-8 text-xs">
-        <summary className="cursor-pointer">Where do I find the iCal URL?</summary>
+        <summary className="cursor-pointer">{t('helpSummary')}</summary>
         <ul className="mt-3 list-disc space-y-1 pl-5">
           <li>
-            <strong>Google Calendar</strong>: Settings → your calendar → &quot;Secret address in
-            iCal format&quot;. Treat the URL as a password.
+            <strong>{t('helpGoogleLabel')}</strong>
+            {t('helpGoogleBody')}
           </li>
           <li>
-            <strong>Outlook</strong>: Settings → Calendar → Shared calendars → Publish a calendar →
-            ICS link.
+            <strong>{t('helpOutlookLabel')}</strong>
+            {t('helpOutlookBody')}
           </li>
           <li>
-            <strong>Apple iCloud</strong>: Right-click a calendar → Share → Public Calendar → copy
-            URL (replace <code>webcal://</code> with <code>https://</code>).
+            <strong>{t('helpAppleLabel')}</strong>
+            {t.rich('helpAppleBody', {
+              webcal: () => <code>webcal://</code>,
+              https: () => <code>https://</code>,
+            })}
           </li>
         </ul>
       </details>

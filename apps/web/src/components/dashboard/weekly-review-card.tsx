@@ -1,13 +1,7 @@
 import Link from 'next/link';
 import { CalendarRange, FileText } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { getWeeklyReview } from '@/server/actions/weekly-review';
-
-function relativeDay(d: Date): string {
-  const days = Math.floor((Date.now() - d.getTime()) / (24 * 60 * 60 * 1000));
-  if (days <= 0) return 'today';
-  if (days === 1) return 'yesterday';
-  return `${days}d ago`;
-}
 
 /**
  * Weekly review surface — quiet by default. Renders nothing when the
@@ -17,16 +11,24 @@ function relativeDay(d: Date): string {
 export async function WeeklyReviewCard() {
   const review = await getWeeklyReview();
   if (!review || review.touchedCount === 0) return null;
+  const t = await getTranslations('dashboard.weeklyReview');
+
+  function relativeDay(d: Date): string {
+    const days = Math.floor((Date.now() - d.getTime()) / (24 * 60 * 60 * 1000));
+    if (days <= 0) return t('relativeToday');
+    if (days === 1) return t('relativeYesterday');
+    return t('relativeDaysAgo', { count: days });
+  }
 
   return (
     <section className="bg-card text-card-foreground my-3 rounded-lg border p-4 shadow-sm">
       <header className="mb-3 flex items-baseline justify-between gap-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold">
           <CalendarRange className="size-4 opacity-70" />
-          Weekly review
+          {t('title')}
         </h2>
         <span className="text-muted-foreground text-xs">
-          {review.touchedCount} touched · {review.createdCount} new
+          {t('summary', { touched: review.touchedCount, created: review.createdCount })}
         </span>
       </header>
       <ul className="grid gap-1.5 sm:grid-cols-2">
@@ -39,7 +41,7 @@ export async function WeeklyReviewCard() {
               <span className="shrink-0">
                 {it.icon || <FileText className="text-muted-foreground size-3.5" />}
               </span>
-              <span className="min-w-0 flex-1 truncate">{it.title || 'Untitled'}</span>
+              <span className="min-w-0 flex-1 truncate">{it.title || t('untitled')}</span>
               <span className="text-muted-foreground shrink-0 text-xs">
                 {relativeDay(it.updatedAt)}
               </span>

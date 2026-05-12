@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Button, Input } from '@notai/ui';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import {
   startWorkspaceCheckout,
   openWorkspaceBillingPortal,
@@ -34,6 +35,7 @@ export function WorkspaceBillingPanel({
   workspaceId: string;
   initial: BillingData;
 }) {
+  const t = useTranslations('appFeatures.workspace.billing');
   const [seats, setSeats] = React.useState(Math.max(initial.seatInfo.memberCount, 3));
   const [interval, setInterval] = React.useState<'month' | 'year'>('month');
   const [currency, setCurrency] = React.useState<'eur' | 'usd' | 'ron'>('eur');
@@ -71,24 +73,26 @@ export function WorkspaceBillingPanel({
   return (
     <div className="space-y-6">
       <section className="bg-card rounded-lg border p-4">
-        <h2 className="text-muted-foreground text-sm font-medium">Current</h2>
+        <h2 className="text-muted-foreground text-sm font-medium">{t('current')}</h2>
         <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
           <div>
-            Plan: <span className="font-medium capitalize">{initial.seatInfo.tier}</span>
+            {t('plan')}: <span className="font-medium capitalize">{initial.seatInfo.tier}</span>
           </div>
           <div>
-            Status: <span className="font-medium">{initial.seatInfo.status}</span>
+            {t('status')}: <span className="font-medium">{initial.seatInfo.status}</span>
           </div>
           <div>
-            Seats: <span className="font-medium">{initial.seatInfo.seats ?? '∞'}</span>
+            {t('seats')}: <span className="font-medium">{initial.seatInfo.seats ?? '∞'}</span>
           </div>
           <div>
-            Members: <span className="font-medium">{initial.seatInfo.memberCount}</span>
+            {t('members')}: <span className="font-medium">{initial.seatInfo.memberCount}</span>
           </div>
           {initial.sub?.currentPeriodEnd && (
             <div className="text-muted-foreground col-span-2">
-              {initial.sub.cancelAtPeriodEnd ? 'Cancels' : 'Renews'} on{' '}
-              {new Date(initial.sub.currentPeriodEnd).toLocaleDateString()}
+              {t('renewLine', {
+                verb: initial.sub.cancelAtPeriodEnd ? t('cancels') : t('renews'),
+                date: new Date(initial.sub.currentPeriodEnd).toLocaleDateString(),
+              })}
             </div>
           )}
         </div>
@@ -96,20 +100,18 @@ export function WorkspaceBillingPanel({
 
       {hasActiveSub ? (
         <section className="bg-card space-y-3 rounded-lg border p-4">
-          <h2 className="text-sm font-medium">Manage subscription</h2>
-          <p className="text-muted-foreground text-sm">
-            Change seats, switch billing cycle, or cancel from the Stripe portal.
-          </p>
+          <h2 className="text-sm font-medium">{t('manageTitle')}</h2>
+          <p className="text-muted-foreground text-sm">{t('manageBody')}</p>
           <Button onClick={openPortal} disabled={busy}>
-            Open billing portal
+            {t('openPortal')}
           </Button>
         </section>
       ) : (
         <section className="bg-card space-y-3 rounded-lg border p-4">
-          <h2 className="text-sm font-medium">Upgrade to Teams</h2>
+          <h2 className="text-sm font-medium">{t('upgradeTitle')}</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-1">
-              <label className="text-xs font-medium">Seats</label>
+              <label className="text-xs font-medium">{t('seatsLabel')}</label>
               <Input
                 type="number"
                 min={1}
@@ -119,18 +121,18 @@ export function WorkspaceBillingPanel({
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium">Cycle</label>
+              <label className="text-xs font-medium">{t('cycleLabel')}</label>
               <select
                 className="bg-background h-9 w-full rounded-md border px-2 text-sm"
                 value={interval}
                 onChange={(e) => setInterval(e.target.value as 'month' | 'year')}
               >
-                <option value="month">Monthly</option>
-                <option value="year">Yearly</option>
+                <option value="month">{t('monthly')}</option>
+                <option value="year">{t('yearly')}</option>
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium">Currency</label>
+              <label className="text-xs font-medium">{t('currencyLabel')}</label>
               <select
                 className="bg-background h-9 w-full rounded-md border px-2 text-sm"
                 value={currency}
@@ -143,11 +145,12 @@ export function WorkspaceBillingPanel({
             </div>
           </div>
           <p className="text-muted-foreground text-xs">
-            You have {initial.seatInfo.memberCount} member
-            {initial.seatInfo.memberCount === 1 ? '' : 's'}. Buy at least that many seats.
+            {initial.seatInfo.memberCount === 1
+              ? t('memberCountOne', { count: initial.seatInfo.memberCount })
+              : t('memberCountOther', { count: initial.seatInfo.memberCount })}
           </p>
           <Button onClick={startCheckout} disabled={busy || seats < initial.seatInfo.memberCount}>
-            Continue to checkout
+            {t('checkout')}
           </Button>
         </section>
       )}

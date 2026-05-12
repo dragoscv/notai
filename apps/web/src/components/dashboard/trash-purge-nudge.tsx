@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@notai/ui/components/card';
 import { Button } from '@notai/ui/components/button';
 import {
@@ -19,6 +20,7 @@ const DISMISS_KEY = 'notai:purge-nudge-dismissed-on';
  * the rest of the day after the user dismisses it.
  */
 export function TrashPurgeNudge() {
+  const t = useTranslations('dashboard.trashPurge');
   const [summary, setSummary] = React.useState<PurgeableSummary | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [hidden, setHidden] = React.useState(true);
@@ -54,10 +56,12 @@ export function TrashPurgeNudge() {
     setBusy(true);
     try {
       const { purged } = await purgeOldTrash();
-      toast.success(`Permanently deleted ${purged} note${purged === 1 ? '' : 's'}.`);
+      toast.success(
+        purged === 1 ? t('purgedOne', { count: purged }) : t('purgedOther', { count: purged }),
+      );
       setHidden(true);
     } catch (err) {
-      toast.error((err as Error).message || 'Could not empty trash.');
+      toast.error((err as Error).message || t('failed'));
     } finally {
       setBusy(false);
     }
@@ -72,24 +76,26 @@ export function TrashPurgeNudge() {
         <div className="min-w-0 flex-1">
           <p className="text-sm">
             <span className="font-medium">
-              {summary.purgeable} note{summary.purgeable === 1 ? '' : 's'}
+              {t('countLine', {
+                count: summary.purgeable,
+                word: summary.purgeable === 1 ? t('bodyOne') : t('bodyOther'),
+              })}
             </span>{' '}
-            in trash older than 30 days.
-            <span className="text-muted-foreground"> Permanently delete to free up space?</span>
+            <span className="text-muted-foreground">{t('tail')}</span>
           </p>
           <div className="mt-2 flex items-center gap-2">
             <Button size="sm" variant="destructive" onClick={purge} disabled={busy}>
-              {busy ? 'Working\u2026' : 'Empty old trash'}
+              {busy ? t('working') : t('emptyOld')}
             </Button>
             <Button size="sm" variant="ghost" onClick={dismiss}>
-              Not now
+              {t('notNow')}
             </Button>
           </div>
         </div>
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Dismiss"
+          aria-label={t('dismiss')}
           className="text-muted-foreground hover:text-foreground -m-1 p-1"
         >
           <X className="size-4" />

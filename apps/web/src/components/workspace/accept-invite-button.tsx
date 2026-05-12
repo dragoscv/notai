@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 
 export function AcceptInviteButton({
@@ -13,6 +14,7 @@ export function AcceptInviteButton({
   token: string;
   accept: (token: string) => Promise<{ workspaceId: string }>;
 }) {
+  const t = useTranslations('appFeatures.workspace');
   const router = useRouter();
   const [busy, setBusy] = React.useState(false);
   return (
@@ -23,15 +25,15 @@ export function AcceptInviteButton({
         setBusy(true);
         try {
           await accept(token);
-          toast.success('Joined workspace');
+          toast.success(t('joined'));
           router.push('/app/workspaces');
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Could not accept');
+          toast.error(err instanceof Error ? err.message : t('acceptFailed'));
           setBusy(false);
         }
       }}
     >
-      {busy ? <Loader2 className="size-4 animate-spin" /> : 'Accept invite'}
+      {busy ? <Loader2 className="size-4 animate-spin" /> : t('acceptInvite')}
     </Button>
   );
 }

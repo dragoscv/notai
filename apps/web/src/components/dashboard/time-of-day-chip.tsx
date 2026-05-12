@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Clock } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 /**
  * Ambient time-of-day chip — counters time-blindness by showing where
@@ -9,12 +10,12 @@ import { Clock } from 'lucide-react';
  * label. Updates every minute. Strictly ambient; never blocks input.
  */
 const SEGMENTS = [
-  { name: 'Early morning', from: 5, to: 8 },
-  { name: 'Morning', from: 8, to: 12 },
-  { name: 'Afternoon', from: 12, to: 17 },
-  { name: 'Evening', from: 17, to: 21 },
-  { name: 'Night', from: 21, to: 29 }, // wraps past midnight
-];
+  { nameKey: 'segmentEarlyMorning', from: 5, to: 8 },
+  { nameKey: 'segmentMorning', from: 8, to: 12 },
+  { nameKey: 'segmentAfternoon', from: 12, to: 17 },
+  { nameKey: 'segmentEvening', from: 17, to: 21 },
+  { nameKey: 'segmentNight', from: 21, to: 29 }, // wraps past midnight
+] as const;
 
 function currentSegment(hour: number) {
   const h = hour < 5 ? 24 + hour : hour;
@@ -25,6 +26,7 @@ function currentSegment(hour: number) {
 }
 
 export function TimeOfDayChip() {
+  const t = useTranslations('dashboard.timeOfDay');
   const [now, setNow] = React.useState<Date>(() => new Date());
   React.useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 60_000);
@@ -37,10 +39,11 @@ export function TimeOfDayChip() {
   const minsToNext = ((seg.to - hour) * 60 - now.getMinutes() + 60 * 24) % (60 * 24);
   const hoursToNext = Math.max(0, Math.floor(minsToNext / 60));
   const remMins = Math.max(0, minsToNext % 60);
+  const nextName = t(next.nameKey).toLowerCase();
   const label =
     hoursToNext > 0
-      ? `${hoursToNext}h ${remMins}m to ${next.name.toLowerCase()}`
-      : `${remMins}m to ${next.name.toLowerCase()}`;
+      ? t('labelHours', { hours: hoursToNext, mins: remMins, next: nextName })
+      : t('labelMins', { mins: remMins, next: nextName });
 
   return (
     <span
@@ -48,7 +51,7 @@ export function TimeOfDayChip() {
       title={now.toLocaleTimeString()}
     >
       <Clock className="size-3" />
-      <span className="text-foreground font-medium">{seg.name}</span>
+      <span className="text-foreground font-medium">{t(seg.nameKey)}</span>
       <span className="opacity-60">·</span>
       <span>{label}</span>
     </span>

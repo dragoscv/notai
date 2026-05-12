@@ -2,6 +2,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Square, FileText, ListTodo } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { getOpenLoops, type OpenLoop } from '@/server/actions/open-loops';
 
 /**
@@ -10,6 +11,7 @@ import { getOpenLoops, type OpenLoop } from '@/server/actions/open-loops';
  * threads sit in one place. Quietly hidden when nothing is open.
  */
 export function OpenLoopsCard() {
+  const t = useTranslations('dashboard.openLoops');
   const [items, setItems] = React.useState<OpenLoop[] | null>(null);
   React.useEffect(() => {
     void getOpenLoops()
@@ -21,7 +23,7 @@ export function OpenLoopsCard() {
     <div className="bg-card rounded-2xl border p-4">
       <div className="text-muted-foreground mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
         <ListTodo className="size-3.5" />
-        <span>Open loops</span>
+        <span>{t('label')}</span>
         <span className="ml-auto">{items.length}</span>
       </div>
       <ul className="space-y-1.5">
@@ -32,12 +34,12 @@ export function OpenLoopsCard() {
             <Link
               href={`/app/n/${it.noteId}`}
               className="text-muted-foreground hover:text-foreground inline-flex shrink-0 items-center gap-1 text-[11px]"
-              title={it.noteTitle ?? 'Untitled'}
+              title={it.noteTitle ?? t('untitled')}
             >
               <span className="size-3 text-center">
                 {it.noteIcon || <FileText className="size-3 opacity-60" />}
               </span>
-              <span className="max-w-[10rem] truncate">{it.noteTitle || 'Untitled'}</span>
+              <span className="max-w-[10rem] truncate">{it.noteTitle || t('untitled')}</span>
             </Link>
           </li>
         ))}

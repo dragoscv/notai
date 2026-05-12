@@ -14,6 +14,7 @@ import {
   Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import {
   generateMorningBrief,
   askMorningBriefFollowup,
@@ -45,6 +46,7 @@ function todayKey(): string {
  *  - Source chips that link straight to the contributing notes.
  */
 export function MorningBriefCard() {
+  const t = useTranslations('dashboard.morningBrief');
   const router = useRouter();
   const [brief, setBrief] = React.useState<CachedBrief | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -116,7 +118,7 @@ export function MorningBriefCard() {
     setSavingToToday(true);
     try {
       const note = await getOrCreateDailyNote();
-      const header = `## Morning brief — ${formatDate(brief.generatedAt)}`;
+      const header = `## ${t('sectionHeading', { date: formatDate(brief.generatedAt) })}`;
       const body = `${header}\n\n${brief.markdown.trim()}`;
       window.localStorage.setItem(
         'notai:pending-append',
@@ -153,7 +155,7 @@ export function MorningBriefCard() {
 
   return (
     <section
-      aria-label="Morning brief"
+      aria-label={t('ariaLabel')}
       className="bg-card/60 mb-4 overflow-hidden rounded-xl border shadow-sm"
     >
       <header className="flex items-center gap-2 border-b px-4 py-2.5">
@@ -163,9 +165,9 @@ export function MorningBriefCard() {
         >
           <Sparkles className="size-3.5" />
         </span>
-        <h2 className="text-sm font-semibold tracking-tight">Morning brief</h2>
+        <h2 className="text-sm font-semibold tracking-tight">{t('title')}</h2>
         <span className="text-muted-foreground ml-1 text-[11px]">
-          {brief ? `Updated ${formatTime(brief.generatedAt)}` : 'Personal & private'}
+          {brief ? t('updatedAt', { time: formatTime(brief.generatedAt) }) : t('privateLabel')}
         </span>
         <div className="ml-auto flex items-center gap-1">
           {brief && (
@@ -174,14 +176,14 @@ export function MorningBriefCard() {
               onClick={() => void saveToToday()}
               disabled={savingToToday}
               className="text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] disabled:opacity-50"
-              title="Save into today's daily note"
+              title={t('saveToTodayTitle')}
             >
               {savingToToday ? (
                 <Loader2 className="size-3 animate-spin" />
               ) : (
                 <CalendarPlus className="size-3" />
               )}
-              Save to today
+              {t('saveToToday')}
             </button>
           )}
           <button
@@ -189,19 +191,19 @@ export function MorningBriefCard() {
             onClick={() => void load()}
             disabled={loading}
             className="text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] disabled:opacity-50"
-            title="Regenerate"
+            title={t('refreshTitle')}
           >
             {loading ? (
               <Loader2 className="size-3 animate-spin" />
             ) : (
               <RefreshCw className="size-3" />
             )}
-            Refresh
+            {t('refresh')}
           </button>
           <button
             type="button"
             onClick={toggleCollapsed}
-            aria-label={collapsed ? 'Expand' : 'Collapse'}
+            aria-label={collapsed ? t('expand') : t('collapse')}
             className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-md p-1"
           >
             {collapsed ? <ChevronDown className="size-3.5" /> : <ChevronUp className="size-3.5" />}
@@ -212,7 +214,7 @@ export function MorningBriefCard() {
         <div className="px-4 py-3 text-sm leading-relaxed">
           {loading && !brief && (
             <span className="text-muted-foreground inline-flex items-center gap-2">
-              <Loader2 className="size-4 animate-spin" /> Reading your recent notes…
+              <Loader2 className="size-4 animate-spin" /> {t('reading')}
             </span>
           )}
           {brief && (
@@ -220,7 +222,7 @@ export function MorningBriefCard() {
               <div className="text-foreground/90 whitespace-pre-wrap">{brief.markdown}</div>
               {sources.length > 0 && (
                 <div className="text-muted-foreground mt-3 flex flex-wrap items-center gap-1.5 border-t pt-2 text-[11px]">
-                  <span className="opacity-70">Drawn from</span>
+                  <span className="opacity-70">{t('drawnFrom')}</span>
                   {sources.map((s) => (
                     <Link
                       key={s.id}
@@ -241,7 +243,7 @@ export function MorningBriefCard() {
                     className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-[11px]"
                   >
                     <MessageCircle className="size-3" />
-                    Ask about this
+                    {t('askAbout')}
                   </button>
                 ) : (
                   <div className="space-y-2">
@@ -256,7 +258,7 @@ export function MorningBriefCard() {
                         autoFocus
                         value={followupQuestion}
                         onChange={(e) => setFollowupQuestion(e.target.value)}
-                        placeholder="What's most urgent today?"
+                        placeholder={t('askPlaceholder')}
                         disabled={followupBusy}
                         className="border-input bg-background flex-1 rounded-md border px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-amber-500/30"
                       />
@@ -270,7 +272,7 @@ export function MorningBriefCard() {
                         ) : (
                           <Send className="size-3" />
                         )}
-                        Ask
+                        {t('ask')}
                       </button>
                     </form>
                     {followupAnswer && (

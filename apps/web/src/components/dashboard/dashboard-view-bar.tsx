@@ -12,6 +12,7 @@ import {
   Star,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { Input } from '@notai/ui/components/input';
 import { Switch } from '@notai/ui/components/switch';
@@ -47,19 +48,29 @@ import type { Folder } from '@notai/db/schema';
 
 export type DashboardTag = { id: string; name: string; color: string | null };
 
-const SORT_LABELS: Record<SortKey, string> = {
-  updated: 'Recently updated',
-  created: 'Recently created',
-  opened: 'Recently opened',
-  alphabetical: 'Alphabetical (A→Z)',
-  custom: 'Custom (drag to reorder)',
+const SORT_KEYS_MAP: Record<SortKey, string> = {
+  updated: 'sortUpdated',
+  created: 'sortCreated',
+  opened: 'sortOpened',
+  alphabetical: 'sortAlphabetical',
+  custom: 'sortCustom',
 };
 
-const UPDATED_WITHIN_LABELS: Record<UpdatedWithin, string> = {
-  any: 'Any time',
-  today: 'Today',
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
+const UPDATED_WITHIN_KEYS_MAP: Record<UpdatedWithin, string> = {
+  any: 'updatedAny',
+  today: 'updatedToday',
+  '7d': 'updated7d',
+  '30d': 'updated30d',
+};
+
+const COLOR_KEYS_MAP: Record<string, string> = {
+  default: 'colorDefault',
+  yellow: 'colorYellow',
+  pink: 'colorPink',
+  blue: 'colorBlue',
+  green: 'colorGreen',
+  purple: 'colorPurple',
+  orange: 'colorOrange',
 };
 
 const COLORS = ['default', 'yellow', 'pink', 'blue', 'green', 'purple', 'orange'] as const;
@@ -96,8 +107,9 @@ export function DashboardViewBar({
   folders: Folder[];
   tags: DashboardTag[];
 }) {
+  const t = useTranslations('dashboard.view');
   const active = views.find((v) => v.id === activeId);
-  const activeName = active?.name ?? 'Default';
+  const activeName = active?.name ?? t('defaultName');
   const filterCount = countActiveFilters(spec.filters);
   const { prompt, dialog: promptDialog } = usePrompt();
   const { confirm, dialog: confirmDialog } = useConfirm();
@@ -109,13 +121,13 @@ export function DashboardViewBar({
 
   const onSaveAs = () => {
     prompt({
-      title: 'Save view',
-      label: 'Name',
-      placeholder: 'My favorites',
+      title: t('saveDialogTitle'),
+      label: t('saveDialogLabel'),
+      placeholder: t('saveDialogPlaceholder'),
       maxLength: 50,
       onSubmit: async (name) => {
         await saveDashboardView({ name, spec });
-        toast.success(`View "${name}" saved`);
+        toast.success(t('saveToast', { name }));
       },
     });
   };
@@ -128,7 +140,7 @@ export function DashboardViewBar({
     startTransition(async () => {
       try {
         await saveDashboardView({ id: active.id, name: active.name, spec });
-        toast.success(`View "${active.name}" updated`);
+        toast.success(t('updateToast', { name: active.name }));
       } catch (err) {
         toast.error(String(err));
       }
@@ -138,8 +150,8 @@ export function DashboardViewBar({
   const onRename = () => {
     if (!active || active.id === '__default__') return;
     prompt({
-      title: 'Rename view',
-      label: 'Name',
+      title: t('renameDialogTitle'),
+      label: t('renameDialogLabel'),
       defaultValue: active.name,
       maxLength: 50,
       onSubmit: async (name) => {
@@ -151,13 +163,13 @@ export function DashboardViewBar({
   const onDelete = () => {
     if (!active || active.id === '__default__') return;
     confirm({
-      title: `Delete view "${active.name}"?`,
-      description: 'This cannot be undone.',
-      confirmLabel: 'Delete',
+      title: t('deleteDialogTitle', { name: active.name }),
+      description: t('deleteDialogBody'),
+      confirmLabel: t('deleteConfirm'),
       destructive: true,
       onConfirm: async () => {
         await deleteDashboardView(active.id);
-        toast.success('View deleted');
+        toast.success(t('deleteToast'));
       },
     });
   };
@@ -166,7 +178,7 @@ export function DashboardViewBar({
     if (!active || active.id === '__default__') return;
     startTransition(async () => {
       await setDefaultDashboardView(active.id);
-      toast.success(`"${active.name}" is now your default view`);
+      toast.success(t('defaultToast', { name: active.name }));
     });
   };
 
@@ -183,7 +195,7 @@ export function DashboardViewBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-60">
-          <DropdownMenuLabel>Views</DropdownMenuLabel>
+          <DropdownMenuLabel>{t('viewsLabel')}</DropdownMenuLabel>
           {views.map((v) => (
             <DropdownMenuItem key={v.id} onSelect={() => onSelectView(v.id)}>
               <span className="flex-1 truncate">{v.name}</span>
@@ -195,22 +207,22 @@ export function DashboardViewBar({
           {active && active.id !== '__default__' ? (
             <>
               <DropdownMenuItem onSelect={onRename}>
-                <Pencil className="size-4" /> Rename current
+                <Pencil className="size-4" /> {t('renameCurrent')}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={onMakeDefault} disabled={active.isDefault}>
-                <Star className="size-4" /> Make default
+                <Star className="size-4" /> {t('makeDefault')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={onDelete}
                 className="text-destructive focus:text-destructive"
               >
-                <Trash2 className="size-4" /> Delete current
+                <Trash2 className="size-4" /> {t('deleteCurrent')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
           ) : null}
           <DropdownMenuItem onSelect={onSaveAs}>
-            <Plus className="size-4" /> Save as new view…
+            <Plus className="size-4" /> {t('saveAsNew')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -220,22 +232,22 @@ export function DashboardViewBar({
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="gap-1.5">
             <ArrowUpDown className="size-3.5" />
-            <span className="hidden sm:inline">{SORT_LABELS[spec.sort]}</span>
-            <span className="sm:hidden">Sort</span>
+            <span className="hidden sm:inline">{t(SORT_KEYS_MAP[spec.sort])}</span>
+            <span className="sm:hidden">{t('sortLabel')}</span>
             <ChevronDown className="size-3.5 opacity-60" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+          <DropdownMenuLabel>{t('sortBy')}</DropdownMenuLabel>
           {sortKeys.map((k) => (
             <DropdownMenuItem key={k} onSelect={() => onChangeSpec({ ...spec, sort: k })}>
-              <span className="flex-1">{SORT_LABELS[k]}</span>
+              <span className="flex-1">{t(SORT_KEYS_MAP[k])}</span>
               {spec.sort === k ? <Check className="size-4" /> : null}
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
           <div className="flex items-center gap-2 px-2 py-1.5 text-sm">
-            <span className="flex-1">Pinned first</span>
+            <span className="flex-1">{t('pinnedFirst')}</span>
             <Switch
               checked={spec.pinnedFirst}
               onCheckedChange={(v) => onChangeSpec({ ...spec, pinnedFirst: v })}
@@ -249,7 +261,7 @@ export function DashboardViewBar({
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className="gap-1.5">
             <FilterIcon className="size-3.5" />
-            <span className="hidden sm:inline">Filters</span>
+            <span className="hidden sm:inline">{t('filters')}</span>
             {filterCount > 0 ? (
               <Badge variant="secondary" className="h-4 min-w-4 px-1 text-[10px]">
                 {filterCount}
@@ -259,47 +271,47 @@ export function DashboardViewBar({
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[min(92vw,340px)] p-0">
           <div className="max-h-[70vh] overflow-y-auto p-3">
-            <FilterSection label="Search">
+            <FilterSection label={t('filterSearch')}>
               <div className="relative">
                 <Search className="text-muted-foreground absolute left-2 top-1/2 size-3.5 -translate-y-1/2" />
                 <Input
                   value={spec.filters.search}
                   onChange={(e) => updateFilter({ search: e.target.value })}
-                  placeholder="Title or content…"
+                  placeholder={t('searchPlaceholder')}
                   className="h-8 pl-7 text-sm"
                 />
               </div>
             </FilterSection>
 
-            <FilterSection label="Status">
+            <FilterSection label={t('filterStatus')}>
               <ChipGroup
                 options={[
-                  { value: 'pinned', label: 'Pinned' },
-                  { value: 'pinnedOnToday', label: 'On Today' },
-                  { value: 'favorite', label: 'Favorite' },
-                  { value: 'archived', label: 'Archived' },
+                  { value: 'pinned', label: t('statusPinned') },
+                  { value: 'pinnedOnToday', label: t('statusPinnedOnToday') },
+                  { value: 'favorite', label: t('statusFavorite') },
+                  { value: 'archived', label: t('statusArchived') },
                 ]}
                 selected={spec.filters.status}
                 onChange={(next) => updateFilter({ status: next as FilterSpec['status'] })}
               />
             </FilterSection>
 
-            <FilterSection label="Kind">
+            <FilterSection label={t('filterKind')}>
               <ChipGroup
                 options={[
-                  { value: 'note', label: 'Notes' },
-                  { value: 'sticky', label: 'Stickies' },
+                  { value: 'note', label: t('kindNotes') },
+                  { value: 'sticky', label: t('kindStickies') },
                 ]}
                 selected={spec.filters.kinds}
                 onChange={(next) => updateFilter({ kinds: next as FilterSpec['kinds'] })}
               />
             </FilterSection>
 
-            <FilterSection label="Updated">
+            <FilterSection label={t('filterUpdated')}>
               <ChipGroup
                 options={updatedWithinValues.map((v) => ({
                   value: v,
-                  label: UPDATED_WITHIN_LABELS[v],
+                  label: t(UPDATED_WITHIN_KEYS_MAP[v]),
                 }))}
                 selected={[spec.filters.updatedWithin]}
                 onChange={(next) =>
@@ -312,10 +324,10 @@ export function DashboardViewBar({
             </FilterSection>
 
             {folders.length > 0 ? (
-              <FilterSection label="Folders">
+              <FilterSection label={t('filterFolders')}>
                 <ChipGroup
                   options={[
-                    { value: '__root__', label: 'No folder' },
+                    { value: '__root__', label: t('noFolder') },
                     ...folders.map((f) => ({ value: f.id, label: f.name })),
                   ]}
                   selected={spec.filters.folderIds.map((f) => (f === null ? '__root__' : f))}
@@ -329,33 +341,33 @@ export function DashboardViewBar({
             ) : null}
 
             {tags.length > 0 ? (
-              <FilterSection label="Tags">
+              <FilterSection label={t('filterTags')}>
                 <ChipGroup
-                  options={tags.map((t) => ({ value: t.id, label: `#${t.name}` }))}
+                  options={tags.map((tag) => ({ value: tag.id, label: `#${tag.name}` }))}
                   selected={spec.filters.tagIds}
                   onChange={(next) => updateFilter({ tagIds: next })}
                 />
               </FilterSection>
             ) : null}
 
-            <FilterSection label="Color">
+            <FilterSection label={t('filterColor')}>
               <ChipGroup
                 options={COLORS.map((c) => ({
                   value: c,
-                  label: c.charAt(0).toUpperCase() + c.slice(1),
+                  label: t(COLOR_KEYS_MAP[c]!),
                 }))}
                 selected={spec.filters.colors}
                 onChange={(next) => updateFilter({ colors: next })}
               />
             </FilterSection>
 
-            <FilterSection label="Other">
+            <FilterSection label={t('filterOther')}>
               <label className="flex items-center gap-2 text-sm">
                 <Switch
                   checked={!!spec.filters.hasCollaborators}
                   onCheckedChange={(v) => updateFilter({ hasCollaborators: v || undefined })}
                 />
-                <span>Has collaborators</span>
+                <span>{t('hasCollaborators')}</span>
               </label>
             </FilterSection>
 
@@ -379,7 +391,7 @@ export function DashboardViewBar({
                   })
                 }
               >
-                Reset
+                {t('reset')}
               </Button>
             </div>
           </div>
@@ -390,15 +402,15 @@ export function DashboardViewBar({
       {isDirty ? (
         <div className="ml-auto flex shrink-0 items-center gap-1">
           <Button size="sm" variant="ghost" onClick={onSaveAs}>
-            Save as new
+            {t('saveAsNewShort')}
           </Button>
           {active && active.id !== '__default__' ? (
             <Button size="sm" disabled={pending} onClick={onUpdate}>
-              Update view
+              {t('updateView')}
             </Button>
           ) : (
             <Button size="sm" onClick={onSaveAs}>
-              Save view
+              {t('saveView')}
             </Button>
           )}
         </div>

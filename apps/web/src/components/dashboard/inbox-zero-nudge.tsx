@@ -1,17 +1,14 @@
 import Link from 'next/link';
 import { Inbox } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { countUnfiled } from '@/server/actions/inbox-zero';
 
 const THRESHOLD = 5;
 
-/**
- * Inbox-Zero nudge — only renders when the user has at least
- * `THRESHOLD` unfiled notes piling up. Quiet by default; once the
- * inbox is empty (or close to it) the card disappears entirely.
- */
 export async function InboxZeroNudge() {
   const count = await countUnfiled();
   if (count < THRESHOLD) return null;
+  const t = await getTranslations('dashboard.inboxZeroNudge');
 
   return (
     <Link
@@ -23,14 +20,12 @@ export async function InboxZeroNudge() {
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold">
-          {count} unfiled {count === 1 ? 'note' : 'notes'} waiting
+          {count === 1 ? t('titleOne', { count }) : t('titleOther', { count })}
         </span>
-        <span className="text-muted-foreground block text-xs">
-          File them in one pass — Notai suggests a folder for each.
-        </span>
+        <span className="text-muted-foreground block text-xs">{t('body')}</span>
       </span>
       <span className="bg-primary text-primary-foreground rounded-md px-2.5 py-1 text-xs font-medium">
-        Inbox Zero
+        {t('cta')}
       </span>
     </Link>
   );

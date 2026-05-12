@@ -1,15 +1,29 @@
 import Link from 'next/link';
 import { Clock } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { listRecentlyOpened } from '@/server/actions/recent';
 
 export async function ContinueCard() {
   const rows = await listRecentlyOpened(5);
   if (rows.length === 0) return null;
+  const t = await getTranslations('dashboard.continue');
+
+  function timeAgo(d: Date) {
+    const diff = Date.now() - d.getTime();
+    const m = Math.round(diff / 60_000);
+    if (m < 1) return t('justNow');
+    if (m < 60) return t('minsAgo', { count: m });
+    const h = Math.round(m / 60);
+    if (h < 24) return t('hoursAgo', { count: h });
+    const days = Math.round(h / 24);
+    return t('daysAgo', { count: days });
+  }
+
   return (
     <div className="bg-card rounded-2xl border p-4">
       <div className="flex items-center gap-2">
         <Clock className="text-primary size-4" />
-        <h3 className="text-sm font-semibold">Continue where you left off</h3>
+        <h3 className="text-sm font-semibold">{t('title')}</h3>
       </div>
       <ul className="mt-3 grid gap-1.5">
         {rows.map((r) => (
@@ -21,7 +35,7 @@ export async function ContinueCard() {
               <span className="bg-muted text-muted-foreground grid size-6 shrink-0 place-items-center rounded-md text-xs">
                 {r.icon ?? '📝'}
               </span>
-              <span className="min-w-0 flex-1 truncate">{r.title || 'Untitled'}</span>
+              <span className="min-w-0 flex-1 truncate">{r.title || t('untitled')}</span>
               <time className="text-muted-foreground text-[11px]">{timeAgo(r.lastOpenedAt)}</time>
             </Link>
           </li>
@@ -29,15 +43,4 @@ export async function ContinueCard() {
       </ul>
     </div>
   );
-}
-
-function timeAgo(d: Date) {
-  const diff = Date.now() - d.getTime();
-  const m = Math.round(diff / 60_000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const days = Math.round(h / 24);
-  return `${days}d ago`;
 }

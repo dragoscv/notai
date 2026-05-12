@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Send, Loader2, FileText, Square, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { Textarea } from '@notai/ui/components/textarea';
 import { cn } from '@notai/lib/utils';
@@ -26,12 +27,7 @@ interface AskTurn {
   error?: string;
 }
 
-const SUGGESTIONS = [
-  'What did I learn this week?',
-  'Summarise my recent meeting notes',
-  'List every TODO scattered across my notes',
-  'What are my open questions about the project?',
-];
+const SUGGESTION_KEYS = ['suggestion1', 'suggestion2', 'suggestion3', 'suggestion4'] as const;
 
 /**
  * Conversational "ask my notes" surface backed by `/api/ask` (NDJSON
@@ -40,6 +36,7 @@ const SUGGESTIONS = [
  * the value is in the citations, not the chat log.
  */
 export function AskClient() {
+  const t = useTranslations('appFeatures.ask');
   const [question, setQuestion] = React.useState('');
   const [turns, setTurns] = React.useState<AskTurn[]>([]);
   const [busy, setBusy] = React.useState(false);
@@ -133,13 +130,13 @@ export function AskClient() {
         );
       } catch (err) {
         if ((err as { name?: string }).name === 'AbortError') {
-          setTurns((t) =>
-            t.map((tt) =>
+          setTurns((prev) =>
+            prev.map((tt) =>
               tt.id === turnId
                 ? {
                     ...tt,
                     status: tt.answer ? 'done' : 'error',
-                    error: tt.answer ? undefined : 'Stopped.',
+                    error: tt.answer ? undefined : t('stopped'),
                   }
                 : tt,
             ),
@@ -178,7 +175,7 @@ export function AskClient() {
         {turns.length === 0 ? (
           <EmptyState onPick={(s) => void ask(s)} />
         ) : (
-          turns.map((t) => <Turn key={t.id} turn={t} />)
+          turns.map((tt) => <Turn key={tt.id} turn={tt} />)
         )}
       </div>
 
@@ -192,7 +189,7 @@ export function AskClient() {
             value={question}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setQuestion(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Ask anything about your notes…"
+            placeholder={t('placeholder')}
             rows={1}
             className="min-h-[2.25rem] resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
           />
@@ -202,7 +199,7 @@ export function AskClient() {
               size="icon"
               variant="destructive"
               onClick={stop}
-              aria-label="Stop"
+              aria-label={t('stop')}
             >
               <Square className="size-4" fill="currentColor" />
             </Button>
@@ -211,21 +208,20 @@ export function AskClient() {
               type="submit"
               size="icon"
               disabled={question.trim().length < 2}
-              aria-label="Ask"
+              aria-label={t('ask')}
             >
               <Send className="size-4" />
             </Button>
           )}
         </div>
-        <p className="text-muted-foreground mt-2 text-center text-[11px]">
-          Notai cites your notes by number. Click any citation to open the source.
-        </p>
+        <p className="text-muted-foreground mt-2 text-center text-[11px]">{t('footnote')}</p>
       </form>
     </div>
   );
 }
 
 function EmptyState({ onPick }: { onPick: (q: string) => void }) {
+  const t = useTranslations('appFeatures.ask');
   const [history, setHistory] = React.useState<string[]>([]);
   React.useEffect(() => {
     try {
@@ -240,27 +236,27 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
       <div className="bg-primary/10 text-primary mb-4 grid size-12 place-items-center rounded-2xl">
         <Sparkles className="size-6" />
       </div>
-      <h2 className="text-xl font-semibold">Ask your second brain</h2>
-      <p className="text-muted-foreground mt-2 max-w-md text-sm">
-        Notai searches your notes with semantic similarity, then writes a grounded answer with
-        citations to the source notes.
-      </p>
+      <h2 className="text-xl font-semibold">{t('emptyTitle')}</h2>
+      <p className="text-muted-foreground mt-2 max-w-md text-sm">{t('emptyBody')}</p>
       <div className="mt-6 grid w-full max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
-        {SUGGESTIONS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => onPick(s)}
-            className="bg-card hover:border-primary/40 hover:bg-primary/5 rounded-xl border p-3 text-left text-sm transition-colors"
-          >
-            {s}
-          </button>
-        ))}
+        {SUGGESTION_KEYS.map((key) => {
+          const s = t(key);
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onPick(s)}
+              className="bg-card hover:border-primary/40 hover:bg-primary/5 rounded-xl border p-3 text-left text-sm transition-colors"
+            >
+              {s}
+            </button>
+          );
+        })}
       </div>
       {history.length > 0 && (
         <div className="mt-8 w-full max-w-lg text-left">
           <div className="text-muted-foreground mb-2 text-[11px] uppercase tracking-wide">
-            Recent questions
+            {t('recentQuestions')}
           </div>
           <ul className="space-y-1">
             {history.map((q, i) => (
@@ -282,6 +278,7 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
 }
 
 function Turn({ turn }: { turn: AskTurn }) {
+  const t = useTranslations('appFeatures.ask');
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -300,13 +297,13 @@ function Turn({ turn }: { turn: AskTurn }) {
         >
           {turn.status === 'streaming' && turn.answer.length === 0 && (
             <p className="text-muted-foreground flex items-center gap-2 text-xs">
-              <Loader2 className="size-3.5 animate-spin" /> Searching your notes…
+              <Loader2 className="size-3.5 animate-spin" /> {t('searching')}
             </p>
           )}
           {turn.answer && <AnswerWithCitations text={turn.answer} hits={turn.hits} />}
           {turn.status === 'error' && (
             <p className="text-destructive text-xs">
-              Something went wrong: {turn.error ?? 'unknown error'}.
+              {t('errorPrefix', { error: turn.error ?? t('unknownError') })}
             </p>
           )}
           {turn.status === 'done' && turn.answer && (
@@ -334,24 +331,25 @@ function SaveAnswerButton({
   answer: string;
   hits: Hit[];
 }) {
+  const t = useTranslations('appFeatures.ask');
   const router = useRouter();
   const [busy, setBusy] = React.useState(false);
   const onSave = async () => {
     if (busy) return;
     setBusy(true);
-    const t = toast.loading('Saving answer\u2026');
+    const tid = toast.loading(t('savingAnswer'));
     try {
       const note = await createNote({
-        title: question.trim().slice(0, 80) || 'Saved answer',
+        title: question.trim().slice(0, 80) || t('saveAnswerTitle'),
         icon: '\u2728',
       });
-      if (!note) throw new Error('Failed to create note');
+      if (!note) throw new Error(t('failedCreateNote'));
       const sourcesBlock =
         hits.length === 0
           ? ''
-          : '\n\n## Sources\n\n' +
+          : `\n\n## ${t('saveSourcesHeader')}\n\n` +
             hits
-              .map((h, i) => `[#${i + 1}] ${h.icon ?? '\uD83D\uDCDD'} ${h.title || 'Untitled'}`)
+              .map((h, i) => `[#${i + 1}] ${h.icon ?? '\uD83D\uDCDD'} ${h.title || t('untitled')}`)
               .join('\n');
       const body = `# ${question.trim()}\n\n${answer.trim()}${sourcesBlock}`;
       try {
@@ -360,12 +358,12 @@ function SaveAnswerButton({
           JSON.stringify({ noteId: note.id, text: body, ts: Date.now() }),
         );
       } catch {
-        /* localStorage off \u2014 the note still opens */
+        /* localStorage off */
       }
-      toast.success('Answer saved', { id: t });
+      toast.success(t('answerSaved'), { id: tid });
       router.push(`/app/n/${note.id}`);
     } catch (err) {
-      toast.error((err as Error).message, { id: t });
+      toast.error((err as Error).message, { id: tid });
     } finally {
       setBusy(false);
     }
@@ -378,12 +376,13 @@ function SaveAnswerButton({
       className="hover:bg-muted inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs disabled:opacity-60"
     >
       {busy ? <Loader2 className="size-3.5 animate-spin" /> : <FileText className="size-3.5" />}
-      Save to a new note
+      {t('saveToNote')}
     </button>
   );
 }
 
 function CopyButton({ text }: { text: string }) {
+  const t = useTranslations('appFeatures.ask');
   const [copied, setCopied] = React.useState(false);
   const onCopy = async () => {
     try {
@@ -391,7 +390,7 @@ function CopyButton({ text }: { text: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error("Couldn't copy to clipboard");
+      toast.error(t('copyFailed'));
     }
   };
   return (
@@ -401,12 +400,13 @@ function CopyButton({ text }: { text: string }) {
       className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] transition-colors"
     >
       {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
-      {copied ? 'Copied' : 'Copy answer'}
+      {copied ? t('copied') : t('copy')}
     </button>
   );
 }
 
 function Citations({ hits }: { hits: Hit[] }) {
+  const t = useTranslations('appFeatures.ask');
   return (
     <div className="flex flex-wrap gap-1.5">
       {hits.map((h, i) => (
@@ -422,7 +422,7 @@ function Citations({ hits }: { hits: Hit[] }) {
           ) : (
             <FileText className="text-muted-foreground size-3" />
           )}
-          <span className="max-w-[16ch] truncate">{h.title || 'Untitled'}</span>
+          <span className="max-w-[16ch] truncate">{h.title || t('untitled')}</span>
         </Link>
       ))}
     </div>
@@ -438,6 +438,7 @@ function Citations({ hits }: { hits: Hit[] }) {
  * answer.
  */
 function AnswerWithCitations({ text, hits }: { text: string; hits: Hit[] }) {
+  const t = useTranslations('appFeatures.ask');
   const paragraphs = text.split(/\n\s*\n+/);
   return (
     <div className="space-y-3">
@@ -448,7 +449,7 @@ function AnswerWithCitations({ text, hits }: { text: string; hits: Hit[] }) {
           <div key={pi}>
             {cited.length > 0 && (
               <div className="text-muted-foreground mb-1 flex flex-wrap items-center gap-1 text-[11px]">
-                <span>Sources:</span>
+                <span>{t('sources')}</span>
                 {cited.map((c) => (
                   <Link
                     key={c.n}
@@ -457,7 +458,7 @@ function AnswerWithCitations({ text, hits }: { text: string; hits: Hit[] }) {
                     className="bg-muted hover:bg-primary/15 hover:text-primary inline-flex items-center gap-1 rounded-full px-1.5 py-0.5"
                   >
                     <span className="font-mono">#{c.n}</span>
-                    <span className="max-w-[14ch] truncate">{c.hit.title || 'Untitled'}</span>
+                    <span className="max-w-[14ch] truncate">{c.hit.title || t('untitled')}</span>
                   </Link>
                 ))}
               </div>

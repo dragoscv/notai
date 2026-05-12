@@ -2,6 +2,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   getNotesByMonth,
   getNotesOnDay,
@@ -9,7 +10,15 @@ import {
   type DayNote,
 } from '@/server/actions/calendar';
 
-const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const WEEKDAY_KEYS = [
+  'weekdayMon',
+  'weekdayTue',
+  'weekdayWed',
+  'weekdayThu',
+  'weekdayFri',
+  'weekdaySat',
+  'weekdaySun',
+] as const;
 
 function ymdUTC(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -33,6 +42,7 @@ function buildGrid(year: number, month: number): Date[] {
 }
 
 export function CalendarClient() {
+  const t = useTranslations('appFeatures.calendar');
   const today = new Date();
   const [view, setView] = React.useState({
     year: today.getUTCFullYear(),
@@ -85,7 +95,7 @@ export function CalendarClient() {
               type="button"
               onClick={() => navigate(-1)}
               className="hover:bg-muted rounded p-1.5"
-              aria-label="Previous month"
+              aria-label={t('previousMonth')}
             >
               <ChevronLeft className="size-4" />
             </button>
@@ -96,22 +106,22 @@ export function CalendarClient() {
               }
               className="hover:bg-muted rounded px-2 py-1 text-xs"
             >
-              Today
+              {t('today')}
             </button>
             <button
               type="button"
               onClick={() => navigate(1)}
               className="hover:bg-muted rounded p-1.5"
-              aria-label="Next month"
+              aria-label={t('nextMonth')}
             >
               <ChevronRight className="size-4" />
             </button>
           </div>
         </div>
         <div className="text-muted-foreground mb-1 grid grid-cols-7 gap-1 text-[10px] uppercase">
-          {WEEKDAY_LABELS.map((d) => (
-            <div key={d} className="text-center">
-              {d}
+          {WEEKDAY_KEYS.map((k) => (
+            <div key={k} className="text-center">
+              {t(k)}
             </div>
           ))}
         </div>
@@ -141,7 +151,9 @@ export function CalendarClient() {
                 {count > 0 && (
                   <span
                     className="bg-primary/15 text-primary mt-auto self-end rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-                    title={`${count} note${count === 1 ? '' : 's'} updated`}
+                    title={
+                      count === 1 ? t('countTitleOne', { count }) : t('countTitleOther', { count })
+                    }
                   >
                     {count}
                   </span>
@@ -161,9 +173,9 @@ export function CalendarClient() {
           })}
         </h3>
         {loadingDay ? (
-          <p className="text-muted-foreground mt-3 text-sm">Loading\u2026</p>
+          <p className="text-muted-foreground mt-3 text-sm">{t('loading')}</p>
         ) : dayNotes.length === 0 ? (
-          <p className="text-muted-foreground mt-3 text-sm">No notes updated this day.</p>
+          <p className="text-muted-foreground mt-3 text-sm">{t('noNotes')}</p>
         ) : (
           <ul className="mt-3 space-y-1.5">
             {dayNotes.map((n) => (
@@ -175,7 +187,7 @@ export function CalendarClient() {
                   <span className="size-4 shrink-0 text-center">
                     {n.icon || <FileText className="size-3.5 opacity-60" />}
                   </span>
-                  <span className="truncate">{n.title || 'Untitled'}</span>
+                  <span className="truncate">{n.title || t('untitled')}</span>
                 </Link>
               </li>
             ))}

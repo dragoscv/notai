@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { History } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Popover, PopoverContent, PopoverTrigger } from '@notai/ui/components/popover';
 import { readPromptHistory } from './daily-prompt-card';
 import { createNoteFromPrompt } from '@/server/actions/daily-prompt';
@@ -14,6 +15,7 @@ import { useRouter } from 'next/navigation';
  * to seed a new note via `createNoteFromPrompt`.
  */
 export function DailyPromptHistoryButton() {
+  const t = useTranslations('dashboard.dailyPrompt');
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [history, setHistory] = React.useState<Array<{ date: string; prompt: string }>>([]);
@@ -39,16 +41,14 @@ export function DailyPromptHistoryButton() {
         <button
           type="button"
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-[11px]"
-          aria-label="Recent journal prompts"
+          aria-label={t('historyAria')}
         >
-          <History className="size-3.5" /> History
+          <History className="size-3.5" /> {t('historyLabel')}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-2" align="end">
         {history.length === 0 ? (
-          <p className="text-muted-foreground p-2 text-center text-xs">
-            No past prompts yet \u2014 they\u2019ll appear here as you keep showing up.
-          </p>
+          <p className="text-muted-foreground p-2 text-center text-xs">{t('historyEmpty')}</p>
         ) : (
           <ul className="max-h-72 space-y-1 overflow-y-auto">
             {history.map((h, i) => (

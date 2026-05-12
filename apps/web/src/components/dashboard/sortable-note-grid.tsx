@@ -18,6 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { cn } from '@notai/lib/utils';
 import { useNoteActions } from '@/components/note/use-note-actions';
 import { NoteCard, type NoteWithPreview } from '@/components/note/note-card';
@@ -50,6 +51,7 @@ export function SortableNoteGrid({
   showTodayPin?: boolean;
   className?: string;
 }) {
+  const t = useTranslations('dashboard.view');
   const actions = useNoteActions();
   // Local order so the grid animates instantly while the server catches up.
   const [items, setItems] = React.useState(initialNotes);
@@ -81,14 +83,14 @@ export function SortableNoteGrid({
 
     if (sort !== 'custom' && onSortChangeRequest) {
       onSortChangeRequest('custom');
-      toast.message('Switched to custom order', { duration: 2000 });
+      toast.message(t('switchedToCustom'), { duration: 2000 });
     }
 
     const moved = items[oldIndex]!;
     try {
       await moveNote({ noteId: moved.id, folderId: moved.folderId, index: newIndex });
     } catch (err) {
-      toast.error(`Reorder failed: ${String(err)}`);
+      toast.error(t('reorderFailed', { error: String(err) }));
       setItems(items); // revert
     }
   };

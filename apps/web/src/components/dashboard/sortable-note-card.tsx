@@ -4,6 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Pin } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { cn } from '@notai/lib/utils';
 import { NoteCard, type NoteWithPreview } from '@/components/note/note-card';
 
@@ -23,6 +24,7 @@ export function SortableNoteCard({
   children?: React.ReactNode;
   showTodayPin?: boolean;
 }) {
+  const t = useTranslations('dashboard.view');
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: note.id,
   });
@@ -48,7 +50,7 @@ export function SortableNoteCard({
       {showTodayPin && note.isPinnedOnToday ? (
         <span
           aria-hidden
-          title="Pinned on Today"
+          title={t('pinnedOnTodayTitle')}
           className="bg-primary text-primary-foreground absolute -left-1.5 -top-1.5 z-10 grid size-5 place-items-center rounded-full shadow"
         >
           <Pin className="size-3" />
@@ -58,7 +60,7 @@ export function SortableNoteCard({
       {/* Drag handle — hover-only on desktop, always visible on touch. */}
       <button
         type="button"
-        aria-label="Drag to reorder"
+        aria-label={t('dragLabel')}
         className={cn(
           'bg-card/85 text-muted-foreground hover:text-foreground absolute right-1.5 top-1.5 z-10 grid size-6 place-items-center rounded-md border opacity-0 backdrop-blur transition-opacity',
           'focus-visible:opacity-100 group-hover/card:opacity-100',

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { CalendarClock, AlertTriangle, FileText } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { listTasks, type Task } from '@/server/actions/tasks';
 
 /**
@@ -11,6 +12,7 @@ import { listTasks, type Task } from '@/server/actions/tasks';
  * Hidden when there's nothing due — never shames an empty day.
  */
 export function TodayTasksCard() {
+  const t = useTranslations('dashboard.todayTasks');
   const [overdue, setOverdue] = React.useState<Task[] | null>(null);
   const [today, setToday] = React.useState<Task[] | null>(null);
 
@@ -42,7 +44,7 @@ export function TodayTasksCard() {
     <div className="bg-card mb-3 overflow-hidden rounded-2xl border">
       <div className="text-muted-foreground flex items-center gap-2 border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wide">
         <CalendarClock className="size-3.5" />
-        <span>Today &middot; {overdue.length + today.length} due</span>
+        <span>{t('header', { count: overdue.length + today.length })}</span>
       </div>
 
       {overdue.length > 0 && (
@@ -68,6 +70,7 @@ export function TodayTasksCard() {
 }
 
 function TaskRow({ task, flavour }: { task: Task; flavour: 'overdue' | 'today' }) {
+  const t = useTranslations('dashboard.todayTasks');
   return (
     <Link
       href={`/app/n/${task.noteId}`}
@@ -93,7 +96,11 @@ function TaskRow({ task, flavour }: { task: Task; flavour: 'overdue' | 'today' }
                 : 'text-muted-foreground text-[10px] font-medium uppercase tracking-wide'
           }
         >
-          {task.priority}
+          {task.priority === 'high'
+            ? t('priorityHigh')
+            : task.priority === 'med'
+              ? t('priorityMed')
+              : t('priorityLow')}
         </span>
       )}
       {task.recurrence && (
@@ -104,7 +111,11 @@ function TaskRow({ task, flavour }: { task: Task; flavour: 'overdue' | 'today' }
       {task.estimateMin && (
         <span
           className="rounded-full bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-medium text-sky-700 dark:text-sky-300"
-          title={`Estimated ${task.estimateMin} minute${task.estimateMin === 1 ? '' : 's'}`}
+          title={
+            task.estimateMin === 1
+              ? t('estimateTitleOne', { count: task.estimateMin })
+              : t('estimateTitleOther', { count: task.estimateMin })
+          }
         >
           {task.estimateMin >= 60
             ? `${Math.round(task.estimateMin / 60)}h`
@@ -115,7 +126,7 @@ function TaskRow({ task, flavour }: { task: Task; flavour: 'overdue' | 'today' }
         <FileText className="size-3 opacity-60" />
         <span className="max-w-[140px] truncate">
           {task.noteIcon ? `${task.noteIcon} ` : ''}
-          {task.noteTitle || 'Untitled'}
+          {task.noteTitle || t('untitled')}
         </span>
       </span>
       <span
@@ -127,9 +138,9 @@ function TaskRow({ task, flavour }: { task: Task; flavour: 'overdue' | 'today' }
       >
         {flavour === 'overdue'
           ? task.daysUntil === -1
-            ? 'yesterday'
-            : `${Math.abs(task.daysUntil ?? 0)}d ago`
-          : 'today'}
+            ? t('yesterday')
+            : t('daysAgo', { count: Math.abs(task.daysUntil ?? 0) })
+          : t('todayLabel')}
       </span>
     </Link>
   );

@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Lightbulb, Pen, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import {
   getDailyPrompt,
   createNoteFromPrompt,
@@ -51,6 +52,7 @@ export function readPromptHistory(): PromptHistoryEntry[] {
  * this" creates a fresh note seeded with the prompt as its title.
  */
 export function DailyPromptCard() {
+  const t = useTranslations('dashboard.dailyPrompt');
   const router = useRouter();
   const [data, setData] = React.useState<DailyPrompt | null>(null);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -112,7 +114,7 @@ export function DailyPromptCard() {
     <div className="rounded-2xl border bg-amber-500/5 p-4">
       <div className="text-muted-foreground mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
         <Lightbulb className="size-3.5" />
-        <span>Today&apos;s prompt</span>
+        <span>{t('label')}</span>
         <div className="ml-auto flex items-center gap-1">
           <DailyPromptHistoryButton />
           <button
@@ -120,8 +122,8 @@ export function DailyPromptCard() {
             onClick={() => void load(true)}
             disabled={refreshing}
             className="hover:bg-muted rounded p-1 disabled:opacity-50"
-            title="Generate a different prompt"
-            aria-label="Refresh prompt"
+            title={t('refreshTitle')}
+            aria-label={t('refreshLabel')}
           >
             <RefreshCw className={refreshing ? 'size-3 animate-spin' : 'size-3'} />
           </button>
@@ -136,7 +138,7 @@ export function DailyPromptCard() {
           className="bg-foreground text-background inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium hover:opacity-90 disabled:opacity-50"
         >
           <Pen className="size-3.5" />
-          {creating ? 'Creating\u2026' : 'Write about this'}
+          {creating ? t('creating') : t('writeAbout')}
         </button>
       </div>
     </div>

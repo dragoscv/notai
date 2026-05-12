@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { auth } from '@/auth';
 import { AskClient } from '@/components/ask/ask-client';
 import { SidebarToggle } from '@/components/layout/sidebar-toggle';
@@ -8,6 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function AskPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/signin');
+  const t = await getTranslations('pages.ask');
 
   return (
     <div className="flex h-full flex-col">
@@ -16,10 +18,8 @@ export default async function AskPage() {
         data-focus-hide
       >
         <SidebarToggle />
-        <h1 className="text-sm font-medium">Ask Notai</h1>
-        <p className="text-muted-foreground hidden text-xs sm:inline">
-          · search and reason across all your notes
-        </p>
+        <h1 className="text-sm font-medium">{t('title')}</h1>
+        <p className="text-muted-foreground hidden text-xs sm:inline">{t('subtitle')}</p>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <AskClient />

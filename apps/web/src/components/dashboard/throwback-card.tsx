@@ -2,6 +2,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Clock, ArrowRight, RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { getThrowbackNote, type ThrowbackNote } from '@/server/actions/throwback';
 
 /**
@@ -11,6 +12,7 @@ import { getThrowbackNote, type ThrowbackNote } from '@/server/actions/throwback
  * user has no archive yet (silent for first-week users).
  */
 export function ThrowbackCard() {
+  const t = useTranslations('dashboard.throwback');
   const [note, setNote] = React.useState<ThrowbackNote | null | undefined>(undefined);
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -30,22 +32,21 @@ export function ThrowbackCard() {
     void load();
   }, [load]);
 
-  // First-load placeholder & empty-state both render nothing — this is
-  // a delightful nudge, not an essential surface, and a noisy "loading…"
-  // skeleton would defeat the point.
   if (note === undefined || note === null) return null;
 
   return (
     <div className="bg-card relative overflow-hidden rounded-2xl border p-4">
       <div className="text-muted-foreground mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
         <Clock className="size-3.5" />
-        <span>Throwback &middot; {formatDaysAgo(note.daysAgo)}</span>
+        <span>
+          {t('label')} &middot; {formatDaysAgo(note.daysAgo, t)}
+        </span>
         <button
           type="button"
           onClick={() => void load()}
           disabled={refreshing}
-          aria-label="Show a different throwback"
-          title="Show a different one"
+          aria-label={t('refreshLabel')}
+          title={t('refreshTitle')}
           className="hover:bg-muted ml-auto rounded p-1 disabled:opacity-50"
         >
           <RefreshCw className={refreshing ? 'size-3 animate-spin' : 'size-3'} />
@@ -72,12 +73,20 @@ export function ThrowbackCard() {
   );
 }
 
-function formatDaysAgo(days: number): string {
-  if (days < 60) return `${days} days ago`;
+function formatDaysAgo(
+  days: number,
+  t: (k: string, v?: Record<string, string | number | Date>) => string,
+): string {
+  if (days < 60)
+    return days === 1 ? t('daysAgoOne', { count: days }) : t('daysAgoOther', { count: days });
   const months = Math.round(days / 30);
-  if (months < 12) return `${months} months ago`;
+  if (months < 12)
+    return months === 1
+      ? t('monthsAgoOne', { count: months })
+      : t('monthsAgoOther', { count: months });
   const years = Math.floor(days / 365);
   const rem = Math.round((days - years * 365) / 30);
-  if (rem === 0) return years === 1 ? 'a year ago' : `${years} years ago`;
-  return `${years}y ${rem}mo ago`;
+  if (rem === 0)
+    return years === 1 ? t('yearOne', { count: years }) : t('yearOther', { count: years });
+  return t('yearsMonths', { years, months: rem });
 }
