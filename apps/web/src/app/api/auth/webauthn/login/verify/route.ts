@@ -4,10 +4,18 @@ import { verifyAuthenticationResponse } from '@simplewebauthn/server';
 import type { AuthenticationResponseJSON } from '@simplewebauthn/server';
 import { db, eq, sql, webauthnCredentials } from '@notai/db';
 import { consumeChallengeCookie, createSessionForUser, getRpConfig } from '@/server/webauthn';
+import { getClientIp, rateLimit, tooManyRequests } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
+  const limit = await rateLimit({
+    name: 'webauthn-login-verify',
+    key: getClientIp(req),
+    windowSec: 60,
+    max: 10,
+  });
+  if (!limit.ok) return tooManyRequests(limit);
   const body = (await req.json()) as { response: AuthenticationResponseJSON };
   const blob = await consumeChallengeCookie();
   if (!blob) return NextResponse.json({ error: 'no_challenge' }, { status: 400 });

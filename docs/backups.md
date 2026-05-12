@@ -68,6 +68,31 @@ node scripts/restore-backup.mjs --file=… --target=local --schema-only
 node scripts/restore-backup.mjs --file=… --target=local --data-only
 ```
 
+## Automated monthly drill
+
+[`db-backup-restore-drill.yml`](../.github/workflows/db-backup-restore-drill.yml)
+runs on the first day of every month. It:
+
+1. Finds the latest successful `db-backup-nightly` run.
+2. Downloads the artifact and verifies its `.sha256`.
+3. Spins up Postgres 17 inside the runner.
+4. Calls `node scripts/backup-restore-drill.mjs --file=…` which
+   creates a throwaway DB, `pg_restore`s into it, then verifies:
+   - `>= DRILL_MIN_TABLES` tables in `public` (default 30)
+   - `drizzle.__drizzle_migrations` is populated
+   - core tables exist (`users`, `notes`, `sessions`, `webhook_endpoints`)
+
+Run it manually any time:
+
+```powershell
+# Locally, against any Postgres where you can CREATE DATABASE:
+$env:DRILL_DATABASE_URL = "postgres://postgres:t@localhost:5432/postgres"
+node scripts/backup-restore-drill.mjs --file=.\notai-<ts>.dump
+```
+
+A failed drill is the loudest possible "your backups are not actually
+recoverable" alarm — treat it as P0.
+
 ## Verifying a backup is healthy
 
 The workflow stores the SHA-256 alongside the dump. To smoke-test

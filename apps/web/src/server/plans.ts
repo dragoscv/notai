@@ -17,6 +17,14 @@ import {
   type Plan,
 } from '@notai/db';
 import { getViewer } from './rbac';
+import { rateLimit } from '@/lib/rate-limit';
+
+export class RateLimitError extends Error {
+  constructor(public retryAfterSec: number) {
+    super(`Rate limit exceeded. Try again in ${retryAfterSec}s.`);
+    this.name = 'RateLimitError';
+  }
+}
 
 /** Hard-coded fallback when the DB has no plans yet (very first deploy). */
 const SAFE_FALLBACK_LIMITS = {
@@ -168,6 +176,18 @@ export async function requireQuota(
   quota: 'notes' | 'attachments' | 'devices' | 'ai',
   delta = 1,
 ): Promise<void> {
+  if (quota === 'ai') {
+    // Burst limit on top of the monthly quota. Stops a runaway client
+    // (or a held-Enter loop) from emptying the OpenAI budget in seconds.
+    // Per-user, generous enough that real-world bursts pass.
+    const limit = await rateLimit({
+      name: 'ai-action',
+      key: userId,
+      windowSec: 60,
+      max: 30,
+    });
+    if (!limit.ok) throw new RateLimitError(limit.retryAfterSec);
+  }
   const state = await getQuotaState(userId);
   const slot = state[quota];
   if (slot.limit === null) return; // unlimited

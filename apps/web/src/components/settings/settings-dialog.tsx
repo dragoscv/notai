@@ -39,7 +39,12 @@ import { useAppPreferences, type AppPreferences } from '@/lib/preferences';
 import { useSnippets, setSnippets } from '@/lib/snippets';
 import { ShortcutsEditor } from './shortcuts-editor';
 import { signOutAction } from '@/server/actions/auth';
-import { updateProfile, exportUserNotes, deleteAccount } from '@/server/actions/account';
+import {
+  updateProfile,
+  exportUserNotes,
+  exportAllUserData,
+  deleteAccount,
+} from '@/server/actions/account';
 import { exportAllNotesAsZip } from '@/server/actions/export-zip';
 import { EncryptionSettingsPanel } from './encryption-settings-panel';
 import { E2eAuditPanel } from './e2e-audit-panel';
@@ -522,6 +527,7 @@ function ShortcutsSection() {
 function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => void }) {
   const [exporting, startExport] = useTransition();
   const [exportingZip, startExportZip] = useTransition();
+  const [exportingGdpr, startExportGdpr] = useTransition();
   const [importing, startImport] = useTransition();
   const importInputRef = useRef<HTMLInputElement>(null);
   const [importingEnex, startImportEnex] = useTransition();
@@ -569,6 +575,27 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
         a.remove();
         URL.revokeObjectURL(url);
         toast.success(`Exported ${noteCount} note${noteCount === 1 ? '' : 's'} as Markdown.`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Export failed');
+      }
+    });
+  };
+
+  const exportGdpr = () => {
+    startExportGdpr(async () => {
+      try {
+        const data = await exportAllUserData();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const stamp = new Date().toISOString().slice(0, 10);
+        a.download = `notai-gdpr-export-${stamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        toast.success('Personal data export downloaded');
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Export failed');
       }
@@ -727,6 +754,26 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
               <Download className="size-4" />
             )}
             Export
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium">Download all my data (GDPR)</p>
+            <p className="text-muted-foreground text-xs">
+              Article 15 / 20 export: profile, notes, folders, tags, comments, devices, API key &
+              webhook metadata, audit log. Secrets are never included.
+            </p>
+          </div>
+          <Button type="button" variant="outline" onClick={exportGdpr} disabled={exportingGdpr}>
+            {exportingGdpr ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4" />
+            )}
+            Download
           </Button>
         </div>
       </div>

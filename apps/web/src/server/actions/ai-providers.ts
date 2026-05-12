@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
+import { rateLimit } from '@/lib/rate-limit';
 import {
   deleteUserSecret,
   getDecryptedSecret,
@@ -70,6 +71,14 @@ export async function saveOpenAiKey(
   input: z.input<typeof saveOpenAiSchema>,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const me = await requireUser();
+  const limit = await rateLimit({
+    name: 'byok-validate',
+    key: me.id,
+    windowSec: 60,
+    max: 5,
+  });
+  if (!limit.ok)
+    return { ok: false, error: `Too many attempts. Try again in ${limit.retryAfterSec}s.` };
   const { apiKey } = saveOpenAiSchema.parse(input);
   const validation = await validateOpenAiKey(apiKey);
   if (!validation.ok) return { ok: false, error: validation.error };

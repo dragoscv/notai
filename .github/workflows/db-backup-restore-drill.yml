@@ -1,0 +1,118 @@
+name: db-backup-restore-drill
+
+# Monthly disaster-recovery test.
+#
+# Pulls the most recent `notai-db-backup-*` artifact produced by
+# db-backup-nightly.yml, restores it into a throwaway Postgres 17
+# container running inside the runner, and verifies the restored DB
+# has the expected shape (table count, drizzle migrations applied,
+# core tables present). Failures notify via the workflow status — wire
+# them into your alerting of choice (email, Slack) on the
+# org/repo level.
+#
+# The drill is read-only on production: it only consumes artifacts.
+
+on:
+  schedule:
+    # First day of every month at 03:30 UTC (off-peak, after nightly).
+    - cron: '30 3 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read # needed to list + download artifacts via gh CLI
+
+concurrency:
+  group: db-backup-restore-drill
+  cancel-in-progress: false
+
+jobs:
+  drill:
+    name: restore latest backup → throwaway Postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: drill
+          POSTGRES_USER: drill
+          POSTGRES_DB: drill
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U drill"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DRILL_DATABASE_URL: postgres://drill:drill@localhost:5432/drill?sslmode=disable
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install postgresql-client-17
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          pg_restore --version
+          psql --version
+
+      - name: Find latest db-backup-nightly run
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_id=$(gh run list \
+            --workflow=db-backup-nightly.yml \
+            --branch=main \
+            --status=success \
+            --limit=1 \
+            --json databaseId \
+            --jq '.[0].databaseId')
+          if [ -z "$run_id" ] || [ "$run_id" = "null" ]; then
+            echo "::error::No successful db-backup-nightly run found."
+            exit 1
+          fi
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "Latest backup run: $run_id"
+
+      - name: Download latest backup artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p backup
+          gh run download ${{ steps.latest.outputs.run_id }} \
+            --pattern 'notai-db-backup-*' \
+            --dir backup
+          ls -lh backup/
+          # Find the .dump file (ignoring sha256 sidecars).
+          dump=$(find backup -name '*.dump' | head -n1)
+          if [ -z "$dump" ]; then
+            echo "::error::No .dump file in artifact."
+            exit 1
+          fi
+          echo "DRILL_DUMP=$dump" >> "$GITHUB_ENV"
+
+      - name: Verify checksum (if sidecar present)
+        run: |
+          set -euo pipefail
+          sha=$(find backup -name '*.sha256' | head -n1 || true)
+          if [ -n "$sha" ]; then
+            ( cd "$(dirname "$sha")" && sha256sum --check "$(basename "$sha")" )
+          else
+            echo "No .sha256 sidecar found, skipping checksum verification."
+          fi
+
+      - name: Run drill
+        run: |
+          node scripts/backup-restore-drill.mjs --file="$DRILL_DUMP"

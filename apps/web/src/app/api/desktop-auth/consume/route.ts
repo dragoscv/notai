@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { eq } from '@notai/db';
 import { db } from '@notai/db/client';
 import { sessions, verificationTokens } from '@notai/db/schema';
+import { getClientIp, rateLimit, tooManyRequests } from '@/lib/rate-limit';
 
 /**
  * Consume a desktop handoff token inside the Tauri webview.
@@ -15,6 +16,13 @@ import { sessions, verificationTokens } from '@notai/db/schema';
  *   redirects to /app.
  */
 export async function GET(req: NextRequest) {
+  const limit = await rateLimit({
+    name: 'desktop-auth-consume',
+    key: getClientIp(req),
+    windowSec: 60,
+    max: 30,
+  });
+  if (!limit.ok) return tooManyRequests(limit);
   const handoff = req.nextUrl.searchParams.get('token');
   if (!handoff) return redirectToSignin(req, 'missing-token');
 
