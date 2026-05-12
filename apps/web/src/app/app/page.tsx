@@ -114,13 +114,13 @@ export default async function AppHome() {
         </form>
       </header>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
         {isEmpty ? (
-          <div className="overflow-y-auto p-6">
+          <div className="p-6">
             <EmptyState />
           </div>
         ) : (
-          <div className="flex h-full flex-col overflow-hidden">
+          <div className="flex flex-col pb-6">
             <div className="px-4 pt-4 md:px-6">
               <div className="mb-2 flex items-center justify-end gap-2">
                 <TimeOfDayChip />
@@ -167,7 +167,7 @@ export default async function AppHome() {
             <div className="px-4 md:px-6">
               <StaleTodosCard />
             </div>
-            <div className="min-h-0 flex-1 overflow-hidden">
+            <div>
               <DashboardView views={views} notes={notes} folders={folders} tags={tags} />
             </div>
           </div>

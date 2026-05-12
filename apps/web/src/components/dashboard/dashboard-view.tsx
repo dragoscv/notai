@@ -88,7 +88,7 @@ export function DashboardView({
         tags={tags}
       />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="p-6">
         <AnimatePresence mode="wait">
           {filtered.length === 0 ? (
             <motion.div
