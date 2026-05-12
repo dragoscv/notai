@@ -90,12 +90,16 @@ export async function exportAllUserData() {
     db.select().from(notes).where(eq(notes.ownerId, uid)),
     db.select().from(folders).where(eq(folders.ownerId, uid)),
     db.select().from(tags).where(eq(tags.ownerId, uid)),
-    db.select().from(noteTags).where(eq(noteTags.ownerId, uid)),
-    db.select().from(noteComments).where(eq(noteComments.authorId, uid)),
+    db
+      .select({ noteId: noteTags.noteId, tagId: noteTags.tagId })
+      .from(noteTags)
+      .innerJoin(notes, eq(notes.id, noteTags.noteId))
+      .where(eq(notes.ownerId, uid)),
+    db.select().from(noteComments).where(eq(noteComments.userId, uid)),
     db
       .select({
         id: apiKeys.id,
-        label: apiKeys.label,
+        name: apiKeys.name,
         scopes: apiKeys.scopes,
         createdAt: apiKeys.createdAt,
         lastUsedAt: apiKeys.lastUsedAt,

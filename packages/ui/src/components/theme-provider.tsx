@@ -27,7 +27,7 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       // and add `light`/`dark` aliases for the system resolver.
       value={{
         light: 'paper',
-        dark: 'midnight',
+        dark: 'oled',
         ...Object.fromEntries(APP_THEMES.map((t) => [t.id, t.id])),
       }}
       disableTransitionOnChange={false}
