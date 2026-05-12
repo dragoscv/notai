@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { CalendarDays, ArrowRight, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { appendTextToScene, type CanvasNoteHandle } from '@notai/editor';
@@ -21,6 +22,7 @@ const DAILY_TITLE_RE = /^Daily — \d{4}-\d{2}-\d{2}$/;
  * has dealt with it.
  */
 export function RolloverBanner({ noteId, noteTitle, canvasRef }: RolloverBannerProps) {
+  const t = useTranslations('editor.rollover');
   const isDaily = DAILY_TITLE_RE.test(noteTitle);
   const storageKey = `notai:rollover:${noteId}`;
 
@@ -59,21 +61,19 @@ export function RolloverBanner({ noteId, noteTitle, canvasRef }: RolloverBannerP
     if (!handle) return;
     const api = handle.getExcalidrawApi?.();
     if (!api) {
-      toast.error('Canvas not ready yet — try again in a moment.');
+      toast.error(t('canvasNotReady'));
       return;
     }
-    // Phase-3 era rollover: write directly onto the Excalidraw scene as a
-    // single text element. Heading line is sentence-case; each task gets
-    // a `[ ]` prefix so the existing ChecklistOverlay can toggle them.
-    const body = `## Carried over from ${date}\n\n` + items.map((t) => `[ ] ${t}`).join('\n');
+    const body =
+      `## ${t('carriedHeading', { date })}\n\n` + items.map((task) => `[ ] ${task}`).join('\n');
     const id = appendTextToScene(api, body, { focus: true });
     if (!id) {
-      toast.error("Couldn't roll forward — please try again.");
+      toast.error(t('rollFailed'));
       return;
     }
     window.localStorage.setItem(storageKey, '1');
     setDismissed(true);
-    toast.success(`Rolled forward ${items.length} task${items.length === 1 ? '' : 's'}`);
+    toast.success(items.length === 1 ? t('rolledOne') : t('rolledOther', { count: items.length }));
   };
 
   return (
@@ -81,11 +81,13 @@ export function RolloverBanner({ noteId, noteTitle, canvasRef }: RolloverBannerP
       <CalendarDays className="text-primary mt-0.5 size-4 shrink-0" />
       <div className="min-w-0 flex-1">
         <div className="text-foreground font-medium">
-          {items.length} open task{items.length === 1 ? '' : 's'} from {date}
+          {items.length === 1
+            ? t('headingOne', { date })
+            : t('headingOther', { count: items.length, date })}
         </div>
         <div className="text-muted-foreground mt-0.5 truncate text-xs">
           {items.slice(0, 3).join(' · ')}
-          {items.length > 3 ? ` · +${items.length - 3} more` : ''}
+          {items.length > 3 ? t('extraSuffix', { count: items.length - 3 }) : ''}
         </div>
       </div>
       <button
@@ -93,12 +95,12 @@ export function RolloverBanner({ noteId, noteTitle, canvasRef }: RolloverBannerP
         onClick={insert}
         className="bg-primary text-primary-foreground inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium hover:opacity-90"
       >
-        Roll forward <ArrowRight className="size-3.5" />
+        {t('rollForward')} <ArrowRight className="size-3.5" />
       </button>
       <button
         type="button"
         onClick={dismiss}
-        aria-label="Dismiss"
+        aria-label={t('dismiss')}
         className="text-muted-foreground hover:text-foreground rounded-md p-1"
       >
         <X className="size-4" />

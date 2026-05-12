@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { ImagePlus, Loader2 } from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
 import { toast } from 'sonner';
@@ -22,6 +23,7 @@ export function AssetUploader({
   variant?: 'button' | 'dropzone';
   className?: string;
 }) {
+  const t = useTranslations('editor.assets');
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [pending, setPending] = React.useState(false);
   const [drag, setDrag] = React.useState(false);
@@ -50,15 +52,15 @@ export function AssetUploader({
       });
       onUploaded?.({ url: publicUrl, mime: file.type });
       if (file.type.startsWith('image/')) {
-        toast.success('Uploaded', {
+        toast.success(t('uploaded'), {
           action: {
-            label: 'Extract text',
+            label: t('extractText'),
             onClick: async () => {
-              const t = toast.loading('Reading image…');
+              const tid = toast.loading(t('reading'));
               try {
                 const { text } = await ocrImage({ noteId, imageUrl: publicUrl });
                 if (!text || text === '(no text detected)') {
-                  toast.message('No readable text found.', { id: t });
+                  toast.message(t('noText'), { id: tid });
                   return;
                 }
                 try {
@@ -71,25 +73,25 @@ export function AssetUploader({
                   /* localStorage may be unavailable — fall back to copy-to-clipboard */
                   try {
                     await navigator.clipboard.writeText(text);
-                    toast.success('Copied to clipboard.', { id: t });
+                    toast.success(t('copiedFallback'), { id: tid });
                     return;
                   } catch {
                     /* ignore */
                   }
                 }
                 window.dispatchEvent(new CustomEvent('notai:pending-append-changed'));
-                toast.success('Text added below the image.', { id: t });
+                toast.success(t('addedBelow'), { id: tid });
               } catch (err) {
-                toast.error((err as Error).message || 'OCR failed', { id: t });
+                toast.error((err as Error).message || t('ocrFailed'), { id: tid });
               }
             },
           },
         });
       } else {
-        toast.success('Uploaded');
+        toast.success(t('uploaded'));
       }
     } catch (err) {
-      toast.error((err as Error).message ?? 'Upload failed');
+      toast.error((err as Error).message ?? t('uploadFailed'));
     } finally {
       setPending(false);
     }
@@ -128,9 +130,7 @@ export function AssetUploader({
         ) : (
           <ImagePlus className="text-muted-foreground size-5" />
         )}
-        <p className="text-muted-foreground">
-          {pending ? 'Uploading…' : 'Drop a file or click to upload'}
-        </p>
+        <p className="text-muted-foreground">{pending ? t('uploading') : t('dropOrClick')}</p>
       </label>
     );
   }
@@ -161,7 +161,7 @@ export function AssetUploader({
         ) : (
           <ImagePlus className="size-3.5" />
         )}
-        {pending ? 'Uploading' : 'Attach'}
+        {pending ? t('uploading') : t('attach')}
       </Button>
     </>
   );

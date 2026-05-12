@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Repeat, ArrowRight, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { appendTextToScene, type CanvasNoteHandle } from '@notai/editor';
@@ -18,6 +19,8 @@ interface Props {
  * checks off another recurring task.
  */
 export function RecurringRollBanner({ noteId, canvasRef }: Props) {
+  const t = useTranslations('editor.rollover.recurring');
+  const tParent = useTranslations('editor.rollover');
   const today = new Date().toISOString().slice(0, 10);
   const storageKey = `notai:recur-roll:${noteId}:${today}`;
 
@@ -54,17 +57,17 @@ export function RecurringRollBanner({ noteId, canvasRef }: Props) {
     const handle = canvasRef.current;
     const api = handle?.getExcalidrawApi?.();
     if (!api) {
-      toast.error('Canvas not ready yet — try again in a moment.');
+      toast.error(t('rollFailed'));
       return;
     }
     const id = appendTextToScene(api, text, { focus: true });
     if (!id) {
-      toast.error("Couldn't roll — please try again.");
+      toast.error(t('rollFailed'));
       return;
     }
     window.localStorage.setItem(storageKey, '1');
     setDismissed(true);
-    toast.success(`Rolled ${count} recurring task${count === 1 ? '' : 's'}`);
+    toast.success(count === 1 ? t('rolledOne') : t('rolledOther', { count }));
   };
 
   return (
@@ -72,25 +75,23 @@ export function RecurringRollBanner({ noteId, canvasRef }: Props) {
       <Repeat className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
       <div className="min-w-0 flex-1">
         <div className="text-foreground font-medium">
-          {count} recurring task{count === 1 ? '' : 's'} ready to roll
+          {count === 1 ? t('headingOne') : t('headingOther', { count })}
         </div>
-        <div className="text-muted-foreground mt-0.5 text-xs">
-          New open instances with the next due date.
-        </div>
+        <div className="text-muted-foreground mt-0.5 text-xs">{t('description')}</div>
       </div>
       <button
         type="button"
         className="bg-primary text-primary-foreground inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium"
         onClick={insert}
       >
-        Roll forward
+        {tParent('rollForward')}
         <ArrowRight className="size-3" />
       </button>
       <button
         type="button"
         className="text-muted-foreground hover:text-foreground"
         onClick={dismiss}
-        aria-label="Dismiss"
+        aria-label={tParent('dismiss')}
       >
         <X className="size-4" />
       </button>

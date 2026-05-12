@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Mic, Square, Loader2, AudioLines } from 'lucide-react';
 import { toast } from 'sonner';
 import { appendTextToScene, type CanvasNoteHandle } from '@notai/editor';
@@ -24,6 +25,8 @@ const MAX_PARAGRAPH_CHARS = 480;
  * out, no manual editing.
  */
 export function VoiceModeButton({ canvasRef }: VoiceModeButtonProps) {
+  const t = useTranslations('editor.voice.mode');
+  const tVoice = useTranslations('editor.voice');
   const [state, setState] = React.useState<'idle' | 'recording' | 'transcribing'>('idle');
   const recRef = React.useRef<MediaRecorder | null>(null);
   const chunksRef = React.useRef<Blob[]>([]);
@@ -43,7 +46,7 @@ export function VoiceModeButton({ canvasRef }: VoiceModeButtonProps) {
     try {
       const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
       if (blob.size < 800) {
-        toast.info('Recording was too short.');
+        toast.info(tVoice('recorder.tooShort'));
         setState('idle');
         return;
       }
@@ -53,7 +56,7 @@ export function VoiceModeButton({ canvasRef }: VoiceModeButtonProps) {
 
       const api = canvasRef.current?.getExcalidrawApi();
       if (!api) {
-        toast.error('Canvas not ready — copying transcript to clipboard instead.');
+        toast.error(t('copiedFallback'));
         try {
           await navigator.clipboard.writeText(result.text);
         } catch {
@@ -64,7 +67,7 @@ export function VoiceModeButton({ canvasRef }: VoiceModeButtonProps) {
 
       const paragraphs = groupSegmentsIntoParagraphs(result.segments, result.text);
       if (paragraphs.length === 0) {
-        toast.info('Nothing audible to transcribe.');
+        toast.info(t('nothingAudible'));
         return;
       }
       for (const p of paragraphs) {
@@ -73,7 +76,7 @@ export function VoiceModeButton({ canvasRef }: VoiceModeButtonProps) {
       // Focus the last paragraph so the user lands on what they just said.
       appendTextToScene(api, '', { focus: true }); // no-op for empty
       toast.success(
-        `Voice mode: ${paragraphs.length} paragraph${paragraphs.length === 1 ? '' : 's'}.`,
+        paragraphs.length === 1 ? t('doneOne') : t('doneOther', { count: paragraphs.length }),
       );
     } catch (err) {
       toast.error((err as Error).message);
@@ -104,7 +107,7 @@ export function VoiceModeButton({ canvasRef }: VoiceModeButtonProps) {
       setElapsed(0);
       setState('recording');
     } catch (err) {
-      toast.error("Couldn't access your microphone");
+      toast.error((err as Error).message || tVoice('micFailed'));
       console.error(err);
     }
   }, [state, finish]);
@@ -121,7 +124,7 @@ export function VoiceModeButton({ canvasRef }: VoiceModeButtonProps) {
         type="button"
         onClick={stop}
         className="bg-destructive text-destructive-foreground flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs"
-        title="Stop recording"
+        title={t('stopTitle')}
       >
         <span className="bg-destructive-foreground inline-block size-2 animate-pulse rounded-full" />
         <Square className="size-3.5" />
@@ -133,7 +136,7 @@ export function VoiceModeButton({ canvasRef }: VoiceModeButtonProps) {
     return (
       <div className="text-muted-foreground flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs">
         <Loader2 className="size-3.5 animate-spin" />
-        Splitting paragraphs…
+        {t('splitting')}
       </div>
     );
   }
@@ -142,10 +145,10 @@ export function VoiceModeButton({ canvasRef }: VoiceModeButtonProps) {
       type="button"
       onClick={start}
       className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs"
-      title="Voice mode — record a long thought and let Notai split it into paragraphs by pause"
+      title={t('triggerTitle')}
     >
       <AudioLines className="size-3.5" /> <Mic className="size-3.5" />
-      Voice mode
+      {t('trigger')}
     </button>
   );
 }

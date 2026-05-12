@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { appendTextToScene, type CanvasNoteHandle } from '@notai/editor';
@@ -23,6 +24,8 @@ export function CanvasFileDropZone({
   canvasRef: React.RefObject<CanvasNoteHandle | null>;
   children: React.ReactNode;
 }) {
+  const t = useTranslations('editor.assets.drop');
+  const tAssets = useTranslations('editor.assets');
   const [dragging, setDragging] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const dragCounter = React.useRef(0);
@@ -73,7 +76,7 @@ export function CanvasFileDropZone({
     if (files.length === 0) return;
     setBusy(true);
     const tId = toast.loading(
-      files.length === 1 ? 'Uploading attachment…' : `Uploading ${files.length} attachments…`,
+      files.length === 1 ? t('uploadingOne') : t('uploadingMany', { count: files.length }),
     );
     let ok = 0;
     let fail = 0;
@@ -84,14 +87,14 @@ export function CanvasFileDropZone({
       } catch (err) {
         fail += 1;
         // Surface the first error so the user sees what went wrong.
-        if (fail === 1) toast.error((err as Error).message || 'Upload failed', { id: tId });
+        if (fail === 1) toast.error((err as Error).message || tAssets('uploadFailed'), { id: tId });
       }
     }
     setBusy(false);
     if (fail === 0) {
-      toast.success(ok === 1 ? 'Attachment added.' : `${ok} attachments added.`, { id: tId });
+      toast.success(ok === 1 ? t('successOne') : t('successOther', { count: ok }), { id: tId });
     } else if (ok > 0) {
-      toast.message(`Uploaded ${ok}, ${fail} failed.`, { id: tId });
+      toast.message(t('partial', { ok, fail }), { id: tId });
     }
   };
 
@@ -122,11 +125,11 @@ export function CanvasFileDropZone({
           <div className="bg-popover text-foreground inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm shadow">
             {busy ? (
               <>
-                <Loader2 className="size-4 animate-spin" /> Uploading…
+                <Loader2 className="size-4 animate-spin" /> {t('uploading')}
               </>
             ) : (
               <>
-                <Upload className="size-4" /> Drop to attach
+                <Upload className="size-4" /> {t('dropToAttach')}
               </>
             )}
           </div>

@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import {
   FileText,
   Rows3,
@@ -29,14 +30,14 @@ export interface SurfaceSettings {
 
 const SURFACES: {
   value: Surface;
-  label: string;
+  labelKey: 'plain' | 'ruled' | 'grid' | 'dots' | 'columns';
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { value: 'plain', label: 'Plain', icon: FileText },
-  { value: 'ruled', label: 'Ruled', icon: Rows3 },
-  { value: 'grid', label: 'Grid (math)', icon: Grid3x3 },
-  { value: 'dots', label: 'Dots', icon: LayoutGrid },
-  { value: 'columns', label: 'Columns', icon: Columns3 },
+  { value: 'plain', labelKey: 'plain', icon: FileText },
+  { value: 'ruled', labelKey: 'ruled', icon: Rows3 },
+  { value: 'grid', labelKey: 'grid', icon: Grid3x3 },
+  { value: 'dots', labelKey: 'dots', icon: LayoutGrid },
+  { value: 'columns', labelKey: 'columns', icon: Columns3 },
 ];
 
 const DEFAULT_KEY = 'notai:surface';
@@ -103,6 +104,8 @@ export function SurfaceSwitcher({
   value: SurfaceSettings;
   onChange: (next: SurfaceSettings) => void;
 }) {
+  const t = useTranslations('editor.surface');
+  const tSurfaces = useTranslations('editor.surface.surfaces');
   const current = SURFACES.find((s) => s.value === value.surface) ?? SURFACES[0]!;
   const Icon = current.icon;
   return (
@@ -112,26 +115,27 @@ export function SurfaceSwitcher({
           variant="ghost"
           size="sm"
           className="hover:bg-current/10 data-[state=open]:bg-current/20 h-7 cursor-pointer gap-1.5 px-2 text-xs hover:text-current"
-          title="Page style"
+          title={t('pageStyle')}
         >
           <Icon className="size-3.5" />
-          <span>{current.label}</span>
+          <span>{tSurfaces(current.labelKey)}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-56 space-y-3 p-3">
         <div>
-          <div className="text-muted-foreground mb-1.5 text-xs font-medium">Page style</div>
+          <div className="text-muted-foreground mb-1.5 text-xs font-medium">{t('pageStyle')}</div>
           <div className="grid grid-cols-5 gap-1">
             {SURFACES.map((s) => {
               const I = s.icon;
               const active = s.value === value.surface;
+              const label = tSurfaces(s.labelKey);
               return (
                 <button
                   key={s.value}
                   type="button"
                   onClick={() => onChange({ ...value, surface: s.value })}
-                  title={s.label}
-                  aria-label={s.label}
+                  title={label}
+                  aria-label={label}
                   className={cn(
                     'flex aspect-square items-center justify-center rounded-md border transition',
                     active
@@ -146,22 +150,23 @@ export function SurfaceSwitcher({
           </div>
         </div>
         <div>
-          <div className="text-muted-foreground mb-1.5 text-xs font-medium">Coverage</div>
+          <div className="text-muted-foreground mb-1.5 text-xs font-medium">{t('coverage')}</div>
           <div className="grid grid-cols-2 gap-1">
             {(
               [
-                { value: 'page', label: 'Page', icon: Square },
-                { value: 'full', label: 'Full', icon: Maximize },
+                { value: 'page', labelKey: 'coveragePage' as const, icon: Square },
+                { value: 'full', labelKey: 'coverageFull' as const, icon: Maximize },
               ] as const
             ).map((opt) => {
               const I = opt.icon;
               const active = opt.value === value.coverage;
+              const label = t(opt.labelKey);
               return (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => onChange({ ...value, coverage: opt.value })}
-                  title={opt.label}
+                  title={label}
                   className={cn(
                     'flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition',
                     active
@@ -170,7 +175,7 @@ export function SurfaceSwitcher({
                   )}
                 >
                   <I className="size-3.5" />
-                  {opt.label}
+                  {label}
                 </button>
               );
             })}
@@ -178,7 +183,7 @@ export function SurfaceSwitcher({
         </div>
         <div>
           <div className="mb-1.5 flex items-center justify-between text-xs">
-            <span className="text-muted-foreground font-medium">Line spacing</span>
+            <span className="text-muted-foreground font-medium">{t('lineSpacing')}</span>
             <span className="tabular-nums">{value.spacing}px</span>
           </div>
           <Slider
@@ -194,14 +199,14 @@ export function SurfaceSwitcher({
           <div className="mb-1.5 flex items-center justify-between text-xs">
             <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
               <MapIcon className="size-3" />
-              Minimap
+              {t('minimap')}
             </span>
             <Switch
               checked={value.minimap.enabled}
               onCheckedChange={(checked) =>
                 onChange({ ...value, minimap: { ...value.minimap, enabled: checked } })
               }
-              aria-label="Toggle minimap"
+              aria-label={t('minimapToggle')}
             />
           </div>
           <div
@@ -212,10 +217,10 @@ export function SurfaceSwitcher({
           >
             {(
               [
-                { value: 'tl', label: 'Top L' },
-                { value: 'tr', label: 'Top R' },
-                { value: 'bl', label: 'Bot L' },
-                { value: 'br', label: 'Bot R' },
+                { value: 'tl', labelKey: 'cornerTL' as const },
+                { value: 'tr', labelKey: 'cornerTR' as const },
+                { value: 'bl', labelKey: 'cornerBL' as const },
+                { value: 'br', labelKey: 'cornerBR' as const },
               ] as const
             ).map((opt) => {
               const active = opt.value === value.minimap.corner;
@@ -237,14 +242,12 @@ export function SurfaceSwitcher({
                   )}
                 >
                   <CornerGlyph corner={opt.value as MinimapCorner} />
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </button>
               );
             })}
           </div>
-          <p className="text-muted-foreground mt-1 text-[10px]">
-            Tip: drag the minimap to snap it to a different corner.
-          </p>
+          <p className="text-muted-foreground mt-1 text-[10px]">{t('minimapTip')}</p>
         </div>
       </PopoverContent>
     </Popover>

@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import {
   Loader2,
   MessageSquare,
@@ -46,6 +47,8 @@ export function NoteChatPanel({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useTranslations('editor.chat');
+  const tToast = useTranslations('editor.chat.toast');
   const [history, setHistory] = React.useState<ChatMessage[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [question, setQuestion] = React.useState('');
@@ -66,7 +69,7 @@ export function NoteChatPanel({
         if (!cancelled) setHistory(rows);
       })
       .catch(() => {
-        if (!cancelled) toast.error('Failed to load chat history');
+        if (!cancelled) toast.error(tToast('loadFailed'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -160,7 +163,7 @@ export function NoteChatPanel({
           // wasn't written because we cut it short — that's expected.
           setInFlight((cur) =>
             cur && cur.id === turnId
-              ? { ...cur, status: 'error', error: cur.answer ? undefined : 'Stopped.' }
+              ? { ...cur, status: 'error', error: cur.answer ? undefined : tToast('stopped') }
               : cur,
           );
         } else {
@@ -180,12 +183,12 @@ export function NoteChatPanel({
   const stop = React.useCallback(() => abortRef.current?.abort(), []);
 
   const onClear = async () => {
-    if (!confirm('Clear this conversation?')) return;
+    if (!confirm(t('confirmClear'))) return;
     try {
       await clearChat(noteId);
       setHistory([]);
       setInFlight(null);
-      toast.success('Chat cleared');
+      toast.success(tToast('cleared'));
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -199,19 +202,19 @@ export function NoteChatPanel({
     <aside
       className="bg-card flex h-full w-[360px] shrink-0 flex-col border-l"
       data-focus-hide
-      aria-label="Chat with this note"
+      aria-label={t('aria.panel')}
     >
       <header className="flex items-center gap-2 border-b px-3 py-2">
         <MessageSquare className="size-4 text-amber-500" />
-        <span className="text-sm font-semibold">Chat</span>
-        <span className="text-muted-foreground ml-1 truncate text-xs">— this note</span>
+        <span className="text-sm font-semibold">{t('title')}</span>
+        <span className="text-muted-foreground ml-1 truncate text-xs">{t('subtitle')}</span>
         <div className="ml-auto flex items-center gap-1">
           <Button
             size="icon-sm"
             variant="ghost"
             onClick={onClear}
-            aria-label="Clear chat"
-            title="Clear conversation"
+            aria-label={t('clear')}
+            title={t('clearTitle')}
             disabled={loading || (history.length === 0 && !inFlight)}
           >
             <Trash2 className="size-3.5" />
@@ -220,8 +223,8 @@ export function NoteChatPanel({
             size="icon-sm"
             variant="ghost"
             onClick={() => onOpenChange(false)}
-            aria-label="Close chat"
-            title="Close"
+            aria-label={t('close')}
+            title={t('closeTitle')}
           >
             <X className="size-3.5" />
           </Button>
@@ -232,7 +235,7 @@ export function NoteChatPanel({
         {loading ? (
           <div className="text-muted-foreground inline-flex items-center gap-2 text-xs">
             <Loader2 className="size-3.5 animate-spin" />
-            Loading…
+            {t('loading')}
           </div>
         ) : isEmpty ? (
           <EmptyState onPick={(s) => void ask(s)} />
@@ -279,7 +282,7 @@ export function NoteChatPanel({
                 void ask(question);
               }
             }}
-            placeholder="Ask about this note…"
+            placeholder={t('placeholder')}
             rows={1}
             className="min-h-[2rem] resize-none border-0 bg-transparent text-sm shadow-none focus-visible:ring-0"
           />
@@ -289,7 +292,7 @@ export function NoteChatPanel({
               size="icon-sm"
               variant="destructive"
               onClick={stop}
-              aria-label="Stop"
+              aria-label={t('stop')}
             >
               <Square className="size-3.5" fill="currentColor" />
             </Button>
@@ -298,7 +301,7 @@ export function NoteChatPanel({
               type="submit"
               size="icon-sm"
               disabled={question.trim().length < 1}
-              aria-label="Send"
+              aria-label={t('send')}
             >
               <Send className="size-3.5" />
             </Button>
@@ -320,6 +323,7 @@ function Bubble({
   citations: Citation[] | null;
   streaming?: boolean;
 }) {
+  const t = useTranslations('editor.chat');
   const [copied, setCopied] = React.useState(false);
   const isUser = role === 'user';
   const onCopy = () => {
@@ -361,10 +365,10 @@ function Bubble({
           type="button"
           onClick={onCopy}
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-[10px]"
-          aria-label="Copy"
+          aria-label={t('copy')}
         >
           {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
-          {copied ? 'Copied' : 'Copy'}
+          {copied ? t('copied') : t('copy')}
         </button>
       )}
     </div>
@@ -372,16 +376,12 @@ function Bubble({
 }
 
 function EmptyState({ onPick }: { onPick: (s: string) => void }) {
-  const suggestions = [
-    'Summarize this note in 3 bullets',
-    'What are the key decisions here?',
-    'List the action items',
-    'Translate the main idea to Romanian',
-  ];
+  const t = useTranslations('editor.chat.empty');
+  const suggestions = [t('suggestion1'), t('suggestion2'), t('suggestion3'), t('suggestion4')];
   return (
     <div className="text-muted-foreground space-y-3 py-4 text-center text-xs">
       <Sparkles className="text-primary mx-auto size-5" />
-      <p>Ask anything about this note. Answers are grounded in its content.</p>
+      <p>{t('intro')}</p>
       <ul className="space-y-1.5 text-left">
         {suggestions.map((s) => (
           <li key={s}>

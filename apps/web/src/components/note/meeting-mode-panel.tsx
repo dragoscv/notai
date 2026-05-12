@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Mic,
   MicOff,
@@ -51,6 +52,9 @@ export function MeetingModePanel({
   /** Called when the user accepts the enhanced markdown. Parent decides where to put it. */
   onInsertMarkdown: (markdown: string) => void;
 }) {
+  const t = useTranslations('editor.meeting');
+  const tActions = useTranslations('editor.meeting.actions');
+  const tToast = useTranslations('editor.meeting.toast');
   type State = 'idle' | 'recording' | 'paused' | 'transcribing' | 'enhancing';
   const [state, setState] = React.useState<State>('idle');
   const [rawNotes, setRawNotes] = React.useState('');
@@ -132,7 +136,7 @@ export function MeetingModePanel({
   const start = React.useCallback(async () => {
     if (state !== 'idle') return;
     if (!includeMic && !includeTab) {
-      toast.error('Pick at least one source.');
+      toast.error(tToast('pickSource'));
       return;
     }
     try {
@@ -150,7 +154,7 @@ export function MeetingModePanel({
           // We don't actually want the video — stop the video tracks but keep audio.
           tabStream.getVideoTracks().forEach((t) => t.stop());
           if (tabStream.getAudioTracks().length === 0) {
-            toast.error('No tab audio captured. Re-share the tab and tick "Share tab audio".');
+            toast.error(tToast('noTabAudio'));
             tabStream.getTracks().forEach((t) => t.stop());
           } else {
             tabStreamRef.current = tabStream;
@@ -158,9 +162,9 @@ export function MeetingModePanel({
           }
         } catch (err) {
           if ((err as { name?: string }).name === 'NotAllowedError') {
-            toast.error('Tab audio sharing was cancelled.');
+            toast.error(tToast('tabCancelled'));
           } else {
-            toast.error("Couldn't capture tab audio.");
+            toast.error(tToast('tabFailed'));
           }
         }
       }
@@ -171,7 +175,7 @@ export function MeetingModePanel({
           micStreamRef.current = micStream;
           sources.push(ctx.createMediaStreamSource(micStream));
         } catch {
-          toast.error("Couldn't access your microphone.");
+          toast.error(tToast('micFailed'));
         }
       }
 
@@ -232,7 +236,7 @@ export function MeetingModePanel({
     chunksRef.current = [];
     if (chunks.length === 0) {
       setState('idle');
-      toast.info('No audio was captured.');
+      toast.info(tToast('noAudio'));
       return;
     }
 
@@ -247,7 +251,7 @@ export function MeetingModePanel({
         if (piece) combined += (combined ? '\n' : '') + piece;
         setTranscript(combined);
       } catch (err) {
-        toast.error(`Chunk ${i + 1} failed: ${(err as Error).message}`);
+        toast.error(tToast('chunkFailed', { n: i + 1, error: (err as Error).message }));
       } finally {
         setChunkProgress({ done: i + 1, total: chunks.length });
       }
@@ -255,9 +259,9 @@ export function MeetingModePanel({
     setChunkProgress(null);
     setState('idle');
     if (combined.trim().length === 0) {
-      toast.error('Nothing was transcribed.');
+      toast.error(tToast('nothingTranscribed'));
     } else {
-      toast.success('Meeting transcribed.');
+      toast.success(tToast('transcribed'));
     }
   }, [stopAllStreams]);
 
@@ -302,7 +306,7 @@ export function MeetingModePanel({
     if (!enhancement) return;
     onInsertMarkdown(enhancement);
     setEnhancement(null);
-    toast.success('Inserted into note.');
+    toast.success(tToast('inserted'));
     // Clear the draft now that it's safely in the note.
     try {
       window.localStorage.removeItem(draftKey);
@@ -315,7 +319,7 @@ export function MeetingModePanel({
 
   const reset = React.useCallback(() => {
     if (state !== 'idle') return;
-    if (!confirm('Discard transcript, raw notes, and any enhancement?')) return;
+    if (!confirm(t('confirmDiscard'))) return;
     setRawNotes('');
     setTranscript('');
     setEnhancement(null);
@@ -350,7 +354,7 @@ export function MeetingModePanel({
     <aside
       className="bg-card flex h-full w-[400px] shrink-0 flex-col border-l"
       data-focus-hide
-      aria-label="Meeting mode"
+      aria-label={t('aria.panel')}
     >
       {/* ───────── header ───────── */}
       <header className="flex shrink-0 items-center justify-between border-b px-3 py-2">
@@ -364,7 +368,7 @@ export function MeetingModePanel({
             )}
             aria-hidden
           />
-          <h2 className="text-sm font-medium">Meeting</h2>
+          <h2 className="text-sm font-medium">{t('label')}</h2>
           {(recording || paused) && (
             <span className="text-muted-foreground font-mono text-xs tabular-nums">
               {formatElapsed(elapsed)}
@@ -375,7 +379,7 @@ export function MeetingModePanel({
           size="icon-sm"
           variant="ghost"
           onClick={() => onOpenChange(false)}
-          aria-label="Close meeting panel"
+          aria-label={t('closePanel')}
           disabled={recording || paused}
         >
           <X />
@@ -397,7 +401,7 @@ export function MeetingModePanel({
             aria-pressed={includeTab}
           >
             <ScreenShare className="size-3.5" />
-            Tab audio
+            {t('sources.tabAudio')}
           </button>
           <button
             type="button"
@@ -411,7 +415,7 @@ export function MeetingModePanel({
             aria-pressed={includeMic}
           >
             {includeMic ? <Mic className="size-3.5" /> : <MicOff className="size-3.5" />}
-            Microphone
+            {t('sources.microphone')}
           </button>
         </div>
       )}
@@ -421,18 +425,18 @@ export function MeetingModePanel({
         {state === 'idle' && (
           <Button onClick={start} className="flex-1" disabled={!includeMic && !includeTab}>
             <Monitor className="mr-1.5 size-4" />
-            Start meeting
+            {tActions('start')}
           </Button>
         )}
         {recording && (
           <>
             <Button onClick={pause} variant="secondary" className="flex-1">
               <Pause className="mr-1.5 size-4" />
-              Pause
+              {tActions('pause')}
             </Button>
             <Button onClick={stop} variant="destructive" className="flex-1">
               <Square className="mr-1.5 size-4" />
-              Stop
+              {tActions('stop')}
             </Button>
           </>
         )}
@@ -440,18 +444,18 @@ export function MeetingModePanel({
           <>
             <Button onClick={resume} className="flex-1">
               <Play className="mr-1.5 size-4" />
-              Resume
+              {tActions('resume')}
             </Button>
             <Button onClick={stop} variant="destructive" className="flex-1">
               <Square className="mr-1.5 size-4" />
-              Stop
+              {tActions('stop')}
             </Button>
           </>
         )}
         {transcribing && (
           <div className="text-muted-foreground flex w-full items-center justify-center gap-2 text-xs">
             <Loader2 className="size-3.5 animate-spin" />
-            Transcribing
+            {tActions('transcribing')}
             {chunkProgress && (
               <span className="tabular-nums">
                 {chunkProgress.done}/{chunkProgress.total}
@@ -462,7 +466,7 @@ export function MeetingModePanel({
         {enhancing && (
           <div className="text-muted-foreground flex w-full items-center justify-center gap-2 text-xs">
             <Loader2 className="size-3.5 animate-spin" />
-            Enhancing
+            {tActions('enhancing')}
           </div>
         )}
       </div>
@@ -473,15 +477,15 @@ export function MeetingModePanel({
           <div className="flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2">
             <div className="flex items-center gap-1.5 text-xs font-medium">
               <Sparkles className="text-primary size-3.5" />
-              Enhanced notes
+              {t('enhanced')}
             </div>
             <div className="flex items-center gap-1">
               <Button size="sm" variant="ghost" onClick={() => setEnhancement(null)}>
-                Discard
+                {tActions('discard')}
               </Button>
               <Button size="sm" onClick={acceptEnhancement}>
                 <CheckCircle2 className="mr-1.5 size-3.5" />
-                Insert
+                {tActions('insert')}
               </Button>
             </div>
           </div>
@@ -495,24 +499,24 @@ export function MeetingModePanel({
       {!enhancement && (
         <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
           <label className="text-muted-foreground flex items-center justify-between text-[11px] font-medium uppercase tracking-wide">
-            <span>Your raw notes</span>
+            <span>{t('rawNotesLabel')}</span>
             <span className="text-muted-foreground/70 normal-case tracking-normal">
-              {rawNotes.length} chars
+              {t('charsSuffix', { count: rawNotes.length })}
             </span>
           </label>
           <Textarea
             value={rawNotes}
             onChange={(e) => setRawNotes(e.target.value)}
-            placeholder="Type whatever helps you stay present. Don't worry about structure — Notai merges this with the transcript later."
+            placeholder={t('rawPlaceholder')}
             className="min-h-32 resize-y text-sm"
             disabled={transcribing || enhancing}
           />
 
           <label className="text-muted-foreground mt-2 flex items-center justify-between text-[11px] font-medium uppercase tracking-wide">
-            <span>Transcript</span>
+            <span>{t('transcriptLabel')}</span>
             {transcript && (
               <span className="text-muted-foreground/70 normal-case tracking-normal">
-                {transcript.length} chars
+                {t('charsSuffix', { count: transcript.length })}
               </span>
             )}
           </label>
@@ -522,10 +526,7 @@ export function MeetingModePanel({
               !transcript && 'text-muted-foreground italic',
             )}
           >
-            {transcript ||
-              (recording
-                ? 'Recording. Transcript will appear after you stop.'
-                : 'No transcript yet. Hit "Start meeting" above.')}
+            {transcript || (recording ? t('transcriptRecording') : t('transcriptIdle'))}
           </div>
 
           <div className="flex shrink-0 items-center gap-2 pt-1">
@@ -536,15 +537,15 @@ export function MeetingModePanel({
               variant="default"
             >
               <Sparkles className="mr-1.5 size-4" />
-              Enhance & preview
+              {tActions('enhancePreview')}
             </Button>
             <Button
               onClick={reset}
               variant="ghost"
               size="icon-sm"
               disabled={busy || (!rawNotes && !transcript)}
-              aria-label="Discard"
-              title="Discard"
+              aria-label={tActions('discard')}
+              title={tActions('discard')}
             >
               <Trash2 />
             </Button>
@@ -553,7 +554,7 @@ export function MeetingModePanel({
           {!transcript && rawNotes && state === 'idle' && (
             <p className="text-muted-foreground flex items-start gap-1.5 text-[11px]">
               <AlertTriangle className="mt-0.5 size-3 shrink-0" />
-              Record audio to enable enhancement.
+              {t('needAudio')}
             </p>
           )}
         </div>

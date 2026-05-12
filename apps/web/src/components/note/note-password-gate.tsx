@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Lock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@notai/ui/components/button';
@@ -13,6 +14,7 @@ import { unlockNote } from '@/server/actions/note-password';
  * its real content.
  */
 export function NotePasswordGate({ noteId }: { noteId: string }) {
+  const t = useTranslations('editor.lock.password');
   const [password, setPassword] = React.useState('');
   const [busy, setBusy] = React.useState(false);
 
@@ -23,13 +25,13 @@ export function NotePasswordGate({ noteId }: { noteId: string }) {
     try {
       const res = await unlockNote({ noteId, password });
       if (!res.ok) {
-        toast.error('Incorrect password');
+        toast.error(t('incorrect'));
         setBusy(false);
         return;
       }
       window.location.reload();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not unlock');
+      toast.error(err instanceof Error ? err.message : t('failed'));
       setBusy(false);
     }
   };
@@ -45,10 +47,8 @@ export function NotePasswordGate({ noteId }: { noteId: string }) {
             <Lock className="size-5" />
           </span>
           <div>
-            <h2 className="text-base font-semibold">This note is locked</h2>
-            <p className="text-muted-foreground text-xs">
-              Enter the password to unlock it for this session.
-            </p>
+            <h2 className="text-base font-semibold">{t('title')}</h2>
+            <p className="text-muted-foreground text-xs">{t('description')}</p>
           </div>
         </div>
         <input
@@ -56,11 +56,11 @@ export function NotePasswordGate({ noteId }: { noteId: string }) {
           autoFocus
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
+          placeholder={t('placeholder')}
           className="bg-background w-full rounded-md border px-3 py-2 text-sm"
         />
         <Button type="submit" disabled={busy || !password} className="w-full">
-          {busy ? <Loader2 className="size-4 animate-spin" /> : 'Unlock'}
+          {busy ? <Loader2 className="size-4 animate-spin" /> : t('submit')}
         </Button>
       </form>
     </div>

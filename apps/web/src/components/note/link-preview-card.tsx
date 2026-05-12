@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { ExternalLink, Loader2 } from 'lucide-react';
 
 interface Meta {
@@ -21,6 +22,7 @@ const cache = new Map<string, Meta | 'error'>();
  * session don't re-hit the network.
  */
 export function LinkPreviewCard({ url }: { url: string }) {
+  const t = useTranslations('editor.links.preview');
   const [meta, setMeta] = React.useState<Meta | 'loading' | 'error'>(cache.get(url) ?? 'loading');
 
   React.useEffect(() => {
@@ -54,7 +56,7 @@ export function LinkPreviewCard({ url }: { url: string }) {
         rel="noopener noreferrer"
         className="bg-card text-muted-foreground my-2 flex items-center gap-2 rounded-lg border p-3 text-xs"
       >
-        <Loader2 className="size-3.5 animate-spin" /> Loading preview\u2026
+        <Loader2 className="size-3.5 animate-spin" /> {t('loading')}
       </a>
     );
   }

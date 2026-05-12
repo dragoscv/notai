@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Image as ImageIcon, Trash2, Move, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { setNoteCover, setNoteCoverPosition, removeNoteCover } from '@/server/actions/notes';
@@ -21,6 +22,7 @@ const ACCEPT = 'image/png,image/jpeg,image/webp,image/gif';
  * vertically to choose the focal point (`object-position-y` 0..100).
  */
 export function NoteCoverBanner({ noteId, initialUrl, initialPosition }: Props) {
+  const t = useTranslations('editor.cover');
   const [url, setUrl] = React.useState(initialUrl);
   const [position, setPosition] = React.useState(initialPosition);
   const [repositioning, setRepositioning] = React.useState(false);
@@ -59,9 +61,9 @@ export function NoteCoverBanner({ noteId, initialUrl, initialPosition }: Props) 
       await setNoteCover({ noteId, url: publicUrl });
       setUrl(publicUrl);
       setPosition(50);
-      toast.success('Cover added');
+      toast.success(t('toast.added'));
     } catch (err) {
-      toast.error((err as Error).message || 'Could not upload cover');
+      toast.error((err as Error).message || t('toast.uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -74,7 +76,7 @@ export function NoteCoverBanner({ noteId, initialUrl, initialPosition }: Props) 
       setPosition(50);
       setRepositioning(false);
     } catch (err) {
-      toast.error((err as Error).message || 'Could not remove cover');
+      toast.error((err as Error).message || t('toast.removeFailed'));
     }
   };
 
@@ -140,9 +142,9 @@ export function NoteCoverBanner({ noteId, initialUrl, initialPosition }: Props) 
                   type="button"
                   onClick={() => setRepositioning(false)}
                   className="bg-background/90 text-foreground hover:bg-background inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium shadow-sm backdrop-blur"
-                  aria-label="Done repositioning cover"
+                  aria-label={t('doneAria')}
                 >
-                  <Check className="size-3" /> Done
+                  <Check className="size-3" /> {t('done')}
                 </button>
               </>
             ) : (
@@ -153,21 +155,21 @@ export function NoteCoverBanner({ noteId, initialUrl, initialPosition }: Props) 
                   disabled={uploading}
                   className="bg-background/90 text-foreground hover:bg-background inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium shadow-sm backdrop-blur disabled:opacity-60"
                 >
-                  <ImageIcon className="size-3" /> Change
+                  <ImageIcon className="size-3" /> {t('change')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setRepositioning(true)}
                   className="bg-background/90 text-foreground hover:bg-background inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium shadow-sm backdrop-blur"
                 >
-                  <Move className="size-3" /> Reposition
+                  <Move className="size-3" /> {t('reposition')}
                 </button>
                 <button
                   type="button"
                   onClick={onRemove}
                   className="bg-background/90 text-destructive hover:bg-background inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium shadow-sm backdrop-blur"
                 >
-                  <Trash2 className="size-3" /> Remove
+                  <Trash2 className="size-3" /> {t('remove')}
                 </button>
               </>
             )}
@@ -175,7 +177,7 @@ export function NoteCoverBanner({ noteId, initialUrl, initialPosition }: Props) 
 
           {repositioning && (
             <div className="bg-background/90 text-muted-foreground pointer-events-none absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-medium shadow-sm backdrop-blur">
-              Drag to reposition · {Math.round(position)}%
+              {t('dragHint', { percent: Math.round(position) })}
             </div>
           )}
         </div>
@@ -188,11 +190,11 @@ export function NoteCoverBanner({ noteId, initialUrl, initialPosition }: Props) 
         >
           {uploading ? (
             <>
-              <X className="size-3 animate-pulse" /> Uploading…
+              <X className="size-3 animate-pulse" /> {t('uploading')}
             </>
           ) : (
             <>
-              <ImageIcon className="size-3.5" /> Add cover
+              <ImageIcon className="size-3.5" /> {t('addCover')}
             </>
           )}
         </button>

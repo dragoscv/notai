@@ -1656,5 +1656,618 @@
       "deleteAria": "Șterge",
       "now": "acum"
     }
+  },
+  "editor": {
+    "workspace": {
+      "connection": {
+        "synced": "Sincronizat",
+        "connecting": "Se conectează",
+        "offline": "Offline",
+        "connectingPlaceholder": "Se conectează…"
+      },
+      "titlePlaceholder": "Fără titlu",
+      "untitled": "Fără titlu",
+      "aria": {
+        "pin": "Fixează",
+        "favorite": "Favorit",
+        "openSticky": "Deschide ca fereastră sticky",
+        "toggleComments": "Comută comentarii",
+        "toggleChat": "Comută chat",
+        "toggleMeeting": "Comută modul ședință"
+      },
+      "titles": {
+        "unpin": "Anulează fixarea",
+        "pinToTop": "Fixează sus",
+        "removeFavorite": "Scoate de la favorite",
+        "addFavorite": "Adaugă la favorite",
+        "openSticky": "Deschide ca fereastră sticky",
+        "closeComments": "Închide comentariile",
+        "openComments": "Deschide comentariile",
+        "closeChat": "Închide chatul",
+        "openChat": "Discută cu această notă",
+        "closeMeeting": "Închide ședința",
+        "openMeeting": "Mod ședință"
+      },
+      "menu": {
+        "convertBlocks": "Convertește blocurile de text în Excalidraw…",
+        "exportPng": "Exportă canvas-ul ca PNG…",
+        "exportSvg": "Exportă canvas-ul ca SVG…",
+        "copyCanvas": "Copiază canvas-ul în clipboard",
+        "encryptNote": "Criptează această notă end-to-end…",
+        "deleteNote": "Șterge"
+      },
+      "confirm": {
+        "convertBlocks": "Convertești blocurile de text TipTap din această notă în text Excalidraw? Este o migrare ireversibilă. Formatarea bogată (titluri, liste, formule, mermaid, callout-uri) devine text simplu.",
+        "encrypt": "Criptezi această notă end-to-end? Odată criptată: canvas-ul devine doar pentru citire, iar AI / căutarea / partajarea / blogul sunt dezactivate pentru această notă. O poți debloca și dezactiva criptarea din vizualizarea blocată.",
+        "deleteNote": "Ștergi această notă?"
+      },
+      "toast": {
+        "saveTitleFailed": "Nu am putut salva titlul",
+        "pinned": "Fixat",
+        "unpinned": "Anulat",
+        "appendedOne": "Am adăugat nota capturată.",
+        "appendedMany": "Am adăugat {count} note capturate.",
+        "summaryAdded": "Rezumat adăugat.",
+        "summaryFailed": "Smart paste a eșuat",
+        "summarising": "Rezum linkul…",
+        "summarisingPlaceholder": "Rezum {url}…",
+        "outlineAdded": "Schiță adăugată.",
+        "outlineFailed": "Schița a eșuat",
+        "outlining": "Schițez cu AI…",
+        "outliningPlaceholder": "Schițez ce ai lipit…",
+        "bigPaste": "Am detectat un text mare.",
+        "bigPasteDescription": "{count} caractere — îl schițezi cu AI?",
+        "outlineAction": "Schițează",
+        "asIsAction": "Ca atare",
+        "noBlocksToMigrate": "Nu există blocuri de text de migrat.",
+        "migratedBlocksOne": "Am migrat 1 bloc în Excalidraw.",
+        "migratedBlocksOther": "Am migrat {count} blocuri în Excalidraw.",
+        "reanchoredOne": "Am re-ancorat 1 comentariu.",
+        "reanchoredOther": "Am re-ancorat {count} comentarii.",
+        "reanchorFailed": "Re-ancorarea comentariilor a eșuat: {error}",
+        "migrationFailed": "Migrarea a eșuat: {error}",
+        "canvasNotReady": "Canvas-ul nu e gata încă.",
+        "nothingToExport": "Nu există nimic pe canvas de exportat.",
+        "nothingToCopy": "Nu există nimic pe canvas de copiat.",
+        "nothingToEncrypt": "Nu e nimic de criptat — scrie ceva mai întâi.",
+        "renderingPng": "Generez PNG…",
+        "renderingSvg": "Generez SVG…",
+        "copyingClipboard": "Copiez în clipboard…",
+        "exportedPng": "Am exportat PNG-ul.",
+        "exportedSvg": "Am exportat SVG-ul.",
+        "pngFailed": "Exportul PNG a eșuat: {error}",
+        "svgFailed": "Exportul SVG a eșuat: {error}",
+        "clipboardCopied": "Am copiat canvas-ul în clipboard.",
+        "clipboardFailed": "Copierea în clipboard a eșuat: {error}",
+        "clipboardUnsupported": "Copierea imaginii în clipboard nu e suportată în acest browser.",
+        "encrypting": "Criptez…",
+        "encrypted": "Notă criptată",
+        "encryptionFailed": "Criptarea a eșuat",
+        "stickyFailed": "Nu am putut deschide fereastra sticky: {error}",
+        "transcribed": "Transcris"
+      }
+    },
+    "meeting": {
+      "label": "Ședință",
+      "closePanel": "Închide panoul de ședință",
+      "sources": {
+        "tabAudio": "Audio din tab",
+        "microphone": "Microfon"
+      },
+      "actions": {
+        "start": "Începe ședința",
+        "pause": "Pauză",
+        "resume": "Reia",
+        "stop": "Oprește",
+        "transcribing": "Transcriu",
+        "enhancing": "Îmbunătățesc",
+        "enhancePreview": "Îmbunătățește & previzualizează",
+        "discard": "Renunță",
+        "insert": "Inserează"
+      },
+      "enhanced": "Note îmbunătățite",
+      "rawNotesLabel": "Notele tale brute",
+      "transcriptLabel": "Transcriere",
+      "charsSuffix": "{count} caractere",
+      "rawPlaceholder": "Scrie ce te ajută să fii prezent. Nu te preocupa de structură — Notai combină asta cu transcrierea mai târziu.",
+      "transcriptRecording": "Înregistrez. Transcrierea apare după ce oprești.",
+      "transcriptIdle": "Încă nicio transcriere. Apasă „Începe ședința” mai sus.",
+      "needAudio": "Înregistrează audio ca să poți îmbunătăți.",
+      "aria": {
+        "panel": "Mod ședință"
+      },
+      "toast": {
+        "pickSource": "Alege cel puțin o sursă.",
+        "noTabAudio": "Nu am capturat audio din tab. Repartajează tabul și bifează „Partajează audio din tab”.",
+        "tabCancelled": "Partajarea audio din tab a fost anulată.",
+        "tabFailed": "Nu am putut captura audio din tab.",
+        "micFailed": "Nu am putut accesa microfonul.",
+        "noAudio": "Nu s-a capturat niciun fragment audio.",
+        "chunkFailed": "Fragmentul {n} a eșuat: {error}",
+        "nothingTranscribed": "Nu s-a transcris nimic.",
+        "transcribed": "Ședință transcrisă.",
+        "inserted": "Inserat în notă."
+      },
+      "confirmDiscard": "Renunți la transcriere, note brute și îmbunătățire?"
+    },
+    "chat": {
+      "title": "Chat",
+      "subtitle": "— această notă",
+      "clear": "Șterge chatul",
+      "clearTitle": "Șterge conversația",
+      "close": "Închide chatul",
+      "closeTitle": "Închide",
+      "placeholder": "Întreabă despre această notă…",
+      "stop": "Oprește",
+      "send": "Trimite",
+      "loading": "Se încarcă…",
+      "aria": {
+        "panel": "Discută cu această notă"
+      },
+      "empty": {
+        "intro": "Întreabă orice despre această notă. Răspunsurile pornesc din conținutul ei.",
+        "suggestion1": "Rezumă această notă în 3 puncte",
+        "suggestion2": "Care sunt deciziile cheie de aici?",
+        "suggestion3": "Listează acțiunile de făcut",
+        "suggestion4": "Traduce ideea principală în engleză"
+      },
+      "copy": "Copiază",
+      "copied": "Copiat",
+      "toast": {
+        "loadFailed": "Nu am putut încărca istoricul chatului",
+        "cleared": "Chat șters",
+        "stopped": "Oprit."
+      },
+      "confirmClear": "Ștergi această conversație?"
+    },
+    "ai": {
+      "triggerLabel": "AI",
+      "closeMenu": "Închide meniul",
+      "modes": {
+        "summary": "Rezumat",
+        "actions": "Acțiuni de făcut",
+        "rewrite": "Rescrie clar",
+        "outline": "Schiță",
+        "title": "Sugerează titlu",
+        "fixSpelling": "Corectează ortografia și gramatica"
+      },
+      "continueThought": "Continuă acest gând",
+      "generateMindMap": "Generează hartă mentală",
+      "thinking": "Mă gândesc…",
+      "noOutput": "Niciun rezultat.",
+      "copy": "Copiază",
+      "copied": "Copiat",
+      "insertIntoNote": "Inserează în notă",
+      "inserted": "Inserat",
+      "toast": {
+        "canvasNotReady": "Canvas-ul nu e gata încă.",
+        "writeFirst": "Scrie ceva mai întâi — apoi pot continua de acolo.",
+        "moreWordsNeeded": "Am nevoie de câteva cuvinte în plus ca să continui.",
+        "continuing": "Continui gândul tău…",
+        "noContinuation": "Nu s-a generat nicio continuare.",
+        "added": "Adăugat.",
+        "couldNotContinue": "Nu am putut continua",
+        "regenMindMap": "Regenerez harta mentală…",
+        "genMindMap": "Generez harta mentală…",
+        "mindMapRegen": "Harta mentală regenerată.",
+        "mindMapInserted": "Harta mentală inserată.",
+        "confirmReplaceMap": "Există deja o hartă mentală pe acest canvas. O înlocuiești cu una nouă bazată pe nota curentă?"
+      }
+    },
+    "templates": {
+      "apply": "Șablon",
+      "applyTitle": "Aplică un șablon acestei note",
+      "saveAs": "Salvează ca șablon",
+      "saveAsTitle": "Salvează această notă ca șablon personal",
+      "saveDialogTitle": "Salvează ca șablon personal",
+      "saveHint": "Salvează structura notei curente ca să o poți reaplica mai târziu. Doar tu îți vezi șabloanele personale.",
+      "titleLabel": "Titlu",
+      "titlePlaceholder": "ex. Recapitulare săptămânală",
+      "descriptionLabel": "Descriere",
+      "descriptionPlaceholder": "Opțional",
+      "cancel": "Anulează",
+      "save": "Salvează",
+      "applyDialogTitle": "Aplică un șablon",
+      "applyHint": "Adaugă o structură pregătită pe acest canvas. „Completează cu AI” folosește conținutul existent al notei ca să umple secțiunile — locurile fără informații rămân goale.",
+      "loading": "Încarc șabloanele…",
+      "none": "Niciun șablon publicat încă.",
+      "useAsIs": "Folosește ca atare",
+      "fillWithAi": "Completează cu AI",
+      "toast": {
+        "titleRequired": "Titlul este obligatoriu",
+        "saved": "Salvat în șabloanele tale personale",
+        "saveFailed": "Nu am putut salva",
+        "filling": "Umplu șablonul…",
+        "applying": "Aplic…",
+        "applied": "{name} aplicat"
+      },
+      "inline": {
+        "trigger": "Inserează șablon",
+        "label": "Șabloane",
+        "meetingLabel": "Note de ședință",
+        "meetingDesc": "Participanți, agendă, decizii, acțiuni.",
+        "dailyLabel": "Plan zilnic",
+        "dailyDesc": "Top 3, programul zilei, reflecția de seară.",
+        "decisionLabel": "Jurnal de decizii",
+        "decisionDesc": "Încadrare, opțiuni, criterii, decizie.",
+        "projectLabel": "Kickoff de proiect",
+        "projectDesc": "Scop, scope, etape, responsabili, riscuri.",
+        "oneOnOneLabel": "Agendă 1:1",
+        "oneOnOneDesc": "Reușite, blocaje, dezvoltare, cereri.",
+        "inserted": "Inserat: {name}",
+        "canvasNotReady": "Canvas-ul nu e gata încă."
+      }
+    },
+    "surface": {
+      "pageStyle": "Stil de pagină",
+      "surfaces": {
+        "plain": "Simplu",
+        "ruled": "Liniat",
+        "grid": "Matematic (grilă)",
+        "dots": "Puncte",
+        "columns": "Coloane"
+      },
+      "coverage": "Acoperire",
+      "coveragePage": "Pagină",
+      "coverageFull": "Tot",
+      "lineSpacing": "Distanța dintre linii",
+      "minimap": "Minihartă",
+      "minimapToggle": "Comută miniharta",
+      "cornerTL": "Sus stg",
+      "cornerTR": "Sus dr",
+      "cornerBL": "Jos stg",
+      "cornerBR": "Jos dr",
+      "minimapTip": "Sfat: trage miniharta ca să o muți în alt colț."
+    },
+    "focusMode": {
+      "label": "Mod concentrare",
+      "exit": "Ieși din modul concentrare",
+      "startPomodoro": "Pornește Pomodoro",
+      "stopPomodoro": "Oprește Pomodoro",
+      "pause": "Pauză",
+      "resume": "Reia",
+      "resetTimer": "Resetează cronometrul",
+      "notification": {
+        "focus": "E timpul să te concentrezi",
+        "break": "Ia o pauză"
+      },
+      "overlay": {
+        "banner": "Mod concentrare",
+        "exitHint": "apasă <esc>Esc</esc> sau <f>F</f> ca să ieși",
+        "selectFirst": "Selectează ceva mai întâi ca să te concentrezi pe asta."
+      }
+    },
+    "readingMode": {
+      "trigger": "Citește",
+      "closeAria": "Închide modul de citire",
+      "titleSuffix": "Mod de citire — {minutes} min azi{goal}",
+      "titleGoalReached": " ✅ obiectiv atins",
+      "titleGoalRemaining": " / {minutes} min obiectiv",
+      "emptyNote": "Această notă nu are text încă.",
+      "untitled": "Fără titlu"
+    },
+    "properties": {
+      "title": "Proprietăți",
+      "addProperty": "Adaugă proprietate",
+      "keyPlaceholder": "Cheie",
+      "removeAria": "Elimină proprietatea",
+      "toast": {
+        "saveFailed": "Nu am putut salva",
+        "removeFailed": "Nu am putut elimina"
+      }
+    },
+    "voice": {
+      "holdTitle": "Ține apăsat ca să înregistrezi — eliberează ca să pui transcrierea în centrul vizibil",
+      "holdTooShort": "Ține apăsat mai mult ca să înregistrezi.",
+      "nothingAudible": "Nu e nimic audibil de transcris.",
+      "canvasNotReadyClipboard": "Canvas-ul nu e gata — am copiat transcrierea în clipboard.",
+      "canvasNotReadyNoClipboard": "Canvas-ul nu e gata și nici clipboardul nu e disponibil.",
+      "longCaptured": "Transcriere lungă capturată.",
+      "longDescription": "{count} caractere — o schițezi cu AI?",
+      "outlineAction": "Schițează",
+      "outlining": "Schițez…",
+      "outliningPlaceholder": "Schițez transcrierea…",
+      "outlineAdded": "Schiță adăugată.",
+      "outlineFailed": "Schița a eșuat",
+      "micFailed": "Nu am putut accesa microfonul",
+      "recorder": {
+        "stop": "Oprește",
+        "transcribing": "Transcriu…",
+        "trigger": "Voce",
+        "triggerTitle": "Înregistrează o notă vocală",
+        "tooShort": "Înregistrarea a fost prea scurtă."
+      },
+      "mode": {
+        "stopTitle": "Oprește înregistrarea",
+        "splitting": "Împart în paragrafe…",
+        "trigger": "Mod voce",
+        "triggerTitle": "Mod voce — înregistrează un gând lung și lasă Notai să-l împartă în paragrafe după pauze",
+        "copiedFallback": "Canvas-ul nu e gata — copiez transcrierea în clipboard.",
+        "nothingAudible": "Nu e nimic audibil de transcris.",
+        "doneOne": "Mod voce: 1 paragraf.",
+        "doneOther": "Mod voce: {count} paragrafe."
+      }
+    },
+    "cover": {
+      "addCover": "Adaugă copertă",
+      "uploading": "Se încarcă…",
+      "change": "Schimbă",
+      "reposition": "Repoziționează",
+      "remove": "Elimină",
+      "done": "Gata",
+      "doneAria": "Gata cu repoziționarea copertei",
+      "dragHint": "Trage ca să repoziționezi · {percent}%",
+      "toast": {
+        "added": "Copertă adăugată",
+        "uploadFailed": "Nu am putut încărca coperta",
+        "removeFailed": "Nu am putut elimina coperta"
+      }
+    },
+    "encryption": {
+      "headerLabel": "Criptată end-to-end · doar pentru citire",
+      "unlock": "Deblochează",
+      "disable": "Dezactivează criptarea",
+      "waiting": "Aștept fraza de acces…",
+      "untitled": "Fără titlu",
+      "dialog": {
+        "title": "Deblochează notele criptate",
+        "defaultReason": "Decriptarea se face integral în browserul tău; serverul nu vede niciodată cheia.",
+        "passphrasePlaceholder": "Fraza de acces principală",
+        "recoveryPlaceholder": "notai-rk-…",
+        "useRecovery": "Folosește cheia de recuperare",
+        "usePassphrase": "Folosește fraza de acces",
+        "cancel": "Anulează",
+        "unlock": "Deblochează"
+      },
+      "toast": {
+        "idleLocked": "Am blocat notele criptate (inactivitate)",
+        "unlocked": "Notele sunt deblocate pentru această sesiune",
+        "unlockFailed": "Deblocarea a eșuat",
+        "notSetUp": "Criptarea nu e configurată pe acest cont.",
+        "wrongPassphrase": "Frază de acces greșită.",
+        "parseRecovery": "Nu am putut interpreta cheia de recuperare.",
+        "recoveryMismatch": "Cheia de recuperare nu se potrivește.",
+        "couldNotFetch": "Nu am putut obține datele criptate.",
+        "decryptionFailed": "Decriptarea a eșuat",
+        "disabled": "Criptarea a fost dezactivată",
+        "disableFailed": "Nu am putut dezactiva criptarea"
+      },
+      "confirmDisable": "Dezactivezi criptarea pentru această notă? Textul brut va fi din nou stocat pe server.",
+      "promptPassphrase": "Introdu fraza de acces principală ca să criptezi această notă. Decriptarea se face integral în browserul tău."
+    },
+    "lock": {
+      "lockNote": "Blochează nota",
+      "unlockNote": "Deblochează nota",
+      "removeLock": "Elimină blocarea",
+      "locked": "Această notă este blocată.",
+      "unlock": "Deblochează",
+      "dialog": {
+        "setTitle": "Blochează această notă",
+        "enterTitle": "Deblochează nota",
+        "setDescription": "Setează un PIN scurt. Stocat doar în acest browser — confidențialitate ușoară, nu criptare.",
+        "enterDescription": "Introdu PIN-ul setat pentru această notă.",
+        "pinPlaceholder": "PIN",
+        "tooShort": "Folosește cel puțin 3 caractere.",
+        "wrong": "PIN greșit.",
+        "cancel": "Anulează",
+        "lock": "Blochează",
+        "unlock": "Deblochează"
+      },
+      "password": {
+        "title": "Această notă e blocată",
+        "description": "Introdu parola ca să o deblochezi pentru sesiunea curentă.",
+        "placeholder": "Parolă",
+        "submit": "Deblochează",
+        "incorrect": "Parolă greșită",
+        "failed": "Nu am putut debloca"
+      }
+    },
+    "merge": {
+      "title": "Combină cu altă notă",
+      "description": "Adaugă „{title}” la o notă țintă. Sursa va fi mutată în Coșul de gunoi.",
+      "searchPlaceholder": "Caută nota țintă…",
+      "searching": "Caut…",
+      "noMatches": "Niciun rezultat.",
+      "cancel": "Anulează",
+      "merging": "Combin…",
+      "success": "Am combinat „{title}” cu nota țintă.",
+      "undo": "Anulează",
+      "restored": "Am restaurat „{title}”",
+      "undoFailed": "Nu am putut anula combinarea",
+      "failed": "Combinarea a eșuat"
+    },
+    "assets": {
+      "uploading": "Se încarcă…",
+      "uploaded": "Încărcat",
+      "uploadFailed": "Încărcarea a eșuat",
+      "attach": "Atașează",
+      "dropOrClick": "Trage un fișier sau apasă ca să încarci",
+      "extractText": "Extrage textul",
+      "reading": "Citesc imaginea…",
+      "noText": "Nu am găsit text lizibil.",
+      "addedBelow": "Am adăugat textul sub imagine.",
+      "copiedFallback": "Copiat în clipboard.",
+      "ocrFailed": "OCR-ul a eșuat",
+      "drop": {
+        "uploadingOne": "Încarc atașamentul…",
+        "uploadingMany": "Încarc {count} atașamente…",
+        "successOne": "Atașament adăugat.",
+        "successOther": "{count} atașamente adăugate.",
+        "partial": "Încărcate {ok}, {fail} eșuate.",
+        "dropToAttach": "Eliberează ca să atașezi",
+        "uploading": "Se încarcă…"
+      }
+    },
+    "search": {
+      "placeholder": "Caută în notă…",
+      "closeAria": "Închide căutarea",
+      "noMatches": "Niciun rezultat în această notă."
+    },
+    "canvas": {
+      "migration": {
+        "heading": "Aceste blocuri de text sunt doar pentru citire.",
+        "description": "Canvas-ul e acum singurul loc unde poți edita. Convertește ca să continui — formatarea bogată devine text simplu și conținutul tău se mută pe canvas.",
+        "convert": "Convertește ca să continui",
+        "converting": "Convertesc…",
+        "dismiss": "Închide",
+        "successOne": "Am migrat 1 bloc pe canvas.",
+        "successOther": "Am migrat {count} blocuri pe canvas.",
+        "noBlocks": "Nu există blocuri de text de migrat.",
+        "reanchoredOne": "Am re-ancorat 1 comentariu.",
+        "reanchoredOther": "Am re-ancorat {count} comentarii.",
+        "reanchorFailed": "Re-ancorarea comentariilor a eșuat: {error}",
+        "failed": "Migrarea a eșuat: {error}"
+      }
+    },
+    "blog": {
+      "loading": "Încarc starea blogului…",
+      "label": "Blog",
+      "pickHandle": "Alege un handle în <link>setările blogului</link> ca să publici note la <path></path>.",
+      "settingsLink": "setările blogului",
+      "showOn": "Afișează pe /u/{handle}",
+      "listsNote": "Listează această notă pe indexul tău public și în feedul RSS.",
+      "publishAt": "Publică la",
+      "scheduled": "programat",
+      "publishHint": "Lasă gol ca să publici imediat. Datele viitoare ascund nota din index până atunci.",
+      "toast": {
+        "enabled": "E pe blogul tău",
+        "disabled": "Ascuns de pe blog",
+        "scheduledSaved": "Programat",
+        "publishNow": "Se publică imediat"
+      }
+    },
+    "card": {
+      "untitled": "Fără titlu",
+      "startWriting": "Începe să scrii…",
+      "pinned": "Fixat",
+      "favorite": "Favorit"
+    },
+    "zoom": {
+      "title": "Zoom ({percent}%)",
+      "label": "Zoom",
+      "aria": "Zoom {percent}%",
+      "in": "Mărește",
+      "out": "Micșorează",
+      "reset": "Resetează zoomul",
+      "resetTitle": "Resetează la 100%"
+    },
+    "stickies": {
+      "triggerTitleEmpty": "Nicio sticky deschisă",
+      "triggerTitleSome": "{count} sticky deschisă",
+      "triggerAriaOne": "1 fereastră sticky deschisă",
+      "triggerAriaOther": "{count} ferestre sticky deschise",
+      "inline": "Deschide stickies",
+      "emptyTitle": "Nicio fereastră sticky deschisă.",
+      "emptyHint": "Apasă iconița panou pe orice notă ca să o scoți în fereastră.",
+      "focusTitle": "Focalizează fereastra sticky",
+      "removeTitle": "Elimină din listă (nu închide fereastra)",
+      "removeAria": "Elimină din listă",
+      "window": {
+        "placeholder": "Sticky",
+        "openMain": "Deschide în aplicația principală",
+        "pin": "Mereu deasupra (desktop)",
+        "unpin": "Anulează fixarea",
+        "connecting": "Se conectează…"
+      },
+      "fromSelection": {
+        "label": "Notă nouă din selecție ({count} cuvinte)",
+        "failed": "Nu am putut crea nota din selecție.",
+        "defaultTitle": "Notă nouă"
+      }
+    },
+    "rollover": {
+      "headingOne": "1 task deschis din {date}",
+      "headingOther": "{count} task-uri deschise din {date}",
+      "extraSuffix": " · +{count} în plus",
+      "rollForward": "Mută pe azi",
+      "dismiss": "Închide",
+      "canvasNotReady": "Canvas-ul nu e gata încă — încearcă din nou într-o clipă.",
+      "rollFailed": "Nu am putut muta — încearcă din nou.",
+      "rolledOne": "Am mutat 1 task",
+      "rolledOther": "Am mutat {count} task-uri",
+      "carriedHeading": "Mutate din {date}",
+      "recurring": {
+        "headingOne": "1 task recurent gata de mutat",
+        "headingOther": "{count} task-uri recurente gata de mutat",
+        "description": "Instanțe noi, deschise, cu următoarea dată scadentă.",
+        "rolled": "Am mutat {count} task-uri recurente",
+        "rolledOne": "Am mutat 1 task recurent",
+        "rolledOther": "Am mutat {count} task-uri recurente",
+        "rollFailed": "Nu am putut muta — încearcă din nou."
+      }
+    },
+    "links": {
+      "auto": {
+        "heading": "Linkuri sugerate",
+        "similarityTitle": "Similaritate {score}",
+        "linkedTo": "Linkat la „{title}”",
+        "copiedLink": "Copiat {text}",
+        "untitled": "Fără titlu",
+        "dismiss": "Închide"
+      },
+      "preview": {
+        "loading": "Încarc previzualizarea…",
+        "heading": "Linkuri în această notă"
+      },
+      "backlinks": {
+        "label": "Linkuri înapoi",
+        "looking": "Caut…",
+        "none": "Nicio notă nu trimite aici încă.",
+        "untitled": "Fără titlu"
+      },
+      "related": {
+        "heading": "Note înrudite",
+        "distanceTitle": "Distanță {value}",
+        "untitled": "Fără titlu"
+      }
+    },
+    "minimap": {
+      "heading": "Vecinătate ({count})",
+      "aria": "Graf de note legate la și de la {title}"
+    },
+    "colors": {
+      "aria": "Alege o etichetă de culoare",
+      "title": "Culoare: {label}",
+      "heading": "Etichetă de culoare",
+      "noTint": "Fără culoare",
+      "amber": "Chihlimbar",
+      "rose": "Roz",
+      "sky": "Cer",
+      "emerald": "Smarald",
+      "violet": "Violet",
+      "slate": "Ardezie",
+      "tagged": "Marcat ca {label}",
+      "cleared": "Culoare ștearsă",
+      "saveFailed": "Nu am putut salva culoarea"
+    },
+    "actions": {
+      "rename": "Redenumește",
+      "renameTitle": "Redenumește nota",
+      "renameField": "Titlu",
+      "renameSubmit": "Redenumește",
+      "changeIcon": "Schimbă iconița…",
+      "duplicate": "Duplică",
+      "duplicated": "Notă duplicată",
+      "duplicateFailed": "Duplicarea a eșuat",
+      "moreLabel": "Mai multe",
+      "openSticky": "Deschide ca sticky",
+      "unpin": "Anulează fixarea",
+      "pinToTop": "Fixează sus",
+      "unpinToday": "Scoate de pe Azi",
+      "pinToday": "Fixează pe Azi",
+      "removeFavorite": "Scoate de la favorite",
+      "addFavorite": "Adaugă la favorite",
+      "unarchive": "Dezarhivează",
+      "archive": "Arhivează",
+      "delete": "Șterge",
+      "deleteTitle": "Ștergi nota?",
+      "deleteDescription": "<title>{titleText}</title> și conținutul ei vor fi șterse permanent. Acțiunea nu poate fi anulată.",
+      "deleteConfirm": "Șterge",
+      "deleted": "Notă ștearsă",
+      "deleteFailed": "Ștergerea a eșuat",
+      "updateFailed": "Actualizarea a eșuat",
+      "iconUpdateFailed": "Nu am putut actualiza iconița",
+      "iconTitle": "Iconița notei"
+    }
   }
 }

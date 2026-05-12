@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { X, Pin, ExternalLink } from 'lucide-react';
 import { CanvasNote, useNoteDoc, useSharedTitle, useRegisterOpenSticky } from '@notai/editor';
 import { Button } from '@notai/ui/components/button';
@@ -22,22 +23,27 @@ export interface StickyWindowProps {
  * Y.Doc so text/drawings/title stay in real-time sync.
  */
 export function StickyWindow({ note, token, realtimeUrl, user }: StickyWindowProps) {
+  const t = useTranslations('editor.stickies.window');
+  const tWorkspace = useTranslations('editor.workspace');
   const { doc, provider, synced } = useNoteDoc({ noteId: note.id, url: realtimeUrl, token });
   const [title, setTitle] = useSharedTitle(doc, note.title);
   const [surface, setSurface] = useSurface('notai:surface:sticky');
 
   // Broadcast "I am an open sticky" to any main-window / sidebar listeners.
-  useRegisterOpenSticky(note.id, title || note.title || 'Untitled');
+  useRegisterOpenSticky(note.id, title || note.title || tWorkspace('untitled'));
 
   React.useEffect(() => {
     if (title === note.title) return;
-    const h = setTimeout(() => updateNote({ id: note.id, title: title || 'Untitled' }), 600);
+    const h = setTimeout(
+      () => updateNote({ id: note.id, title: title || tWorkspace('untitled') }),
+      600,
+    );
     return () => clearTimeout(h);
   }, [title, note.id, note.title]);
 
   // Keep the window/tab title in sync: "Title - Notai"
   React.useEffect(() => {
-    document.title = `${title || 'Untitled'} - Notai`;
+    document.title = `${title || tWorkspace('untitled')} - Notai`;
   }, [title]);
 
   // Lock this window to its own /sticky/{id} route. The Tauri host blocks
@@ -80,7 +86,7 @@ export function StickyWindow({ note, token, realtimeUrl, user }: StickyWindowPro
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Sticky"
+          placeholder={t('placeholder')}
           className="min-w-0 flex-1 bg-transparent font-medium outline-none placeholder:opacity-50"
           data-tauri-drag-region="false"
         />
@@ -104,7 +110,7 @@ export function StickyWindow({ note, token, realtimeUrl, user }: StickyWindowPro
               window.open(`/app/n/${note.id}`, '_blank', 'noopener');
             }
           }}
-          title="Open in main app"
+          title={t('openMain')}
         >
           <ExternalLink className="size-3" />
         </Button>
@@ -115,7 +121,7 @@ export function StickyWindow({ note, token, realtimeUrl, user }: StickyWindowPro
           onClick={async () => {
             await updateNote({ id: note.id, isPinned: !note.isPinned });
           }}
-          title={note.isPinned ? 'Unpin' : 'Pin always-on-top (desktop)'}
+          title={note.isPinned ? t('unpin') : t('pin')}
         >
           <Pin className={cn('size-3', note.isPinned && 'fill-current')} />
         </Button>
@@ -165,7 +171,7 @@ export function StickyWindow({ note, token, realtimeUrl, user }: StickyWindowPro
             viewportKey={`notai:viewport:sticky:${note.id}`}
           />
         ) : (
-          <div className="p-3 text-xs opacity-60">Connecting…</div>
+          <div className="p-3 text-xs opacity-60">{t('connecting')}</div>
         )}
       </div>
     </div>

@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Lock, Unlock, KeyRound, ShieldAlert, Loader2 } from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
@@ -113,6 +114,8 @@ interface UnlockDialogProps {
 }
 
 export function UnlockKeyDialog({ open, onOpenChange, onUnlocked, reason }: UnlockDialogProps) {
+  const t = useTranslations('editor.encryption.dialog');
+  const tToast = useTranslations('editor.encryption.toast');
   const [mode, setMode] = React.useState<'passphrase' | 'recovery'>('passphrase');
   const [passphrase, setPassphrase] = React.useState('');
   const [recoveryKey, setRecoveryKey] = React.useState('');
@@ -141,9 +144,9 @@ export function UnlockKeyDialog({ open, onOpenChange, onUnlocked, reason }: Unlo
       });
       onUnlocked(key);
       onOpenChange(false);
-      toast.success('Notes unlocked for this session');
+      toast.success(tToast('unlocked'));
     } catch (err) {
-      toast.error((err as Error).message || 'Unlock failed');
+      toast.error((err as Error).message || tToast('unlockFailed'));
     } finally {
       unlockPromise = null;
       setBusy(false);
@@ -158,19 +161,16 @@ export function UnlockKeyDialog({ open, onOpenChange, onUnlocked, reason }: Unlo
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <KeyRound className="size-4" /> Unlock encrypted notes
+            <KeyRound className="size-4" /> {t('title')}
           </DialogTitle>
-          <DialogDescription>
-            {reason ??
-              'Decryption happens entirely in your browser; the server never sees your key.'}
-          </DialogDescription>
+          <DialogDescription>{reason ?? t('defaultReason')}</DialogDescription>
         </DialogHeader>
         {mode === 'passphrase' ? (
           <Input
             type="password"
             value={passphrase}
             onChange={(e) => setPassphrase(e.target.value)}
-            placeholder="Master passphrase"
+            placeholder={t('passphrasePlaceholder')}
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') void submit();
@@ -180,7 +180,7 @@ export function UnlockKeyDialog({ open, onOpenChange, onUnlocked, reason }: Unlo
           <Input
             value={recoveryKey}
             onChange={(e) => setRecoveryKey(e.target.value)}
-            placeholder="notai-rk-…"
+            placeholder={t('recoveryPlaceholder')}
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') void submit();
@@ -193,15 +193,15 @@ export function UnlockKeyDialog({ open, onOpenChange, onUnlocked, reason }: Unlo
           onClick={() => setMode(mode === 'passphrase' ? 'recovery' : 'passphrase')}
           disabled={busy}
         >
-          {mode === 'passphrase' ? 'Use recovery key instead' : 'Use passphrase instead'}
+          {mode === 'passphrase' ? t('useRecovery') : t('usePassphrase')}
         </button>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
-            Cancel
+            {t('cancel')}
           </Button>
           <Button onClick={submit} disabled={busy || !canSubmit}>
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Unlock className="size-4" />}{' '}
-            Unlock
+            {t('unlock')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -210,6 +210,8 @@ export function UnlockKeyDialog({ open, onOpenChange, onUnlocked, reason }: Unlo
 }
 
 export function EncryptedNotePanel({ noteId, title }: { noteId: string; title: string }) {
+  const t = useTranslations('editor.encryption');
+  const tToast = useTranslations('editor.encryption.toast');
   const [plaintext, setPlaintext] = React.useState<string | null>(null);
   const [decryptedTitle, setDecryptedTitle] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -226,7 +228,7 @@ export function EncryptedNotePanel({ noteId, title }: { noteId: string; title: s
     try {
       const ct = await getNoteCiphertext(noteId);
       if (ct == null) {
-        setError('Could not fetch ciphertext.');
+        setError(tToast('couldNotFetch'));
         return;
       }
       const text = ct.encryptedBody ? await decryptString(key, ct.encryptedBody) : '';
@@ -239,7 +241,7 @@ export function EncryptedNotePanel({ noteId, title }: { noteId: string; title: s
         }
       }
     } catch (err) {
-      setError((err as Error).message || 'Decryption failed');
+      setError((err as Error).message || tToast('decryptionFailed'));
     }
   }, [noteId]);
 
@@ -249,9 +251,7 @@ export function EncryptedNotePanel({ noteId, title }: { noteId: string; title: s
 
   const turnOff = async () => {
     if (plaintext == null) return;
-    if (
-      !confirm('Disable encryption on this note? The plaintext will be stored on the server again.')
-    ) {
+    if (!confirm(t('confirmDisable'))) {
       return;
     }
     setDisabling(true);
@@ -261,32 +261,32 @@ export function EncryptedNotePanel({ noteId, title }: { noteId: string; title: s
         plaintext,
         plaintextTitle: decryptedTitle ?? undefined,
       });
-      toast.success('Encryption disabled');
+      toast.success(tToast('disabled'));
       window.location.reload();
     } catch (err) {
-      toast.error((err as Error).message || 'Could not disable encryption');
+      toast.error((err as Error).message || tToast('disableFailed'));
     } finally {
       setDisabling(false);
     }
   };
 
-  const displayTitle = decryptedTitle ?? title ?? 'Untitled';
+  const displayTitle = decryptedTitle ?? title ?? t('untitled');
 
   return (
     <div className="flex h-full flex-col">
       <header className="bg-background/70 flex shrink-0 items-center gap-2 border-b px-4 py-2 backdrop-blur">
         <Lock className="text-primary size-4" />
-        <span className="text-sm font-medium">End-to-end encrypted · read-only</span>
+        <span className="text-sm font-medium">{t('headerLabel')}</span>
         <span className="text-muted-foreground ml-2 truncate text-sm">{displayTitle}</span>
         <div className="ml-auto flex items-center gap-2">
           {plaintext == null && (
             <Button size="sm" variant="outline" onClick={() => setUnlockOpen(true)}>
-              <KeyRound className="size-3.5" /> Unlock
+              <KeyRound className="size-3.5" /> {t('unlock')}
             </Button>
           )}
           {plaintext != null && (
             <Button size="sm" variant="outline" onClick={turnOff} disabled={disabling}>
-              <Unlock className="size-3.5" /> Disable encryption
+              <Unlock className="size-3.5" /> {t('disable')}
             </Button>
           )}
         </div>
@@ -294,7 +294,7 @@ export function EncryptedNotePanel({ noteId, title }: { noteId: string; title: s
       <div className="flex min-h-0 flex-1 flex-col overflow-auto px-8 py-6">
         {plaintext == null && error == null && (
           <div className="text-muted-foreground grid flex-1 place-items-center text-sm">
-            <Loader2 className="size-4 animate-spin" /> Waiting for passphrase…
+            <Loader2 className="size-4 animate-spin" /> {t('waiting')}
           </div>
         )}
         {error && (

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { CalendarClock, Globe, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Switch } from '@notai/ui/components/switch';
@@ -18,6 +19,7 @@ import {
  * them to set one in settings.
  */
 export function BlogControls({ noteId }: { noteId: string }) {
+  const t = useTranslations('editor.blog');
   const [status, setStatus] = React.useState<NoteBlogStatus | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [now, setNow] = React.useState(0);
@@ -34,7 +36,7 @@ export function BlogControls({ noteId }: { noteId: string }) {
   if (!status) {
     return (
       <div className="text-muted-foreground inline-flex items-center gap-2 text-xs">
-        <Loader2 className="size-3 animate-spin" /> Loading blog status…
+        <Loader2 className="size-3 animate-spin" /> {t('loading')}
       </div>
     );
   }
@@ -43,14 +45,17 @@ export function BlogControls({ noteId }: { noteId: string }) {
     return (
       <div className="rounded-md border border-dashed p-3 text-xs">
         <div className="mb-1 inline-flex items-center gap-2 font-medium">
-          <Globe className="size-3.5" /> Blog
+          <Globe className="size-3.5" /> {t('label')}
         </div>
         <p className="text-muted-foreground">
-          Pick a handle in{' '}
-          <a className="underline" href="/app/settings/blog">
-            blog settings
-          </a>{' '}
-          to publish notes to <code>/u/&lt;handle&gt;</code>.
+          {t.rich('pickHandle', {
+            link: (chunks) => (
+              <a className="underline" href="/app/settings/blog">
+                {chunks}
+              </a>
+            ),
+            path: () => <code>/u/&lt;handle&gt;</code>,
+          })}
         </p>
       </div>
     );
@@ -69,7 +74,7 @@ export function BlogControls({ noteId }: { noteId: string }) {
     try {
       await setNoteBlogVisible({ noteId, visible: next });
       setStatus((s) => (s ? { ...s, visible: next } : s));
-      toast.success(next ? 'On your blog' : 'Hidden from blog');
+      toast.success(next ? t('toast.enabled') : t('toast.disabled'));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -83,7 +88,9 @@ export function BlogControls({ noteId }: { noteId: string }) {
     try {
       await setNoteBlogPublishAt({ noteId, publishAt: date });
       setStatus((s) => (s ? { ...s, publishAt: date?.toISOString() ?? null } : s));
-      toast.success(date && date.getTime() > Date.now() ? 'Scheduled' : 'Publishes immediately');
+      toast.success(
+        date && date.getTime() > Date.now() ? t('toast.scheduledSaved') : t('toast.publishNow'),
+      );
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -98,11 +105,9 @@ export function BlogControls({ noteId }: { noteId: string }) {
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="inline-flex items-center gap-2 text-sm font-medium">
-            <Globe className="size-3.5" /> Show on /u/{status.ownerHandle}
+            <Globe className="size-3.5" /> {t('showOn', { handle: status.ownerHandle })}
           </div>
-          <p className="text-muted-foreground text-xs">
-            Lists this note on your public blog index and RSS feed.
-          </p>
+          <p className="text-muted-foreground text-xs">{t('listsNote')}</p>
         </div>
         <Switch checked={status.visible} disabled={busy} onCheckedChange={toggleVisible} />
       </div>
@@ -110,7 +115,8 @@ export function BlogControls({ noteId }: { noteId: string }) {
         <label className="flex flex-col gap-1 text-xs">
           <span className="inline-flex items-center gap-1.5 font-medium">
             <CalendarClock className="size-3.5" />
-            Publish at {isFuture && <em className="not-italic text-amber-500">scheduled</em>}
+            {t('publishAt')}{' '}
+            {isFuture && <em className="not-italic text-amber-500">{t('scheduled')}</em>}
           </span>
           <input
             type="datetime-local"
@@ -119,10 +125,7 @@ export function BlogControls({ noteId }: { noteId: string }) {
             onChange={(e) => void updatePublishAt(e.target.value)}
             className="bg-background w-full rounded-md border px-2 py-1 text-xs"
           />
-          <span className="text-muted-foreground">
-            Leave empty to publish immediately. Future dates hide the note from the index until
-            then.
-          </span>
+          <span className="text-muted-foreground">{t('publishHint')}</span>
         </label>
       )}
     </div>

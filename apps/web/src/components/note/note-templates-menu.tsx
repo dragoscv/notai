@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { LayoutTemplate } from 'lucide-react';
 import { toast } from 'sonner';
 import { appendTextToScene, type CanvasNoteHandle } from '@notai/editor';
@@ -8,8 +9,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@notai/ui/components/po
 
 interface Template {
   id: string;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   body: () => string;
 }
 
@@ -18,8 +19,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 const TEMPLATES: Template[] = [
   {
     id: 'meeting',
-    label: 'Meeting notes',
-    description: 'Attendees, agenda, decisions, action items.',
+    labelKey: 'meetingLabel',
+    descriptionKey: 'meetingDesc',
     body: () => `# Meeting \u2014 ${today()}
 
 Attendees:
@@ -42,8 +43,8 @@ Action items:
   },
   {
     id: 'daily',
-    label: 'Daily plan',
-    description: 'Top 3, today\u2019s schedule, end-of-day reflection.',
+    labelKey: 'dailyLabel',
+    descriptionKey: 'dailyDesc',
     body: () => `# ${today()}
 
 Top 3 today:
@@ -64,8 +65,8 @@ End of day:
   },
   {
     id: 'decision',
-    label: 'Decision log',
-    description: 'Frame the choice, options, criteria, decision.',
+    labelKey: 'decisionLabel',
+    descriptionKey: 'decisionDesc',
     body: () => `# Decision \u2014 
 
 Context:
@@ -91,8 +92,8 @@ Revisit if:
   },
   {
     id: 'project',
-    label: 'Project kickoff',
-    description: 'Goal, scope, milestones, owners, risks.',
+    labelKey: 'projectLabel',
+    descriptionKey: 'projectDesc',
     body: () => `# Project: 
 
 Goal:
@@ -118,8 +119,8 @@ Risks:
   },
   {
     id: '1on1',
-    label: '1:1 agenda',
-    description: 'Wins, blockers, growth, asks.',
+    labelKey: 'oneOnOneLabel',
+    descriptionKey: 'oneOnOneDesc',
     body: () => `# 1:1 \u2014 ${today()}
 
 Wins:
@@ -149,15 +150,16 @@ export function NoteTemplatesMenu({
 }: {
   canvasRef: React.RefObject<CanvasNoteHandle | null>;
 }) {
+  const t = useTranslations('editor.templates.inline');
   const [open, setOpen] = React.useState(false);
   const insert = (tpl: Template) => {
     const api = canvasRef.current?.getExcalidrawApi() as SceneApi | null;
     if (!api) {
-      toast.error('Canvas not ready yet.');
+      toast.error(t('canvasNotReady'));
       return;
     }
     appendTextToScene(api as never, tpl.body(), { focus: true });
-    toast.success(`Inserted: ${tpl.label}`);
+    toast.success(t('inserted', { name: t(tpl.labelKey) }));
     setOpen(false);
   };
   return (
@@ -165,16 +167,16 @@ export function NoteTemplatesMenu({
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label="Insert template"
+          aria-label={t('trigger')}
           className="text-muted-foreground hover:text-foreground hover:bg-accent inline-flex size-8 items-center justify-center rounded-md"
-          title="Insert template"
+          title={t('trigger')}
         >
           <LayoutTemplate className="size-4" />
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-1">
         <div className="text-muted-foreground px-2 pb-1 pt-1 text-[10px] uppercase tracking-widest">
-          Templates
+          {t('label')}
         </div>
         {TEMPLATES.map((tpl) => (
           <button
@@ -183,8 +185,8 @@ export function NoteTemplatesMenu({
             onClick={() => insert(tpl)}
             className="hover:bg-accent flex w-full flex-col items-start gap-0.5 rounded-md px-2 py-1.5 text-left"
           >
-            <span className="text-sm font-medium">{tpl.label}</span>
-            <span className="text-muted-foreground text-xs">{tpl.description}</span>
+            <span className="text-sm font-medium">{t(tpl.labelKey)}</span>
+            <span className="text-muted-foreground text-xs">{t(tpl.descriptionKey)}</span>
           </button>
         ))}
       </PopoverContent>

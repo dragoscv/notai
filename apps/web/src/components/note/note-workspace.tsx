@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Pin,
   Star,
@@ -112,6 +113,8 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
 }
 
 function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspaceProps) {
+  const t = useTranslations('editor.workspace');
+  const tToast = useTranslations('editor.workspace.toast');
   const { doc, provider, status, synced } = useNoteDoc({
     noteId: note.id,
     url: realtimeUrl,
@@ -208,12 +211,12 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
   React.useEffect(() => {
     if (title === note.title) return;
     const h = setTimeout(() => {
-      updateNote({ id: note.id, title: title || 'Untitled' }).catch(() =>
-        toast.error('Failed to save title'),
+      updateNote({ id: note.id, title: title || t('untitled') }).catch(() =>
+        toast.error(tToast('saveTitleFailed')),
       );
     }, 600);
     return () => clearTimeout(h);
-  }, [title, note.id, note.title]);
+  }, [title, note.id, note.title, t, tToast]);
 
   // Auto-suggest an emoji icon when the user has typed a real title and
   // hasn't picked an icon yet. One AI call per unique title; cached
@@ -221,12 +224,12 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
   const emojiTriedRef = React.useRef<Set<string>>(new Set());
   React.useEffect(() => {
     if (note.icon) return; // Respect any user-picked icon.
-    const t = title.trim();
-    if (t.length < 4 || t.toLowerCase() === 'untitled') return;
-    if (emojiTriedRef.current.has(t)) return;
+    const trimmed = title.trim();
+    if (trimmed.length < 4 || trimmed.toLowerCase() === 'untitled') return;
+    if (emojiTriedRef.current.has(trimmed)) return;
     const h = setTimeout(() => {
-      emojiTriedRef.current.add(t);
-      suggestEmojiForTitle(t)
+      emojiTriedRef.current.add(trimmed);
+      suggestEmojiForTitle(trimmed)
         .then((emoji) => {
           if (!emoji) return;
           void updateNote({ id: note.id, icon: emoji }).catch(() => undefined);
@@ -238,8 +241,8 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
 
   const togglePin = React.useCallback(async () => {
     await updateNote({ id: note.id, isPinned: !note.isPinned });
-    toast.success(note.isPinned ? 'Unpinned' : 'Pinned');
-  }, [note.id, note.isPinned]);
+    toast.success(note.isPinned ? tToast('unpinned') : tToast('pinned'));
+  }, [note.id, note.isPinned, tToast]);
   useHotkey(
     'mod+shift+p',
     () => {
@@ -276,7 +279,7 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
             // Stale beyond 5 minutes: discard rather than surprising the user.
             if (typeof parsed.ts !== 'number' || Date.now() - parsed.ts <= 5 * 60 * 1000) {
               appendTextToScene(api, parsed.text, { focus: true });
-              toast.success('Appended captured note.');
+              toast.success(tToast('appendedOne'));
             }
             window.localStorage.removeItem('notai:pending-append');
           }
@@ -315,8 +318,8 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
               }
               toast.success(
                 mine.length === 1
-                  ? 'Appended 1 captured note.'
-                  : `Appended ${mine.length} captured notes.`,
+                  ? tToast('appendedOne')
+                  : tToast('appendedMany', { count: mine.length }),
               );
             }
             if (rest.length === 0) {
@@ -338,98 +341,104 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
     return () => {
       cancelled = true;
     };
-  }, [synced, note.id]);
+  }, [synced, note.id, tToast]);
 
   // Smart paste: when a single URL is pasted onto the canvas, fetch +
   // summarise it server-side and drop a captioned text card. Drops a
   // placeholder element first so the user gets immediate feedback,
   // then swaps the text once the summary lands.
-  const handleUrlPaste = React.useCallback(async (url: string) => {
-    const api = canvasRef.current?.getExcalidrawApi();
-    if (!api) return;
-    const placeholderId = appendTextToScene(api, `Summarising ${url}…`, {
-      focus: true,
-    });
-    const toastId = toast.loading('Summarising the link…');
-    try {
-      const res = await summariseUrl({ url });
-      const body = `${res.title}\n\n${res.summary}\n\n— ${res.host}\n${res.url}`;
-      // Tombstone the placeholder by id, then drop the real card.
-      if (placeholderId) {
-        const elements = api.getSceneElements();
-        const next = elements.map((el) =>
-          el.id === placeholderId ? { ...el, isDeleted: true, updated: Date.now() } : el,
-        );
-        api.updateScene({ elements: next });
+  const handleUrlPaste = React.useCallback(
+    async (url: string) => {
+      const api = canvasRef.current?.getExcalidrawApi();
+      if (!api) return;
+      const placeholderId = appendTextToScene(api, tToast('summarisingPlaceholder', { url }), {
+        focus: true,
+      });
+      const toastId = toast.loading(tToast('summarising'));
+      try {
+        const res = await summariseUrl({ url });
+        const body = `${res.title}\n\n${res.summary}\n\n— ${res.host}\n${res.url}`;
+        // Tombstone the placeholder by id, then drop the real card.
+        if (placeholderId) {
+          const elements = api.getSceneElements();
+          const next = elements.map((el) =>
+            el.id === placeholderId ? { ...el, isDeleted: true, updated: Date.now() } : el,
+          );
+          api.updateScene({ elements: next });
+        }
+        appendTextToScene(api, body, { focus: true });
+        toast.success(tToast('summaryAdded'), { id: toastId });
+      } catch (err) {
+        if (placeholderId) {
+          const elements = api.getSceneElements();
+          const next = elements.map((el) =>
+            el.id === placeholderId ? { ...el, isDeleted: true, updated: Date.now() } : el,
+          );
+          api.updateScene({ elements: next });
+        }
+        toast.error((err as Error).message || tToast('summaryFailed'), { id: toastId });
       }
-      appendTextToScene(api, body, { focus: true });
-      toast.success('Summary added.', { id: toastId });
-    } catch (err) {
-      if (placeholderId) {
-        const elements = api.getSceneElements();
-        const next = elements.map((el) =>
-          el.id === placeholderId ? { ...el, isDeleted: true, updated: Date.now() } : el,
-        );
-        api.updateScene({ elements: next });
-      }
-      toast.error((err as Error).message || 'Smart paste failed', { id: toastId });
-    }
-  }, []);
+    },
+    [tToast],
+  );
 
   // Smart paste — long text variant. When >= 500 chars of plain text
   // hit the canvas, give the user a choice via the toast action API:
   // paste verbatim, or run an AI outline pass. Returns true so
   // CanvasNote suppresses the native paste; we drop the result
   // ourselves once the user picks.
-  const handleLongTextPaste = React.useCallback((text: string): boolean => {
-    const api = canvasRef.current?.getExcalidrawApi();
-    if (!api) return false;
-    const insertVerbatim = () => {
-      const a = canvasRef.current?.getExcalidrawApi();
-      if (a) appendTextToScene(a, text, { focus: true });
-    };
-    const outlineNow = async () => {
-      const a = canvasRef.current?.getExcalidrawApi();
-      if (!a) return;
-      const placeholderId = appendTextToScene(a, 'Outlining your paste…', {
-        focus: true,
+  const handleLongTextPaste = React.useCallback(
+    (text: string): boolean => {
+      const api = canvasRef.current?.getExcalidrawApi();
+      if (!api) return false;
+      const insertVerbatim = () => {
+        const a = canvasRef.current?.getExcalidrawApi();
+        if (a) appendTextToScene(a, text, { focus: true });
+      };
+      const outlineNow = async () => {
+        const a = canvasRef.current?.getExcalidrawApi();
+        if (!a) return;
+        const placeholderId = appendTextToScene(a, tToast('outliningPlaceholder'), {
+          focus: true,
+        });
+        const toastId = toast.loading(tToast('outlining'));
+        try {
+          const outline = await outlinePastedText(text);
+          if (placeholderId) {
+            const elements = a.getSceneElements();
+            const next = elements.map((el) =>
+              el.id === placeholderId ? { ...el, isDeleted: true, updated: Date.now() } : el,
+            );
+            a.updateScene({ elements: next });
+          }
+          appendTextToScene(a, outline || text, { focus: true });
+          toast.success(tToast('outlineAdded'), { id: toastId });
+        } catch (err) {
+          if (placeholderId) {
+            const elements = a.getSceneElements();
+            const next = elements.map((el) =>
+              el.id === placeholderId ? { ...el, isDeleted: true, updated: Date.now() } : el,
+            );
+            a.updateScene({ elements: next });
+          }
+          toast.error((err as Error).message || tToast('outlineFailed'), { id: toastId });
+        }
+      };
+      toast.message(tToast('bigPaste'), {
+        description: tToast('bigPasteDescription', { count: text.length.toLocaleString() }),
+        duration: 8000,
+        action: { label: tToast('outlineAction'), onClick: () => void outlineNow() },
+        cancel: { label: tToast('asIsAction'), onClick: insertVerbatim },
       });
-      const toastId = toast.loading('Outlining with AI…');
-      try {
-        const outline = await outlinePastedText(text);
-        if (placeholderId) {
-          const elements = a.getSceneElements();
-          const next = elements.map((el) =>
-            el.id === placeholderId ? { ...el, isDeleted: true, updated: Date.now() } : el,
-          );
-          a.updateScene({ elements: next });
-        }
-        appendTextToScene(a, outline || text, { focus: true });
-        toast.success('Outline added.', { id: toastId });
-      } catch (err) {
-        if (placeholderId) {
-          const elements = a.getSceneElements();
-          const next = elements.map((el) =>
-            el.id === placeholderId ? { ...el, isDeleted: true, updated: Date.now() } : el,
-          );
-          a.updateScene({ elements: next });
-        }
-        toast.error((err as Error).message || 'Outline failed', { id: toastId });
-      }
-    };
-    toast.message('Big paste detected.', {
-      description: `${text.length.toLocaleString()} characters — outline with AI?`,
-      duration: 8000,
-      action: { label: 'Outline', onClick: () => void outlineNow() },
-      cancel: { label: 'As-is', onClick: insertVerbatim },
-    });
-    return true;
-  }, []);
+      return true;
+    },
+    [tToast],
+  );
 
   // Keep the window/tab title in sync: "Title - Notai"
   React.useEffect(() => {
-    document.title = `${title || 'Untitled'} - Notai`;
-  }, [title]);
+    document.title = `${title || t('untitled')} - Notai`;
+  }, [title, t]);
 
   // Surface is applied either to the full page background or only to the
   // inner editor column, depending on the coverage setting.
@@ -466,8 +475,8 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
             size="icon-sm"
             variant="ghost"
             onClick={togglePin}
-            aria-label="Pin"
-            title={note.isPinned ? 'Unpin' : 'Pin to top'}
+            aria-label={t('aria.pin')}
+            title={note.isPinned ? t('titles.unpin') : t('titles.pinToTop')}
           >
             <Pin className={cn(note.isPinned && 'text-primary fill-current')} />
           </Button>
@@ -477,17 +486,17 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
             onClick={async () => {
               await updateNote({ id: note.id, isFavorite: !note.isFavorite });
             }}
-            aria-label="Favorite"
-            title={note.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            aria-label={t('aria.favorite')}
+            title={note.isFavorite ? t('titles.removeFavorite') : t('titles.addFavorite')}
           >
             <Star className={cn(note.isFavorite && 'fill-yellow-500 text-yellow-500')} />
           </Button>
           <Button
             size="icon-sm"
             variant="ghost"
-            onClick={() => openStickyWindow(note.id)}
-            aria-label="Open as sticky window"
-            title="Open as sticky window"
+            onClick={() => openStickyWindow(note.id, tToast)}
+            aria-label={t('aria.openSticky')}
+            title={t('titles.openSticky')}
           >
             <PanelRight />
           </Button>
@@ -506,7 +515,7 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
           <VoiceRecorder
             onTranscribed={(text) => {
               insertContent(`\n\n${text}\n\n`);
-              toast.success('Transcribed');
+              toast.success(tToast('transcribed'));
             }}
           />
           <VoiceModeButton canvasRef={canvasRef} />
@@ -520,8 +529,8 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
               setCommentsOpen((v) => !v);
               if (!commentsOpen) setChatOpen(false);
             }}
-            aria-label="Toggle comments"
-            title={commentsOpen ? 'Close comments' : 'Open comments'}
+            aria-label={t('aria.toggleComments')}
+            title={commentsOpen ? t('titles.closeComments') : t('titles.openComments')}
           >
             <MessageCircle />
           </Button>
@@ -532,8 +541,8 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
               setChatOpen((v) => !v);
               if (!chatOpen) setCommentsOpen(false);
             }}
-            aria-label="Toggle chat"
-            title={chatOpen ? 'Close chat' : 'Chat with this note'}
+            aria-label={t('aria.toggleChat')}
+            title={chatOpen ? t('titles.closeChat') : t('titles.openChat')}
           >
             <MessageSquare />
           </Button>
@@ -547,8 +556,8 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
                 setCommentsOpen(false);
               }
             }}
-            aria-label="Toggle meeting mode"
-            title={meetingOpen ? 'Close meeting' : 'Meeting mode'}
+            aria-label={t('aria.toggleMeeting')}
+            title={meetingOpen ? t('titles.closeMeeting') : t('titles.openMeeting')}
           >
             <Mic />
           </Button>
@@ -564,20 +573,17 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
               <DropdownMenuItem
                 onClick={async () => {
                   if (!doc) return;
-                  if (
-                    !confirm(
-                      'Convert TipTap text blocks on this note to Excalidraw text? This is a one-way migration. Rich formatting (headings, lists, math, mermaid, callouts) will become plain text.',
-                    )
-                  )
-                    return;
+                  if (!confirm(t('confirm.convertBlocks'))) return;
                   try {
                     const result = migrateBlocksToExcalidraw(doc);
                     if (result.count === 0) {
-                      toast.success('No text blocks to migrate.');
+                      toast.success(tToast('noBlocksToMigrate'));
                       return;
                     }
                     toast.success(
-                      `Migrated ${result.count} block${result.count === 1 ? '' : 's'} to Excalidraw.`,
+                      result.count === 1
+                        ? tToast('migratedBlocksOne')
+                        : tToast('migratedBlocksOther', { count: result.count }),
                     );
                     if (Object.keys(result.blockToElement).length > 0) {
                       try {
@@ -587,35 +593,37 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
                         });
                         if (updated > 0) {
                           toast.success(
-                            `Re-anchored ${updated} comment${updated === 1 ? '' : 's'}.`,
+                            updated === 1
+                              ? tToast('reanchoredOne')
+                              : tToast('reanchoredOther', { count: updated }),
                           );
                         }
                       } catch (err) {
-                        toast.error(`Comment re-anchor failed: ${(err as Error).message}`);
+                        toast.error(tToast('reanchorFailed', { error: (err as Error).message }));
                       }
                     }
                   } catch (err) {
-                    toast.error(`Migration failed: ${(err as Error).message}`);
+                    toast.error(tToast('migrationFailed', { error: (err as Error).message }));
                   }
                 }}
               >
-                Convert text blocks to Excalidraw…
+                {t('menu.convertBlocks')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={async () => {
                   const api = canvasRef.current?.getExcalidrawApi();
                   if (!api) {
-                    toast.error('Canvas not ready yet.');
+                    toast.error(tToast('canvasNotReady'));
                     return;
                   }
                   const elements = api
                     .getSceneElements()
                     .filter((el) => !(el as { isDeleted?: boolean }).isDeleted);
                   if (elements.length === 0) {
-                    toast.error('Nothing on the canvas to export.');
+                    toast.error(tToast('nothingToExport'));
                     return;
                   }
-                  const t = toast.loading('Rendering PNG…');
+                  const tid = toast.loading(tToast('renderingPng'));
                   try {
                     const mod = (await import('@excalidraw/excalidraw' as never)) as unknown as {
                       exportToBlob: (opts: {
@@ -654,29 +662,31 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
                     a.click();
                     a.remove();
                     URL.revokeObjectURL(url);
-                    toast.success('Exported PNG.', { id: t });
+                    toast.success(tToast('exportedPng'), { id: tid });
                   } catch (err) {
-                    toast.error(`PNG export failed: ${(err as Error).message}`, { id: t });
+                    toast.error(tToast('pngFailed', { error: (err as Error).message }), {
+                      id: tid,
+                    });
                   }
                 }}
               >
-                Export canvas as PNG…
+                {t('menu.exportPng')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={async () => {
                   const api = canvasRef.current?.getExcalidrawApi();
                   if (!api) {
-                    toast.error('Canvas not ready yet.');
+                    toast.error(tToast('canvasNotReady'));
                     return;
                   }
                   const elements = api
                     .getSceneElements()
                     .filter((el) => !(el as { isDeleted?: boolean }).isDeleted);
                   if (elements.length === 0) {
-                    toast.error('Nothing on the canvas to export.');
+                    toast.error(tToast('nothingToExport'));
                     return;
                   }
-                  const t = toast.loading('Rendering SVG…');
+                  const tid = toast.loading(tToast('renderingSvg'));
                   try {
                     const mod = (await import('@excalidraw/excalidraw' as never)) as unknown as {
                       exportToSvg: (opts: {
@@ -708,26 +718,28 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
                     a.click();
                     a.remove();
                     URL.revokeObjectURL(url);
-                    toast.success('Exported SVG.', { id: t });
+                    toast.success(tToast('exportedSvg'), { id: tid });
                   } catch (err) {
-                    toast.error(`SVG export failed: ${(err as Error).message}`, { id: t });
+                    toast.error(tToast('svgFailed', { error: (err as Error).message }), {
+                      id: tid,
+                    });
                   }
                 }}
               >
-                Export canvas as SVG…
+                {t('menu.exportSvg')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={async () => {
                   const api = canvasRef.current?.getExcalidrawApi();
                   if (!api) {
-                    toast.error('Canvas not ready yet.');
+                    toast.error(tToast('canvasNotReady'));
                     return;
                   }
                   const elements = api
                     .getSceneElements()
                     .filter((el) => !(el as { isDeleted?: boolean }).isDeleted);
                   if (elements.length === 0) {
-                    toast.error('Nothing on the canvas to copy.');
+                    toast.error(tToast('nothingToCopy'));
                     return;
                   }
                   if (
@@ -735,10 +747,10 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
                     !navigator.clipboard ||
                     typeof window.ClipboardItem === 'undefined'
                   ) {
-                    toast.error('Clipboard image copy is not supported in this browser.');
+                    toast.error(tToast('clipboardUnsupported'));
                     return;
                   }
-                  const t = toast.loading('Copying to clipboard…');
+                  const tid = toast.loading(tToast('copyingClipboard'));
                   try {
                     const mod = (await import('@excalidraw/excalidraw' as never)) as unknown as {
                       exportToBlob: (opts: {
@@ -772,19 +784,21 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
                     await navigator.clipboard.write([
                       new window.ClipboardItem({ 'image/png': blob }),
                     ]);
-                    toast.success('Copied canvas to clipboard.', { id: t });
+                    toast.success(tToast('clipboardCopied'), { id: tid });
                   } catch (err) {
-                    toast.error(`Clipboard copy failed: ${(err as Error).message}`, { id: t });
+                    toast.error(tToast('clipboardFailed', { error: (err as Error).message }), {
+                      id: tid,
+                    });
                   }
                 }}
               >
-                Copy canvas to clipboard
+                {t('menu.copyCanvas')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={async () => {
                   const api = canvasRef.current?.getExcalidrawApi();
                   if (!api) {
-                    toast.error('Canvas not ready yet.');
+                    toast.error(tToast('canvasNotReady'));
                     return;
                   }
                   const elements = api
@@ -796,42 +810,38 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
                     .filter(Boolean)
                     .join('\n\n');
                   if (!text.trim()) {
-                    toast.error('Nothing to encrypt — write something first.');
+                    toast.error(tToast('nothingToEncrypt'));
                     return;
                   }
-                  if (
-                    !confirm(
-                      'Encrypt this note end-to-end? Once encrypted: the canvas becomes read-only, AI / search / sharing / blog are disabled for this note. You can unlock and disable encryption from the locked view.',
-                    )
-                  ) {
+                  if (!confirm(t('confirm.encrypt'))) {
                     return;
                   }
-                  const t = toast.loading('Encrypting…');
+                  const tid = toast.loading(tToast('encrypting'));
                   try {
                     const ok = await lockNoteFlow(note.id, text, title || note.title);
                     if (ok) {
-                      toast.success('Note encrypted', { id: t });
+                      toast.success(tToast('encrypted'), { id: tid });
                       window.location.reload();
                     } else {
-                      toast.dismiss(t);
+                      toast.dismiss(tid);
                     }
                   } catch (err) {
-                    toast.error((err as Error).message || 'Encryption failed', { id: t });
+                    toast.error((err as Error).message || tToast('encryptionFailed'), { id: tid });
                   }
                 }}
               >
-                Encrypt this note end-to-end…
+                {t('menu.encryptNote')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onClick={async () => {
-                  if (confirm('Delete this note?')) {
+                  if (confirm(t('confirm.deleteNote'))) {
                     await deleteNote(note.id);
                     window.location.href = '/app';
                   }
                 }}
               >
-                Delete
+                {t('menu.deleteNote')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -853,7 +863,7 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
         >
           {!doc || !provider ? (
             <div className="text-muted-foreground grid flex-1 place-items-center text-sm">
-              <Spinner /> Connecting…
+              <Spinner /> {t('connection.connectingPlaceholder')}
             </div>
           ) : (
             <>
@@ -867,7 +877,7 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Untitled"
+                  placeholder={t('titlePlaceholder')}
                   className="placeholder:text-muted-foreground w-full bg-transparent font-serif text-3xl font-semibold tracking-tight outline-none"
                 />
                 <div className="mt-2 flex items-center gap-3">
@@ -989,6 +999,7 @@ function ConnectionPill({
   status: 'connecting' | 'connected' | 'disconnected';
   synced: boolean;
 }) {
+  const t = useTranslations('editor.workspace.connection');
   const online = status === 'connected' && synced;
   const connecting = status === 'connecting';
   return (
@@ -1008,7 +1019,7 @@ function ConnectionPill({
       ) : (
         <WifiOff className="size-3" />
       )}
-      {online ? 'Synced' : connecting ? 'Connecting' : 'Offline'}
+      {online ? t('synced') : connecting ? t('connecting') : t('offline')}
     </span>
   );
 }
@@ -1020,14 +1031,17 @@ function ConnectionPill({
  * which spawns an always-on-top borderless WebviewWindow. In the browser
  * it falls back to a regular popup.
  */
-async function openStickyWindow(noteId: string) {
+async function openStickyWindow(
+  noteId: string,
+  tToast: (key: string, values?: Record<string, string | number | Date>) => string,
+) {
   if (isTauri()) {
     try {
       await invoke('open_sticky', { noteId });
       return;
     } catch (err) {
       if (String(err) !== 'Error: not-in-tauri') {
-        toast.error(`Couldn't open sticky window: ${String(err)}`);
+        toast.error(tToast('stickyFailed', { error: String(err) }));
         return;
       }
     }

@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Mic, Square, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { transcribeAudio } from '@/server/actions/transcribe';
@@ -15,6 +16,7 @@ interface VoiceRecorderProps {
  * obvious states, never asks again for permission once granted.
  */
 export function VoiceRecorder({ onTranscribed }: VoiceRecorderProps) {
+  const t = useTranslations('editor.voice');
   const [state, setState] = React.useState<'idle' | 'recording' | 'transcribing'>('idle');
   const recRef = React.useRef<MediaRecorder | null>(null);
   const chunksRef = React.useRef<Blob[]>([]);
@@ -39,7 +41,7 @@ export function VoiceRecorder({ onTranscribed }: VoiceRecorderProps) {
       recRef.current = rec;
       setState('recording');
     } catch (err) {
-      toast.error("Couldn't access your microphone");
+      toast.error(t('micFailed'));
       console.error(err);
     }
   };
@@ -55,7 +57,7 @@ export function VoiceRecorder({ onTranscribed }: VoiceRecorderProps) {
     try {
       const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
       if (blob.size < 800) {
-        toast.info('Recording was too short.');
+        toast.info(t('recorder.tooShort'));
         setState('idle');
         return;
       }
@@ -78,7 +80,7 @@ export function VoiceRecorder({ onTranscribed }: VoiceRecorderProps) {
         className="bg-destructive text-destructive-foreground flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs"
       >
         <span className="bg-destructive-foreground inline-block size-2 animate-pulse rounded-full" />
-        <Square className="size-3.5" /> Stop
+        <Square className="size-3.5" /> {t('recorder.stop')}
       </button>
     );
   }
@@ -86,7 +88,7 @@ export function VoiceRecorder({ onTranscribed }: VoiceRecorderProps) {
     return (
       <div className="text-muted-foreground flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs">
         <Loader2 className="size-3.5 animate-spin" />
-        Transcribing…
+        {t('recorder.transcribing')}
       </div>
     );
   }
@@ -95,9 +97,9 @@ export function VoiceRecorder({ onTranscribed }: VoiceRecorderProps) {
       type="button"
       onClick={start}
       className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs"
-      title="Record a voice note"
+      title={t('recorder.triggerTitle')}
     >
-      <Mic className="size-3.5" /> Voice
+      <Mic className="size-3.5" /> {t('recorder.trigger')}
     </button>
   );
 }

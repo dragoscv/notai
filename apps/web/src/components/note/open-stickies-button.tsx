@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { StickyNote, ExternalLink, X } from 'lucide-react';
 import { useOpenStickies, forgetOpenSticky, type OpenSticky } from '@notai/editor';
 import { Button } from '@notai/ui/components/button';
@@ -19,6 +20,7 @@ export function OpenStickiesButton({
   variant?: 'icon' | 'inline';
   className?: string;
 }) {
+  const t = useTranslations('editor.stickies');
   const stickies = useOpenStickies();
   const count = stickies.length;
 
@@ -30,8 +32,8 @@ export function OpenStickiesButton({
             size="icon-sm"
             variant="ghost"
             className={cn('relative', className)}
-            aria-label={`${count} sticky window${count === 1 ? '' : 's'} open`}
-            title={count ? `${count} sticky open` : 'No stickies open'}
+            aria-label={count === 1 ? t('triggerAriaOne') : t('triggerAriaOther', { count })}
+            title={count ? t('triggerTitleSome', { count }) : t('triggerTitleEmpty')}
           >
             <StickyNote />
             {count > 0 && (
@@ -46,7 +48,7 @@ export function OpenStickiesButton({
         ) : (
           <Button variant="ghost" className={cn('w-full justify-start gap-2', className)}>
             <StickyNote className="size-4" />
-            <span className="flex-1 text-left">Open stickies</span>
+            <span className="flex-1 text-left">{t('inline')}</span>
             {count > 0 && (
               <Badge variant="secondary" className="ml-auto">
                 {count}
@@ -58,9 +60,9 @@ export function OpenStickiesButton({
       <PopoverContent align="end" className="w-72 p-1">
         {count === 0 ? (
           <div className="text-muted-foreground p-3 text-center text-xs">
-            No sticky windows open.
+            {t('emptyTitle')}
             <br />
-            Click the panel icon on any note to pop one out.
+            {t('emptyHint')}
           </div>
         ) : (
           <ul className="max-h-72 overflow-y-auto">
@@ -75,6 +77,7 @@ export function OpenStickiesButton({
 }
 
 function StickyRow({ sticky }: { sticky: OpenSticky }) {
+  const t = useTranslations('editor.stickies');
   const focus = async () => {
     if (isTauri()) {
       try {
@@ -96,7 +99,7 @@ function StickyRow({ sticky }: { sticky: OpenSticky }) {
         type="button"
         onClick={focus}
         className="flex flex-1 items-center gap-2 truncate rounded px-2 py-1.5 text-left"
-        title="Focus sticky window"
+        title={t('focusTitle')}
       >
         <StickyNote className="size-3.5 shrink-0 opacity-70" />
         <span className="truncate">{sticky.title}</span>
@@ -107,8 +110,8 @@ function StickyRow({ sticky }: { sticky: OpenSticky }) {
         variant="ghost"
         className="size-7"
         onClick={() => forgetOpenSticky(sticky.id)}
-        aria-label="Remove from list"
-        title="Remove from list (doesn't close the window)"
+        aria-label={t('removeAria')}
+        title={t('removeTitle')}
       >
         <X className="size-3" />
       </Button>

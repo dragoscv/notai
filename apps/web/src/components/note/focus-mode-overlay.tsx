@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Focus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -34,6 +35,7 @@ interface AnyEl {
  * pollute the undo stack.
  */
 export function FocusModeOverlay({ getApi }: Props) {
+  const t = useTranslations('editor.focusMode.overlay');
   const [active, setActive] = React.useState(false);
   const snapshotRef = React.useRef<Map<string, number> | null>(null);
 
@@ -63,7 +65,7 @@ export function FocusModeOverlay({ getApi }: Props) {
       Object.keys(state.selectedElementIds ?? {}).filter((k) => state.selectedElementIds?.[k]),
     );
     if (selectedIds.size === 0) {
-      toast.message('Select something first to focus on it.');
+      toast.message(t('selectFirst'));
       return;
     }
     const els = api.getSceneElementsIncludingDeleted();
@@ -120,8 +122,11 @@ export function FocusModeOverlay({ getApi }: Props) {
         className="bg-foreground text-background pointer-events-auto inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs shadow-md"
       >
         <Focus className="size-3.5" />
-        Focus mode &middot; press <kbd className="font-mono">Esc</kbd> or{' '}
-        <kbd className="font-mono">F</kbd> to exit
+        {t('banner')} &middot;{' '}
+        {t.rich('exitHint', {
+          esc: () => <kbd className="font-mono">Esc</kbd>,
+          f: () => <kbd className="font-mono">F</kbd>,
+        })}
       </button>
     </div>
   );

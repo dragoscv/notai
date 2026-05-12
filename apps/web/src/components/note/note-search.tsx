@@ -1,4 +1,5 @@
 'use client';
+import { useTranslations } from 'next-intl';
 
 import * as React from 'react';
 import { Search, X } from 'lucide-react';
@@ -42,6 +43,7 @@ const MAX_RESULTS = 50;
  * re-focuses the input rather than swallowing the next keystroke.
  */
 export function NoteSearch({ canvasRef }: { canvasRef: React.RefObject<CanvasNoteHandle | null> }) {
+  const t = useTranslations('editor.search');
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState('');
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -114,7 +116,7 @@ export function NoteSearch({ canvasRef }: { canvasRef: React.RefObject<CanvasNot
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Find in note\u2026"
+            placeholder={t('placeholder')}
             className="h-8 border-0 px-1 shadow-none focus-visible:ring-0"
             autoFocus
           />
@@ -124,7 +126,7 @@ export function NoteSearch({ canvasRef }: { canvasRef: React.RefObject<CanvasNot
           <button
             type="button"
             onClick={() => setOpen(false)}
-            aria-label="Close find"
+            aria-label={t('closeAria')}
             className="text-muted-foreground hover:text-foreground -m-1 p-1"
           >
             <X className="size-4" />
@@ -146,7 +148,7 @@ export function NoteSearch({ canvasRef }: { canvasRef: React.RefObject<CanvasNot
           </ul>
         )}
         {query.trim().length >= 2 && hits.length === 0 && (
-          <p className="text-muted-foreground px-3 py-3 text-xs">No matches in this note.</p>
+          <p className="text-muted-foreground px-3 py-3 text-xs">{t('noMatches')}</p>
         )}
       </div>
     </div>

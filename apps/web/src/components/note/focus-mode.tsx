@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Focus, Pause, Play, RotateCcw, X, Coffee, Brain } from 'lucide-react';
 import { cn } from '@notai/lib/utils';
 
@@ -38,6 +39,7 @@ const DEFAULT_STATE: PersistedState = {
  * everything is on-demand and toggled by keyboard.
  */
 export function FocusMode() {
+  const t = useTranslations('editor.focusMode');
   const [state, setState] = React.useState<PersistedState>(() => {
     if (typeof window === 'undefined') return DEFAULT_STATE;
     try {
@@ -118,7 +120,7 @@ export function FocusMode() {
     }));
     try {
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(nextPhase === 'focus' ? 'Time to focus' : 'Take a break');
+        new Notification(nextPhase === 'focus' ? t('notification.focus') : t('notification.break'));
       }
     } catch {
       /* ignore */
@@ -202,13 +204,13 @@ export function FocusMode() {
       />
       <div className="bg-background/85 pointer-events-auto absolute right-4 top-4 flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs shadow-lg backdrop-blur">
         <Focus className="text-primary size-3.5" />
-        <span className="font-medium">Focus mode</span>
+        <span className="font-medium">{t('label')}</span>
         <kbd className="bg-muted rounded border px-1 font-mono text-[10px]">F</kbd>
         <button
           type="button"
           onClick={exit}
           className="hover:bg-muted -mr-1 ml-1 grid size-6 place-items-center rounded-full"
-          aria-label="Exit focus mode"
+          aria-label={t('exit')}
         >
           <X className="size-3.5" />
         </button>
@@ -234,7 +236,7 @@ export function FocusMode() {
               type="button"
               onClick={togglePause}
               className="hover:bg-background/30 grid size-6 place-items-center rounded-full"
-              aria-label={state.pomodoro.paused ? 'Resume' : 'Pause'}
+              aria-label={state.pomodoro.paused ? t('resume') : t('pause')}
             >
               {state.pomodoro.paused ? (
                 <Play className="size-3.5" />
@@ -246,7 +248,7 @@ export function FocusMode() {
               type="button"
               onClick={reset}
               className="hover:bg-background/30 grid size-6 place-items-center rounded-full"
-              aria-label="Reset timer"
+              aria-label={t('resetTimer')}
             >
               <RotateCcw className="size-3.5" />
             </button>
@@ -258,7 +260,7 @@ export function FocusMode() {
           className="bg-background/85 hover:bg-background flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs shadow-lg backdrop-blur"
         >
           <Brain className="size-3.5" />
-          {state.pomodoro.enabled ? 'Stop Pomodoro' : 'Start Pomodoro'}
+          {state.pomodoro.enabled ? t('stopPomodoro') : t('startPomodoro')}
         </button>
       </div>
     </div>

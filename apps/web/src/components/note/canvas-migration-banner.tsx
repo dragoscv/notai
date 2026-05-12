@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
 import * as Y from 'yjs';
@@ -24,6 +25,7 @@ interface CanvasMigrationBannerProps {
  *   - the user has dismissed the banner for this note
  */
 export function CanvasMigrationBanner({ noteId, doc }: CanvasMigrationBannerProps) {
+  const t = useTranslations('editor.canvas.migration');
   const blocksCount = useBlocksCount(doc);
   // Phase-3 step-1: rotated key so dismissals from the soft-banner era
   // don't suppress the new "blocks are read-only" copy.
@@ -49,11 +51,13 @@ export function CanvasMigrationBanner({ noteId, doc }: CanvasMigrationBannerProp
     try {
       const result = migrateBlocksToExcalidraw(doc);
       if (result.count === 0) {
-        toast.success('No text blocks to migrate.');
+        toast.success(t('noBlocks'));
         dismiss();
         return;
       }
-      toast.success(`Migrated ${result.count} block${result.count === 1 ? '' : 's'} to canvas.`);
+      toast.success(
+        result.count === 1 ? t('successOne') : t('successOther', { count: result.count }),
+      );
       if (Object.keys(result.blockToElement).length > 0) {
         try {
           const { updated } = await rewireCommentsAfterMigration({
@@ -61,14 +65,16 @@ export function CanvasMigrationBanner({ noteId, doc }: CanvasMigrationBannerProp
             mapping: result.blockToElement,
           });
           if (updated > 0) {
-            toast.success(`Re-anchored ${updated} comment${updated === 1 ? '' : 's'}.`);
+            toast.success(
+              updated === 1 ? t('reanchoredOne') : t('reanchoredOther', { count: updated }),
+            );
           }
         } catch (err) {
-          toast.error(`Comment re-anchor failed: ${(err as Error).message}`);
+          toast.error(t('reanchorFailed', { error: (err as Error).message }));
         }
       }
     } catch (err) {
-      toast.error(`Migration failed: ${(err as Error).message}`);
+      toast.error(t('failed', { error: (err as Error).message }));
     } finally {
       setBusy(false);
     }
@@ -82,11 +88,8 @@ export function CanvasMigrationBanner({ noteId, doc }: CanvasMigrationBannerProp
     >
       <Sparkles className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
       <div className="min-w-0 flex-1">
-        <p className="font-medium">These text blocks are read-only.</p>
-        <p className="text-muted-foreground text-xs">
-          The canvas is now the only place you can edit. Convert to keep editing — rich formatting
-          collapses to plain text and your work moves onto the canvas.
-        </p>
+        <p className="font-medium">{t('heading')}</p>
+        <p className="text-muted-foreground text-xs">{t('description')}</p>
       </div>
       <button
         type="button"
@@ -94,12 +97,12 @@ export function CanvasMigrationBanner({ noteId, doc }: CanvasMigrationBannerProp
         disabled={busy}
         className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 rounded-md px-3 py-1.5 text-xs font-medium disabled:opacity-60"
       >
-        {busy ? 'Converting…' : 'Convert to keep editing'}
+        {busy ? t('converting') : t('convert')}
       </button>
       <button
         type="button"
         onClick={dismiss}
-        aria-label="Dismiss"
+        aria-label={t('dismiss')}
         className="text-muted-foreground hover:text-foreground shrink-0 rounded-md p-1"
       >
         <X className="h-4 w-4" />

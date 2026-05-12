@@ -741,14 +741,14 @@
       "copyHelp": "We won't show it again. Store it in a password manager.",
       "copied": "Copied",
       "done": "Done",
-      "namePlaceholder": "Key name (e.g. \u201cZapier\u201d)",
+      "namePlaceholder": "Key name (e.g. “Zapier”)",
       "create": "Create",
       "empty": "No keys yet.",
       "createdOn": "created {date}",
       "lastUsedOn": "last used {date}",
       "unused": "unused",
       "usage": "Usage",
-      "confirmRevoke": "Revoke \u201c{name}\u201d? Calls using it will start failing immediately.",
+      "confirmRevoke": "Revoke “{name}”? Calls using it will start failing immediately.",
       "revoked": "Revoked",
       "loading": "Loading…",
       "requestsOne": "request",
@@ -1655,6 +1655,619 @@
       "resolve": "Resolve",
       "deleteAria": "Delete",
       "now": "now"
+    }
+  },
+  "editor": {
+    "workspace": {
+      "connection": {
+        "synced": "Synced",
+        "connecting": "Connecting",
+        "offline": "Offline",
+        "connectingPlaceholder": "Connecting…"
+      },
+      "titlePlaceholder": "Untitled",
+      "untitled": "Untitled",
+      "aria": {
+        "pin": "Pin",
+        "favorite": "Favorite",
+        "openSticky": "Open as sticky window",
+        "toggleComments": "Toggle comments",
+        "toggleChat": "Toggle chat",
+        "toggleMeeting": "Toggle meeting mode"
+      },
+      "titles": {
+        "unpin": "Unpin",
+        "pinToTop": "Pin to top",
+        "removeFavorite": "Remove from favorites",
+        "addFavorite": "Add to favorites",
+        "openSticky": "Open as sticky window",
+        "closeComments": "Close comments",
+        "openComments": "Open comments",
+        "closeChat": "Close chat",
+        "openChat": "Chat with this note",
+        "closeMeeting": "Close meeting",
+        "openMeeting": "Meeting mode"
+      },
+      "menu": {
+        "convertBlocks": "Convert text blocks to Excalidraw…",
+        "exportPng": "Export canvas as PNG…",
+        "exportSvg": "Export canvas as SVG…",
+        "copyCanvas": "Copy canvas to clipboard",
+        "encryptNote": "Encrypt this note end-to-end…",
+        "deleteNote": "Delete"
+      },
+      "confirm": {
+        "convertBlocks": "Convert TipTap text blocks on this note to Excalidraw text? This is a one-way migration. Rich formatting (headings, lists, math, mermaid, callouts) will become plain text.",
+        "encrypt": "Encrypt this note end-to-end? Once encrypted: the canvas becomes read-only, AI / search / sharing / blog are disabled for this note. You can unlock and disable encryption from the locked view.",
+        "deleteNote": "Delete this note?"
+      },
+      "toast": {
+        "saveTitleFailed": "Failed to save title",
+        "pinned": "Pinned",
+        "unpinned": "Unpinned",
+        "appendedOne": "Appended captured note.",
+        "appendedMany": "Appended {count} captured notes.",
+        "summaryAdded": "Summary added.",
+        "summaryFailed": "Smart paste failed",
+        "summarising": "Summarising the link…",
+        "summarisingPlaceholder": "Summarising {url}…",
+        "outlineAdded": "Outline added.",
+        "outlineFailed": "Outline failed",
+        "outlining": "Outlining with AI…",
+        "outliningPlaceholder": "Outlining your paste…",
+        "bigPaste": "Big paste detected.",
+        "bigPasteDescription": "{count} characters — outline with AI?",
+        "outlineAction": "Outline",
+        "asIsAction": "As-is",
+        "noBlocksToMigrate": "No text blocks to migrate.",
+        "migratedBlocksOne": "Migrated 1 block to Excalidraw.",
+        "migratedBlocksOther": "Migrated {count} blocks to Excalidraw.",
+        "reanchoredOne": "Re-anchored 1 comment.",
+        "reanchoredOther": "Re-anchored {count} comments.",
+        "reanchorFailed": "Comment re-anchor failed: {error}",
+        "migrationFailed": "Migration failed: {error}",
+        "canvasNotReady": "Canvas not ready yet.",
+        "nothingToExport": "Nothing on the canvas to export.",
+        "nothingToCopy": "Nothing on the canvas to copy.",
+        "nothingToEncrypt": "Nothing to encrypt — write something first.",
+        "renderingPng": "Rendering PNG…",
+        "renderingSvg": "Rendering SVG…",
+        "copyingClipboard": "Copying to clipboard…",
+        "exportedPng": "Exported PNG.",
+        "exportedSvg": "Exported SVG.",
+        "pngFailed": "PNG export failed: {error}",
+        "svgFailed": "SVG export failed: {error}",
+        "clipboardCopied": "Copied canvas to clipboard.",
+        "clipboardFailed": "Clipboard copy failed: {error}",
+        "clipboardUnsupported": "Clipboard image copy is not supported in this browser.",
+        "encrypting": "Encrypting…",
+        "encrypted": "Note encrypted",
+        "encryptionFailed": "Encryption failed",
+        "stickyFailed": "Couldn't open sticky window: {error}",
+        "transcribed": "Transcribed"
+      }
+    },
+    "meeting": {
+      "label": "Meeting",
+      "closePanel": "Close meeting panel",
+      "sources": {
+        "tabAudio": "Tab audio",
+        "microphone": "Microphone"
+      },
+      "actions": {
+        "start": "Start meeting",
+        "pause": "Pause",
+        "resume": "Resume",
+        "stop": "Stop",
+        "transcribing": "Transcribing",
+        "enhancing": "Enhancing",
+        "enhancePreview": "Enhance & preview",
+        "discard": "Discard",
+        "insert": "Insert"
+      },
+      "enhanced": "Enhanced notes",
+      "rawNotesLabel": "Your raw notes",
+      "transcriptLabel": "Transcript",
+      "charsSuffix": "{count} chars",
+      "rawPlaceholder": "Type whatever helps you stay present. Don't worry about structure — Notai merges this with the transcript later.",
+      "transcriptRecording": "Recording. Transcript will appear after you stop.",
+      "transcriptIdle": "No transcript yet. Hit \"Start meeting\" above.",
+      "needAudio": "Record audio to enable enhancement.",
+      "aria": {
+        "panel": "Meeting mode"
+      },
+      "toast": {
+        "pickSource": "Pick at least one source.",
+        "noTabAudio": "No tab audio captured. Re-share the tab and tick \"Share tab audio\".",
+        "tabCancelled": "Tab audio sharing was cancelled.",
+        "tabFailed": "Couldn't capture tab audio.",
+        "micFailed": "Couldn't access your microphone.",
+        "noAudio": "No audio was captured.",
+        "chunkFailed": "Chunk {n} failed: {error}",
+        "nothingTranscribed": "Nothing was transcribed.",
+        "transcribed": "Meeting transcribed.",
+        "inserted": "Inserted into note."
+      },
+      "confirmDiscard": "Discard transcript, raw notes, and any enhancement?"
+    },
+    "chat": {
+      "title": "Chat",
+      "subtitle": "— this note",
+      "clear": "Clear chat",
+      "clearTitle": "Clear conversation",
+      "close": "Close chat",
+      "closeTitle": "Close",
+      "placeholder": "Ask about this note…",
+      "stop": "Stop",
+      "send": "Send",
+      "loading": "Loading…",
+      "aria": {
+        "panel": "Chat with this note"
+      },
+      "empty": {
+        "intro": "Ask anything about this note. Answers are grounded in its content.",
+        "suggestion1": "Summarize this note in 3 bullets",
+        "suggestion2": "What are the key decisions here?",
+        "suggestion3": "List the action items",
+        "suggestion4": "Translate the main idea to Romanian"
+      },
+      "copy": "Copy",
+      "copied": "Copied",
+      "toast": {
+        "loadFailed": "Failed to load chat history",
+        "cleared": "Chat cleared",
+        "stopped": "Stopped."
+      },
+      "confirmClear": "Clear this conversation?"
+    },
+    "ai": {
+      "triggerLabel": "AI",
+      "closeMenu": "Close menu",
+      "modes": {
+        "summary": "Summary",
+        "actions": "Action items",
+        "rewrite": "Rewrite for clarity",
+        "outline": "Outline",
+        "title": "Suggest title",
+        "fixSpelling": "Fix spelling & grammar"
+      },
+      "continueThought": "Continue this thought",
+      "generateMindMap": "Generate mind map",
+      "thinking": "Thinking…",
+      "noOutput": "No output.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "insertIntoNote": "Insert into note",
+      "inserted": "Inserted",
+      "toast": {
+        "canvasNotReady": "Canvas not ready yet.",
+        "writeFirst": "Write something first — then I can continue from it.",
+        "moreWordsNeeded": "Need a few more words to continue from.",
+        "continuing": "Continuing your thought…",
+        "noContinuation": "No continuation generated.",
+        "added": "Added.",
+        "couldNotContinue": "Could not continue",
+        "regenMindMap": "Regenerating mind map…",
+        "genMindMap": "Generating mind map…",
+        "mindMapRegen": "Mind map regenerated.",
+        "mindMapInserted": "Mind map inserted.",
+        "confirmReplaceMap": "A mind map already exists on this canvas. Replace it with a fresh one based on the current note?"
+      }
+    },
+    "templates": {
+      "apply": "Template",
+      "applyTitle": "Apply a template to this note",
+      "saveAs": "Save as template",
+      "saveAsTitle": "Save this note as a personal template",
+      "saveDialogTitle": "Save as personal template",
+      "saveHint": "Stores the current note's structure so you can re-apply it later. Only you can see your personal templates.",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g. Weekly review",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional",
+      "cancel": "Cancel",
+      "save": "Save",
+      "applyDialogTitle": "Apply a template",
+      "applyHint": "Drop a structured skeleton onto this canvas. \"Fill with AI\" uses your existing note content to populate the sections — placeholders stay empty when there is nothing to map.",
+      "loading": "Loading templates…",
+      "none": "No templates published yet.",
+      "useAsIs": "Use as-is",
+      "fillWithAi": "Fill with AI",
+      "toast": {
+        "titleRequired": "Title is required",
+        "saved": "Saved to your personal templates",
+        "saveFailed": "Failed to save",
+        "filling": "Filling template…",
+        "applying": "Applying…",
+        "applied": "{name} applied"
+      },
+      "inline": {
+        "trigger": "Insert template",
+        "label": "Templates",
+        "meetingLabel": "Meeting notes",
+        "meetingDesc": "Attendees, agenda, decisions, action items.",
+        "dailyLabel": "Daily plan",
+        "dailyDesc": "Top 3, today's schedule, end-of-day reflection.",
+        "decisionLabel": "Decision log",
+        "decisionDesc": "Frame the choice, options, criteria, decision.",
+        "projectLabel": "Project kickoff",
+        "projectDesc": "Goal, scope, milestones, owners, risks.",
+        "oneOnOneLabel": "1:1 agenda",
+        "oneOnOneDesc": "Wins, blockers, growth, asks.",
+        "inserted": "Inserted: {name}",
+        "canvasNotReady": "Canvas not ready yet."
+      }
+    },
+    "surface": {
+      "pageStyle": "Page style",
+      "surfaces": {
+        "plain": "Plain",
+        "ruled": "Ruled",
+        "grid": "Grid (math)",
+        "dots": "Dots",
+        "columns": "Columns"
+      },
+      "coverage": "Coverage",
+      "coveragePage": "Page",
+      "coverageFull": "Full",
+      "lineSpacing": "Line spacing",
+      "minimap": "Minimap",
+      "minimapToggle": "Toggle minimap",
+      "cornerTL": "Top L",
+      "cornerTR": "Top R",
+      "cornerBL": "Bot L",
+      "cornerBR": "Bot R",
+      "minimapTip": "Tip: drag the minimap to snap it to a different corner."
+    },
+    "focusMode": {
+      "label": "Focus mode",
+      "exit": "Exit focus mode",
+      "startPomodoro": "Start Pomodoro",
+      "stopPomodoro": "Stop Pomodoro",
+      "pause": "Pause",
+      "resume": "Resume",
+      "resetTimer": "Reset timer",
+      "notification": {
+        "focus": "Time to focus",
+        "break": "Take a break"
+      },
+      "overlay": {
+        "banner": "Focus mode",
+        "exitHint": "press <esc>Esc</esc> or <f>F</f> to exit",
+        "selectFirst": "Select something first to focus on it."
+      }
+    },
+    "readingMode": {
+      "trigger": "Read",
+      "closeAria": "Close reading mode",
+      "titleSuffix": "Reading mode — {minutes} min today{goal}",
+      "titleGoalReached": " ✅ goal reached",
+      "titleGoalRemaining": " / {minutes} min goal",
+      "emptyNote": "This note has no text yet.",
+      "untitled": "Untitled"
+    },
+    "properties": {
+      "title": "Properties",
+      "addProperty": "Add property",
+      "keyPlaceholder": "Key",
+      "removeAria": "Remove property",
+      "toast": {
+        "saveFailed": "Failed to save",
+        "removeFailed": "Failed to remove"
+      }
+    },
+    "voice": {
+      "holdTitle": "Hold to record — release to drop transcript at the viewport center",
+      "holdTooShort": "Hold longer to record.",
+      "nothingAudible": "Nothing audible to transcribe.",
+      "canvasNotReadyClipboard": "Canvas not ready — transcript copied to clipboard.",
+      "canvasNotReadyNoClipboard": "Canvas not ready and clipboard unavailable.",
+      "longCaptured": "Long transcript captured.",
+      "longDescription": "{count} chars — outline with AI?",
+      "outlineAction": "Outline",
+      "outlining": "Outlining…",
+      "outliningPlaceholder": "Outlining transcript…",
+      "outlineAdded": "Outline added.",
+      "outlineFailed": "Outline failed",
+      "micFailed": "Couldn't access your microphone",
+      "recorder": {
+        "stop": "Stop",
+        "transcribing": "Transcribing…",
+        "trigger": "Voice",
+        "triggerTitle": "Record a voice note",
+        "tooShort": "Recording was too short."
+      },
+      "mode": {
+        "stopTitle": "Stop recording",
+        "splitting": "Splitting paragraphs…",
+        "trigger": "Voice mode",
+        "triggerTitle": "Voice mode — record a long thought and let Notai split it into paragraphs by pause",
+        "copiedFallback": "Canvas not ready — copying transcript to clipboard instead.",
+        "nothingAudible": "Nothing audible to transcribe.",
+        "doneOne": "Voice mode: 1 paragraph.",
+        "doneOther": "Voice mode: {count} paragraphs."
+      }
+    },
+    "cover": {
+      "addCover": "Add cover",
+      "uploading": "Uploading…",
+      "change": "Change",
+      "reposition": "Reposition",
+      "remove": "Remove",
+      "done": "Done",
+      "doneAria": "Done repositioning cover",
+      "dragHint": "Drag to reposition · {percent}%",
+      "toast": {
+        "added": "Cover added",
+        "uploadFailed": "Could not upload cover",
+        "removeFailed": "Could not remove cover"
+      }
+    },
+    "encryption": {
+      "headerLabel": "End-to-end encrypted · read-only",
+      "unlock": "Unlock",
+      "disable": "Disable encryption",
+      "waiting": "Waiting for passphrase…",
+      "untitled": "Untitled",
+      "dialog": {
+        "title": "Unlock encrypted notes",
+        "defaultReason": "Decryption happens entirely in your browser; the server never sees your key.",
+        "passphrasePlaceholder": "Master passphrase",
+        "recoveryPlaceholder": "notai-rk-…",
+        "useRecovery": "Use recovery key instead",
+        "usePassphrase": "Use passphrase instead",
+        "cancel": "Cancel",
+        "unlock": "Unlock"
+      },
+      "toast": {
+        "idleLocked": "Locked your encrypted notes (idle)",
+        "unlocked": "Notes unlocked for this session",
+        "unlockFailed": "Unlock failed",
+        "notSetUp": "Encryption is not set up on this account.",
+        "wrongPassphrase": "Wrong passphrase.",
+        "parseRecovery": "Could not parse recovery key.",
+        "recoveryMismatch": "Recovery key did not match.",
+        "couldNotFetch": "Could not fetch ciphertext.",
+        "decryptionFailed": "Decryption failed",
+        "disabled": "Encryption disabled",
+        "disableFailed": "Could not disable encryption"
+      },
+      "confirmDisable": "Disable encryption on this note? The plaintext will be stored on the server again.",
+      "promptPassphrase": "Enter your master passphrase to encrypt this note. Decryption happens entirely in your browser."
+    },
+    "lock": {
+      "lockNote": "Lock note",
+      "unlockNote": "Unlock note",
+      "removeLock": "Remove lock",
+      "locked": "This note is locked.",
+      "unlock": "Unlock",
+      "dialog": {
+        "setTitle": "Lock this note",
+        "enterTitle": "Unlock note",
+        "setDescription": "Set a short PIN. Stored only in this browser — casual privacy, not encryption.",
+        "enterDescription": "Enter the PIN you set for this note.",
+        "pinPlaceholder": "PIN",
+        "tooShort": "Use at least 3 characters.",
+        "wrong": "Wrong PIN.",
+        "cancel": "Cancel",
+        "lock": "Lock",
+        "unlock": "Unlock"
+      },
+      "password": {
+        "title": "This note is locked",
+        "description": "Enter the password to unlock it for this session.",
+        "placeholder": "Password",
+        "submit": "Unlock",
+        "incorrect": "Incorrect password",
+        "failed": "Could not unlock"
+      }
+    },
+    "merge": {
+      "title": "Merge into another note",
+      "description": "Append \"{title}\" to a target note. The source will be moved to Trash.",
+      "searchPlaceholder": "Find target note…",
+      "searching": "Searching…",
+      "noMatches": "No matches.",
+      "cancel": "Cancel",
+      "merging": "Merging…",
+      "success": "Merged \"{title}\" into target.",
+      "undo": "Undo",
+      "restored": "Restored \"{title}\"",
+      "undoFailed": "Could not undo merge",
+      "failed": "Merge failed"
+    },
+    "assets": {
+      "uploading": "Uploading…",
+      "uploaded": "Uploaded",
+      "uploadFailed": "Upload failed",
+      "attach": "Attach",
+      "dropOrClick": "Drop a file or click to upload",
+      "extractText": "Extract text",
+      "reading": "Reading image…",
+      "noText": "No readable text found.",
+      "addedBelow": "Text added below the image.",
+      "copiedFallback": "Copied to clipboard.",
+      "ocrFailed": "OCR failed",
+      "drop": {
+        "uploadingOne": "Uploading attachment…",
+        "uploadingMany": "Uploading {count} attachments…",
+        "successOne": "Attachment added.",
+        "successOther": "{count} attachments added.",
+        "partial": "Uploaded {ok}, {fail} failed.",
+        "dropToAttach": "Drop to attach",
+        "uploading": "Uploading…"
+      }
+    },
+    "search": {
+      "placeholder": "Find in note…",
+      "closeAria": "Close find",
+      "noMatches": "No matches in this note."
+    },
+    "canvas": {
+      "migration": {
+        "heading": "These text blocks are read-only.",
+        "description": "The canvas is now the only place you can edit. Convert to keep editing — rich formatting collapses to plain text and your work moves onto the canvas.",
+        "convert": "Convert to keep editing",
+        "converting": "Converting…",
+        "dismiss": "Dismiss",
+        "successOne": "Migrated 1 block to canvas.",
+        "successOther": "Migrated {count} blocks to canvas.",
+        "noBlocks": "No text blocks to migrate.",
+        "reanchoredOne": "Re-anchored 1 comment.",
+        "reanchoredOther": "Re-anchored {count} comments.",
+        "reanchorFailed": "Comment re-anchor failed: {error}",
+        "failed": "Migration failed: {error}"
+      }
+    },
+    "blog": {
+      "loading": "Loading blog status…",
+      "label": "Blog",
+      "pickHandle": "Pick a handle in <link>blog settings</link> to publish notes to <path></path>.",
+      "settingsLink": "blog settings",
+      "showOn": "Show on /u/{handle}",
+      "listsNote": "Lists this note on your public blog index and RSS feed.",
+      "publishAt": "Publish at",
+      "scheduled": "scheduled",
+      "publishHint": "Leave empty to publish immediately. Future dates hide the note from the index until then.",
+      "toast": {
+        "enabled": "On your blog",
+        "disabled": "Hidden from blog",
+        "scheduledSaved": "Scheduled",
+        "publishNow": "Publishes immediately"
+      }
+    },
+    "card": {
+      "untitled": "Untitled",
+      "startWriting": "Start writing…",
+      "pinned": "Pinned",
+      "favorite": "Favorite"
+    },
+    "zoom": {
+      "title": "Zoom ({percent}%)",
+      "label": "Zoom",
+      "aria": "Zoom {percent}%",
+      "in": "In",
+      "out": "Out",
+      "reset": "Reset zoom",
+      "resetTitle": "Reset to 100%"
+    },
+    "stickies": {
+      "triggerTitleEmpty": "No stickies open",
+      "triggerTitleSome": "{count} sticky open",
+      "triggerAriaOne": "1 sticky window open",
+      "triggerAriaOther": "{count} sticky windows open",
+      "inline": "Open stickies",
+      "emptyTitle": "No sticky windows open.",
+      "emptyHint": "Click the panel icon on any note to pop one out.",
+      "focusTitle": "Focus sticky window",
+      "removeTitle": "Remove from list (doesn't close the window)",
+      "removeAria": "Remove from list",
+      "window": {
+        "placeholder": "Sticky",
+        "openMain": "Open in main app",
+        "pin": "Pin always-on-top (desktop)",
+        "unpin": "Unpin",
+        "connecting": "Connecting…"
+      },
+      "fromSelection": {
+        "label": "New note from selection ({count} words)",
+        "failed": "Could not create note from selection.",
+        "defaultTitle": "New note"
+      }
+    },
+    "rollover": {
+      "headingOne": "1 open task from {date}",
+      "headingOther": "{count} open tasks from {date}",
+      "extraSuffix": " · +{count} more",
+      "rollForward": "Roll forward",
+      "dismiss": "Dismiss",
+      "canvasNotReady": "Canvas not ready yet — try again in a moment.",
+      "rollFailed": "Couldn't roll forward — please try again.",
+      "rolledOne": "Rolled forward 1 task",
+      "rolledOther": "Rolled forward {count} tasks",
+      "carriedHeading": "Carried over from {date}",
+      "recurring": {
+        "headingOne": "1 recurring task ready to roll",
+        "headingOther": "{count} recurring tasks ready to roll",
+        "description": "New open instances with the next due date.",
+        "rolled": "Rolled {count} recurring task{plural}",
+        "rolledOne": "Rolled 1 recurring task",
+        "rolledOther": "Rolled {count} recurring tasks",
+        "rollFailed": "Couldn't roll — please try again."
+      }
+    },
+    "links": {
+      "auto": {
+        "heading": "Suggested links",
+        "similarityTitle": "Similarity {score}",
+        "linkedTo": "Linked to \"{title}\"",
+        "copiedLink": "Copied {text}",
+        "untitled": "Untitled",
+        "dismiss": "Dismiss"
+      },
+      "preview": {
+        "loading": "Loading preview…",
+        "heading": "Links in this note"
+      },
+      "backlinks": {
+        "label": "Backlinks",
+        "looking": "Looking…",
+        "none": "No notes link here yet.",
+        "untitled": "Untitled"
+      },
+      "related": {
+        "heading": "Related notes",
+        "distanceTitle": "Distance {value}",
+        "untitled": "Untitled"
+      }
+    },
+    "minimap": {
+      "heading": "Neighbourhood ({count})",
+      "aria": "Graph of notes linked to and from {title}"
+    },
+    "colors": {
+      "aria": "Pick a color label",
+      "title": "Color: {label}",
+      "heading": "Color label",
+      "noTint": "No tint",
+      "amber": "Amber",
+      "rose": "Rose",
+      "sky": "Sky",
+      "emerald": "Emerald",
+      "violet": "Violet",
+      "slate": "Slate",
+      "tagged": "Tagged as {label}",
+      "cleared": "Cleared color",
+      "saveFailed": "Failed to save color"
+    },
+    "actions": {
+      "rename": "Rename",
+      "renameTitle": "Rename note",
+      "renameField": "Title",
+      "renameSubmit": "Rename",
+      "changeIcon": "Change icon…",
+      "duplicate": "Duplicate",
+      "duplicated": "Note duplicated",
+      "duplicateFailed": "Duplicate failed",
+      "moreLabel": "More",
+      "openSticky": "Open as sticky",
+      "unpin": "Unpin",
+      "pinToTop": "Pin to top",
+      "unpinToday": "Unpin from Today",
+      "pinToday": "Pin on Today",
+      "removeFavorite": "Remove from favorites",
+      "addFavorite": "Add to favorites",
+      "unarchive": "Unarchive",
+      "archive": "Archive",
+      "delete": "Delete",
+      "deleteTitle": "Delete note?",
+      "deleteDescription": "<title>{titleText}</title> and its content will be permanently deleted. This cannot be undone.",
+      "deleteConfirm": "Delete",
+      "deleted": "Note deleted",
+      "deleteFailed": "Delete failed",
+      "updateFailed": "Update failed",
+      "iconUpdateFailed": "Could not update icon",
+      "iconTitle": "Note icon"
     }
   }
 }

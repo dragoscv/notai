@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { Clock, Pin, Star } from 'lucide-react';
 import { LocalDateTime } from '@/components/ui/local-datetime';
 import { NoteIcon } from '@/components/ui/note-icon';
@@ -38,6 +39,7 @@ function pickTapeClass(id: string, isPinned: boolean): string {
 }
 
 export function NoteCard({ note }: { note: NoteWithPreview }) {
+  const t = useTranslations('editor.card');
   const html = note.previewHtml?.trim() ?? '';
   const hasContent = html.length > 0;
   const tapeClass = pickTapeClass(note.id, note.isPinned);
@@ -52,16 +54,19 @@ export function NoteCard({ note }: { note: NoteWithPreview }) {
         <div className="bg-card/80 flex items-center gap-1.5 border-b px-3 pb-2 pt-2.5 backdrop-blur">
           <NoteIcon icon={note.icon} className="size-4 shrink-0" />
           <span className="min-w-0 flex-1 truncate font-serif text-[13px] font-semibold tracking-tight">
-            {note.title || 'Untitled'}
+            {note.title || t('untitled')}
           </span>
           <div className="text-muted-foreground flex shrink-0 items-center gap-0.5">
             {note.isPinned && (
-              <span title="Pinned" className="grid size-4 place-items-center">
+              <span title={t('pinned')} className="grid size-4 place-items-center">
                 <Pin className="size-3" />
               </span>
             )}
             {note.isFavorite && (
-              <span title="Favorite" className="grid size-4 place-items-center text-yellow-500">
+              <span
+                title={t('favorite')}
+                className="grid size-4 place-items-center text-yellow-500"
+              >
                 <Star className="size-3 fill-current" />
               </span>
             )}
@@ -81,7 +86,7 @@ export function NoteCard({ note }: { note: NoteWithPreview }) {
             />
           ) : (
             <p className="text-muted-foreground/60 px-3 py-1.5 text-[15px] italic leading-[22px]">
-              Start writing…
+              {t('startWriting')}
             </p>
           )}
           <div className="from-card via-card/80 pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t to-transparent" />

@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@notai/ui/components/popover';
@@ -66,6 +67,7 @@ export function ZoomControl({
   onChange: (z: number) => void;
   buttonClassName?: string;
 }) {
+  const t = useTranslations('editor.zoom');
   const pct = Math.round(value * 100);
   return (
     <Popover>
@@ -77,15 +79,15 @@ export function ZoomControl({
             'hover:bg-current/10 data-[state=open]:bg-current/20 size-6 cursor-pointer hover:text-current',
             buttonClassName,
           )}
-          title={`Zoom (${pct}%)`}
-          aria-label={`Zoom ${pct}%`}
+          title={t('title', { percent: pct })}
+          aria-label={t('aria', { percent: pct })}
         >
           <ZoomIn className="size-3" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-60 space-y-3 p-3">
         <div className="flex items-center justify-between text-xs font-medium">
-          <span>Zoom</span>
+          <span>{t('label')}</span>
           <span className="text-muted-foreground tabular-nums">{pct}%</span>
         </div>
         <Slider
@@ -106,15 +108,15 @@ export function ZoomControl({
             onClick={() => onChange(value - ZOOM_STEP)}
             disabled={value <= ZOOM_MIN + 0.001}
           >
-            <ZoomOut /> Out
+            <ZoomOut /> {t('out')}
           </Button>
           <Button
             type="button"
             size="sm"
             variant="outline"
             onClick={() => onChange(ZOOM_DEFAULT)}
-            title="Reset to 100%"
-            aria-label="Reset zoom"
+            title={t('resetTitle')}
+            aria-label={t('reset')}
           >
             <RotateCcw />
           </Button>
@@ -126,7 +128,7 @@ export function ZoomControl({
             onClick={() => onChange(value + ZOOM_STEP)}
             disabled={value >= ZOOM_MAX - 0.001}
           >
-            <ZoomIn /> In
+            <ZoomIn /> {t('in')}
           </Button>
         </div>
       </PopoverContent>

@@ -25,6 +25,7 @@
 
 import * as React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   Pencil,
   Smile,
@@ -57,6 +58,7 @@ import { usePrompt } from '@/components/ui/prompt-dialog';
 import { IconPicker } from '@/components/ui/icon-picker';
 
 export function useNoteActions() {
+  const t = useTranslations('editor.actions');
   const router = useRouter();
   const pathname = usePathname();
   const { confirm, dialog: confirmDialog } = useConfirm();
@@ -69,17 +71,17 @@ export function useNoteActions() {
   const rename = React.useCallback(
     (note: Note) =>
       prompt({
-        title: 'Rename note',
-        label: 'Title',
+        title: t('renameTitle'),
+        label: t('renameField'),
         defaultValue: note.title,
-        confirmLabel: 'Rename',
+        confirmLabel: t('renameSubmit'),
         maxLength: 200,
         onSubmit: async (title) => {
           await updateNote({ id: note.id, title });
           router.refresh();
         },
       }),
-    [prompt, router],
+    [prompt, router, t],
   );
 
   const duplicate = React.useCallback(
@@ -87,14 +89,14 @@ export function useNoteActions() {
       try {
         const copy = await duplicateNote(note.id);
         if (copy) {
-          toast.success('Note duplicated');
+          toast.success(t('duplicated'));
           router.refresh();
         }
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Duplicate failed');
+        toast.error(err instanceof Error ? err.message : t('duplicateFailed'));
       }
     },
-    [router],
+    [router, t],
   );
 
   const toggleFlag = React.useCallback(
@@ -103,36 +105,38 @@ export function useNoteActions() {
         await updateNote({ id: note.id, [flag]: next });
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Update failed');
+        toast.error(err instanceof Error ? err.message : t('updateFailed'));
       }
     },
-    [router],
+    [router, t],
   );
 
   const removeNote = React.useCallback(
     (note: Note) =>
       confirm({
-        title: 'Delete note?',
+        title: t('deleteTitle'),
         description: (
           <>
-            <span className="font-medium">{note.title}</span> and its content will be permanently
-            deleted. This cannot be undone.
+            {t.rich('deleteDescription', {
+              titleText: note.title,
+              title: (chunks) => <span className="font-medium">{chunks}</span>,
+            })}
           </>
         ),
         destructive: true,
-        confirmLabel: 'Delete',
+        confirmLabel: t('deleteConfirm'),
         onConfirm: async () => {
           try {
             await deleteNote(note.id);
             if (pathname === `/app/n/${note.id}`) router.push('/app');
             else router.refresh();
-            toast.success('Note deleted');
+            toast.success(t('deleted'));
           } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Delete failed');
+            toast.error(err instanceof Error ? err.message : t('deleteFailed'));
           }
         },
       }),
-    [confirm, pathname, router],
+    [confirm, pathname, router, t],
   );
 
   const changeIcon = React.useCallback(
@@ -147,10 +151,10 @@ export function useNoteActions() {
         await updateNote({ id: iconTarget.id, icon: value });
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Could not update icon');
+        toast.error(err instanceof Error ? err.message : t('iconUpdateFailed'));
       }
     },
-    [iconTarget, router],
+    [iconTarget, router, t],
   );
 
   const openAsSticky = React.useCallback(async (note: Note) => {
@@ -172,21 +176,21 @@ export function useNoteActions() {
         <ContextMenuTrigger asChild={asChild ?? true}>{children}</ContextMenuTrigger>
         <ContextMenuContent className="w-56">
           <ContextMenuItem onSelect={() => rename(note)}>
-            <Pencil className="size-4" /> Rename
+            <Pencil className="size-4" /> {t('rename')}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => changeIcon(note)}>
-            <Smile className="size-4" /> Change icon…
+            <Smile className="size-4" /> {t('changeIcon')}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => duplicate(note)}>
-            <Copy className="size-4" /> Duplicate
+            <Copy className="size-4" /> {t('duplicate')}
           </ContextMenuItem>
           <ContextMenuSub>
             <ContextMenuSubTrigger>
-              <LayersIcon className="size-4" /> More
+              <LayersIcon className="size-4" /> {t('moreLabel')}
             </ContextMenuSubTrigger>
             <ContextMenuSubContent className="w-52">
               <ContextMenuItem onSelect={() => openAsSticky(note)}>
-                <ExternalLink className="size-4" /> Open as sticky
+                <ExternalLink className="size-4" /> {t('openSticky')}
               </ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>
@@ -194,44 +198,44 @@ export function useNoteActions() {
           <ContextMenuItem onSelect={() => toggleFlag(note, 'isPinned', !note.isPinned)}>
             {note.isPinned ? (
               <>
-                <PinOff className="size-4" /> Unpin
+                <PinOff className="size-4" /> {t('unpin')}
               </>
             ) : (
               <>
-                <Pin className="size-4" /> Pin to top
+                <Pin className="size-4" /> {t('pinToTop')}
               </>
             )}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => togglePinnedOnToday(note.id)}>
             {note.isPinnedOnToday ? (
               <>
-                <PinOff className="size-4" /> Unpin from Today
+                <PinOff className="size-4" /> {t('unpinToday')}
               </>
             ) : (
               <>
-                <Pin className="size-4" /> Pin on Today
+                <Pin className="size-4" /> {t('pinToday')}
               </>
             )}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => toggleFlag(note, 'isFavorite', !note.isFavorite)}>
             {note.isFavorite ? (
               <>
-                <StarOff className="size-4" /> Remove from favorites
+                <StarOff className="size-4" /> {t('removeFavorite')}
               </>
             ) : (
               <>
-                <Star className="size-4" /> Add to favorites
+                <Star className="size-4" /> {t('addFavorite')}
               </>
             )}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => toggleFlag(note, 'isArchived', !note.isArchived)}>
             {note.isArchived ? (
               <>
-                <ArchiveRestore className="size-4" /> Unarchive
+                <ArchiveRestore className="size-4" /> {t('unarchive')}
               </>
             ) : (
               <>
-                <Archive className="size-4" /> Archive
+                <Archive className="size-4" /> {t('archive')}
               </>
             )}
           </ContextMenuItem>
@@ -240,12 +244,12 @@ export function useNoteActions() {
             className="text-destructive focus:text-destructive"
             onSelect={() => removeNote(note)}
           >
-            <Trash2 className="size-4" /> Delete
+            <Trash2 className="size-4" /> {t('delete')}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
     ),
-    [rename, changeIcon, duplicate, openAsSticky, toggleFlag, removeNote],
+    [rename, changeIcon, duplicate, openAsSticky, toggleFlag, removeNote, t],
   );
 
   const dialogs = (
@@ -259,7 +263,7 @@ export function useNoteActions() {
         }}
         value={iconTarget?.current ?? null}
         onChange={handleIconChange}
-        title="Note icon"
+        title={t('iconTitle')}
       />
     </>
   );

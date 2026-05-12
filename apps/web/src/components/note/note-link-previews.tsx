@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { LinkPreviewCard } from './link-preview-card';
 
 const URL_RE = /\bhttps?:\/\/[^\s)<>"']+/gi;
@@ -11,6 +12,7 @@ const MAX_PREVIEWS = 6;
  * cached `/api/link-preview` endpoint.
  */
 export function NoteLinkPreviews({ plaintext }: { plaintext: string | null | undefined }) {
+  const t = useTranslations('editor.links.preview');
   if (!plaintext) return null;
   const seen = new Set<string>();
   const urls: string[] = [];
@@ -24,7 +26,7 @@ export function NoteLinkPreviews({ plaintext }: { plaintext: string | null | und
   if (urls.length === 0) return null;
   return (
     <section className="mt-4 space-y-2">
-      <h3 className="text-muted-foreground text-xs font-medium">Links in this note</h3>
+      <h3 className="text-muted-foreground text-xs font-medium">{t('heading')}</h3>
       {urls.map((u) => (
         <LinkPreviewCard key={u} url={u} />
       ))}

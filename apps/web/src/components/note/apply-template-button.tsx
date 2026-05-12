@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { FileText, Loader2, Sparkles, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
@@ -27,6 +28,8 @@ export function ApplyTemplateButton({
   noteId: string;
   onInsert: (markdown: string) => void;
 }) {
+  const t = useTranslations('editor.templates');
+  const tToast = useTranslations('editor.templates.toast');
   const [open, setOpen] = React.useState(false);
   const [list, setList] = React.useState<TemplateSummary[] | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
@@ -38,19 +41,19 @@ export function ApplyTemplateButton({
   const onSave = async () => {
     const title = saveTitle.trim();
     if (!title) {
-      toast.error('Title is required');
+      toast.error(tToast('titleRequired'));
       return;
     }
     setSaving(true);
     try {
       await createPersonalTemplate({ noteId, title, description: saveDesc.trim() });
-      toast.success('Saved to your personal templates');
+      toast.success(tToast('saved'));
       setSaveOpen(false);
       setSaveTitle('');
       setSaveDesc('');
       setList(null); // refetch on next open
     } catch (err) {
-      toast.error((err as Error).message ?? 'Failed to save');
+      toast.error((err as Error).message ?? tToast('saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -73,14 +76,14 @@ export function ApplyTemplateButton({
 
   const apply = async (slug: string, mode: 'blank' | 'ai-fill') => {
     setBusy(`${slug}:${mode}`);
-    const t = toast.loading(mode === 'ai-fill' ? 'Filling template…' : 'Applying…');
+    const tid = toast.loading(mode === 'ai-fill' ? tToast('filling') : tToast('applying'));
     try {
       const res = await applyTemplateToNote({ noteId, slug, mode });
       onInsert(res.markdown);
-      toast.success(`${res.templateTitle} applied`, { id: t });
+      toast.success(tToast('applied', { name: res.templateTitle }), { id: tid });
       setOpen(false);
     } catch (err) {
-      toast.error((err as Error).message, { id: t });
+      toast.error((err as Error).message, { id: tid });
     } finally {
       setBusy(null);
     }
@@ -92,53 +95,50 @@ export function ApplyTemplateButton({
         type="button"
         onClick={() => setOpen(true)}
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs"
-        title="Apply a template to this note"
+        title={t('applyTitle')}
       >
         <FileText className="size-3.5" />
-        Template
+        {t('apply')}
       </button>
       <button
         type="button"
         onClick={() => setSaveOpen(true)}
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs"
-        title="Save this note as a personal template"
+        title={t('saveAsTitle')}
       >
         <Save className="size-3.5" />
-        Save as template
+        {t('saveAs')}
       </button>
 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Save className="size-4" /> Save as personal template
+              <Save className="size-4" /> {t('saveDialogTitle')}
             </DialogTitle>
           </DialogHeader>
-          <p className="text-muted-foreground -mt-2 text-xs">
-            Stores the current note&apos;s structure so you can re-apply it later. Only you can see
-            your personal templates.
-          </p>
+          <p className="text-muted-foreground -mt-2 text-xs">{t('saveHint')}</p>
           <div className="space-y-3">
             <label className="block text-xs font-medium">
-              Title
+              {t('titleLabel')}
               <input
                 autoFocus
                 value={saveTitle}
                 onChange={(e) => setSaveTitle(e.target.value)}
                 maxLength={120}
                 className="border-input bg-background mt-1 w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
-                placeholder="e.g. Weekly review"
+                placeholder={t('titlePlaceholder')}
               />
             </label>
             <label className="block text-xs font-medium">
-              Description
+              {t('descriptionLabel')}
               <textarea
                 value={saveDesc}
                 onChange={(e) => setSaveDesc(e.target.value)}
                 maxLength={280}
                 rows={3}
                 className="border-input bg-background mt-1 w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
-                placeholder="Optional"
+                placeholder={t('descriptionPlaceholder')}
               />
             </label>
             <div className="flex justify-end gap-2">
@@ -148,7 +148,7 @@ export function ApplyTemplateButton({
                 disabled={saving}
                 className="hover:bg-muted rounded-md px-3 py-1.5 text-xs"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="button"
@@ -157,7 +157,7 @@ export function ApplyTemplateButton({
                 className="inline-flex items-center gap-1.5 rounded-md bg-amber-500 px-3 py-1.5 text-xs text-white disabled:opacity-60"
               >
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
-                Save
+                {t('save')}
               </button>
             </div>
           </div>
@@ -168,24 +168,18 @@ export function ApplyTemplateButton({
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <FileText className="size-4" /> Apply a template
+              <FileText className="size-4" /> {t('applyDialogTitle')}
             </DialogTitle>
           </DialogHeader>
-          <p className="text-muted-foreground -mt-2 text-xs">
-            Drop a structured skeleton onto this canvas. &ldquo;Fill with AI&rdquo; uses your
-            existing note content to populate the sections — placeholders stay empty when there is
-            nothing to map.
-          </p>
+          <p className="text-muted-foreground -mt-2 text-xs">{t('applyHint')}</p>
           <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
             {list == null && (
               <div className="text-muted-foreground inline-flex items-center gap-2 px-2 py-6 text-sm">
-                <Loader2 className="size-4 animate-spin" /> Loading templates…
+                <Loader2 className="size-4 animate-spin" /> {t('loading')}
               </div>
             )}
             {list?.length === 0 && (
-              <div className="text-muted-foreground px-2 py-6 text-sm">
-                No templates published yet.
-              </div>
+              <div className="text-muted-foreground px-2 py-6 text-sm">{t('none')}</div>
             )}
             {list?.map((tpl) => {
               const blankBusy = busy === `${tpl.slug}:blank`;
@@ -212,7 +206,7 @@ export function ApplyTemplateButton({
                         className="hover:bg-muted inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs disabled:opacity-60"
                       >
                         {blankBusy ? <Loader2 className="size-3 animate-spin" /> : null}
-                        Use as-is
+                        {t('useAsIs')}
                       </button>
                       <button
                         type="button"
@@ -225,7 +219,7 @@ export function ApplyTemplateButton({
                         ) : (
                           <Sparkles className="size-3" />
                         )}
-                        Fill with AI
+                        {t('fillWithAi')}
                       </button>
                     </div>
                   </div>

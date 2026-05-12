@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Lock, LockKeyhole, Unlock } from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
 import { Input } from '@notai/ui/components/input';
@@ -65,6 +66,8 @@ function persistSessionUnlocks(set: Set<string>) {
  * still see the content. Useful for shoulder-surfing protection only.
  */
 export function NoteLockOverlay({ noteId }: { noteId: string }) {
+  const t = useTranslations('editor.lock');
+  const tDialog = useTranslations('editor.lock.dialog');
   const [locked, setLocked] = React.useState(false);
   const [unlocked, setUnlocked] = React.useState(false);
   const [dialog, setDialog] = React.useState<'set' | 'enter' | null>(null);
@@ -82,7 +85,7 @@ export function NoteLockOverlay({ noteId }: { noteId: string }) {
 
   const setPin = async () => {
     if (draft.length < 3) {
-      setError('Use at least 3 characters.');
+      setError(tDialog('tooShort'));
       return;
     }
     const hash = await sha256(draft);
@@ -113,7 +116,7 @@ export function NoteLockOverlay({ noteId }: { noteId: string }) {
     if (!meta) return;
     const hash = await sha256(draft);
     if (hash !== meta.hash) {
-      setError('Wrong PIN.');
+      setError(tDialog('wrong'));
       return;
     }
     setUnlocked(true);
@@ -136,8 +139,8 @@ export function NoteLockOverlay({ noteId }: { noteId: string }) {
           else if (locked) setDialog('enter');
           else setDialog('set');
         }}
-        title={locked ? (unlocked ? 'Remove lock' : 'Unlock note') : 'Lock note'}
-        aria-label={locked ? 'Unlock note' : 'Lock note'}
+        title={locked ? (unlocked ? t('removeLock') : t('unlockNote')) : t('lockNote')}
+        aria-label={locked ? t('unlockNote') : t('lockNote')}
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
       >
         {locked ? <Lock className="size-3.5" /> : <Unlock className="size-3.5" />}
@@ -146,19 +149,19 @@ export function NoteLockOverlay({ noteId }: { noteId: string }) {
       {locked && !unlocked && (
         <div className="bg-background/95 fixed inset-0 z-[160] flex flex-col items-center justify-center gap-4 backdrop-blur">
           <LockKeyhole className="text-muted-foreground size-12 opacity-60" />
-          <p className="text-muted-foreground text-sm">This note is locked.</p>
-          <Button onClick={() => setDialog('enter')}>Unlock</Button>
+          <p className="text-muted-foreground text-sm">{t('locked')}</p>
+          <Button onClick={() => setDialog('enter')}>{t('unlock')}</Button>
         </div>
       )}
 
       <Dialog open={dialog !== null} onOpenChange={(o) => !o && setDialog(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{dialog === 'set' ? 'Lock this note' : 'Unlock note'}</DialogTitle>
+            <DialogTitle>
+              {dialog === 'set' ? tDialog('setTitle') : tDialog('enterTitle')}
+            </DialogTitle>
             <DialogDescription>
-              {dialog === 'set'
-                ? 'Set a short PIN. Stored only in this browser \u2014 casual privacy, not encryption.'
-                : 'Enter the PIN you set for this note.'}
+              {dialog === 'set' ? tDialog('setDescription') : tDialog('enterDescription')}
             </DialogDescription>
           </DialogHeader>
           <Input
@@ -177,15 +180,15 @@ export function NoteLockOverlay({ noteId }: { noteId: string }) {
                 else void tryUnlock();
               }
             }}
-            placeholder="PIN"
+            placeholder={tDialog('pinPlaceholder')}
           />
           {error && <p className="text-destructive text-xs">{error}</p>}
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setDialog(null)}>
-              Cancel
+              {tDialog('cancel')}
             </Button>
             <Button onClick={() => (dialog === 'set' ? void setPin() : void tryUnlock())}>
-              {dialog === 'set' ? 'Lock' : 'Unlock'}
+              {dialog === 'set' ? tDialog('lock') : tDialog('unlock')}
             </Button>
           </div>
         </DialogContent>

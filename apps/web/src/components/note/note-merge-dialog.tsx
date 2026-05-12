@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Loader2, GitMerge } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -32,6 +33,8 @@ export function NoteMergeDialog({
   open: boolean;
   onOpenChange: (next: boolean) => void;
 }) {
+  const t = useTranslations('editor.merge');
+  const tWorkspace = useTranslations('editor.workspace');
   const router = useRouter();
   const [query, setQuery] = React.useState('');
   const [hits, setHits] = React.useState<SearchHit[]>([]);
@@ -64,7 +67,7 @@ export function NoteMergeDialog({
 
   const merge = async (targetId: string) => {
     setBusy(targetId);
-    const t = toast.loading('Merging…');
+    const tid = toast.loading(t('merging'));
     try {
       const res = await mergeNotes({ sourceId: source.id, targetId });
       try {
@@ -76,18 +79,18 @@ export function NoteMergeDialog({
       } catch {
         /* ignore */
       }
-      toast.success(`Merged "${res.sourceTitle}" into target.`, {
-        id: t,
+      toast.success(t('success', { title: res.sourceTitle }), {
+        id: tid,
         action: {
-          label: 'Undo',
+          label: t('undo'),
           onClick: () => {
             void (async () => {
               try {
                 await restoreNote(source.id);
-                toast.success(`Restored "${res.sourceTitle}"`);
+                toast.success(t('restored', { title: res.sourceTitle }));
                 router.refresh();
               } catch (err) {
-                toast.error(err instanceof Error ? err.message : 'Could not undo merge');
+                toast.error(err instanceof Error ? err.message : t('undoFailed'));
               }
             })();
           },
@@ -97,7 +100,7 @@ export function NoteMergeDialog({
       onOpenChange(false);
       router.push(`/app/n/${targetId}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Merge failed', { id: t });
+      toast.error(err instanceof Error ? err.message : t('failed'), { id: tid });
     } finally {
       setBusy(null);
     }
@@ -108,23 +111,22 @@ export function NoteMergeDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <GitMerge className="size-4" /> Merge into another note
+            <GitMerge className="size-4" /> {t('title')}
           </DialogTitle>
           <DialogDescription>
-            Append &ldquo;{source.title || 'Untitled'}&rdquo; to a target note. The source will be
-            moved to Trash.
+            {t('description', { title: source.title || tWorkspace('untitled') })}
           </DialogDescription>
         </DialogHeader>
         <Input
           autoFocus
-          placeholder="Find target note\u2026"
+          placeholder={t('searchPlaceholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <div className="max-h-72 space-y-1 overflow-y-auto">
           {searching && (
             <div className="text-muted-foreground flex items-center gap-2 px-2 py-1 text-xs">
-              <Loader2 className="size-3 animate-spin" /> Searching\u2026
+              <Loader2 className="size-3 animate-spin" /> {t('searching')}
             </div>
           )}
           {hits.map((h) => (
@@ -137,19 +139,19 @@ export function NoteMergeDialog({
             >
               <span className="text-base">{h.icon ?? '\u{1F4DD}'}</span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{h.title || 'Untitled'}</p>
+                <p className="truncate text-sm font-medium">{h.title || tWorkspace('untitled')}</p>
                 {h.snippet && <p className="text-muted-foreground truncate text-xs">{h.snippet}</p>}
               </div>
               {busy === h.id && <Loader2 className="size-3.5 animate-spin" />}
             </button>
           ))}
           {!searching && query.trim().length >= 2 && hits.length === 0 && (
-            <p className="text-muted-foreground px-2 py-2 text-xs">No matches.</p>
+            <p className="text-muted-foreground px-2 py-2 text-xs">{t('noMatches')}</p>
           )}
         </div>
         <div className="flex justify-end">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('cancel')}
           </Button>
         </div>
       </DialogContent>

@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Mic, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { appendTextToScene, type CanvasNoteHandle } from '@notai/editor';
@@ -22,6 +23,7 @@ const HOLD_TRIGGER_MS = 300;
  * Voice Mode button instead.
  */
 export function HoldToRecord({ canvasRef }: HoldToRecordProps) {
+  const t = useTranslations('editor.voice');
   const [state, setState] = React.useState<'idle' | 'arming' | 'recording' | 'transcribing'>(
     'idle',
   );
@@ -35,7 +37,7 @@ export function HoldToRecord({ canvasRef }: HoldToRecordProps) {
     try {
       const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
       if (blob.size < 800) {
-        toast.info('Hold longer to record.');
+        toast.info(t('holdTooShort'));
         return;
       }
       const fd = new FormData();
@@ -43,16 +45,16 @@ export function HoldToRecord({ canvasRef }: HoldToRecordProps) {
       const { text } = await transcribeAudio(fd);
       const trimmed = text.trim();
       if (!trimmed) {
-        toast.info('Nothing audible to transcribe.');
+        toast.info(t('nothingAudible'));
         return;
       }
       const api = canvasRef.current?.getExcalidrawApi();
       if (!api) {
         try {
           await navigator.clipboard.writeText(trimmed);
-          toast.message('Canvas not ready — transcript copied to clipboard.');
+          toast.message(t('canvasNotReadyClipboard'));
         } catch {
-          toast.error('Canvas not ready and clipboard unavailable.');
+          toast.error(t('canvasNotReadyNoClipboard'));
         }
         return;
       }
@@ -130,7 +132,7 @@ export function HoldToRecord({ canvasRef }: HoldToRecordProps) {
       recRef.current = rec;
       setState('recording');
     } catch (err) {
-      toast.error("Couldn't access your microphone");
+      toast.error(t('micFailed'));
       console.error(err);
       setState('idle');
     }
@@ -184,7 +186,7 @@ export function HoldToRecord({ canvasRef }: HoldToRecordProps) {
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       disabled={state === 'transcribing'}
-      title="Hold to record — release to drop transcript at the viewport center"
+      title={t('holdTitle')}
       className={cn(
         'inline-flex size-9 select-none items-center justify-center rounded-full border shadow-sm transition',
         state === 'recording' &&

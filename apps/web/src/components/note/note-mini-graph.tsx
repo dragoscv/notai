@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { Network } from 'lucide-react';
 import { getNoteNeighbourhood } from '@/server/actions/note-graph';
 import type { NoteGraph } from '@/server/actions/note-graph';
@@ -20,6 +21,7 @@ const RADIUS = 92;
  * eat space.
  */
 export function NoteMiniGraph({ noteId }: Props) {
+  const t = useTranslations('editor.minimap');
   const [graph, setGraph] = React.useState<NoteGraph | null>(null);
   React.useEffect(() => {
     let cancelled = false;
@@ -57,13 +59,13 @@ export function NoteMiniGraph({ noteId }: Props) {
     <aside className="bg-card/60 mt-3 rounded-md border p-3">
       <h3 className="text-muted-foreground mb-2 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide">
         <Network className="size-3" />
-        Neighbourhood ({others.length})
+        {t('heading', { count: others.length })}
       </h3>
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         className="mx-auto block w-full max-w-[260px]"
         role="img"
-        aria-label={`Graph of notes linked to and from ${center.title}`}
+        aria-label={t('aria', { title: center.title })}
       >
         {graph.edges.map((e, i) => {
           const a = positions.get(e.source);

@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { StickyNote } from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
@@ -33,6 +34,7 @@ export function StickyFromSelection({
 }: {
   canvasRef: React.RefObject<CanvasNoteHandle | null>;
 }) {
+  const t = useTranslations('editor.stickies.fromSelection');
   const router = useRouter();
   const [text, setText] = React.useState<string>('');
   const [busy, setBusy] = React.useState(false);
@@ -71,7 +73,9 @@ export function StickyFromSelection({
   const onClick = async () => {
     setBusy(true);
     try {
-      const created = await createNote({ title: text.split('\n')[0]!.slice(0, 60) || 'New note' });
+      const created = await createNote({
+        title: text.split('\n')[0]!.slice(0, 60) || t('defaultTitle'),
+      });
       const noteId = created?.id;
       if (!noteId) throw new Error('Failed to create note');
       try {
@@ -85,7 +89,7 @@ export function StickyFromSelection({
       router.push(`/app/n/${noteId}`);
     } catch (err) {
       console.error(err);
-      toast.error('Could not create note from selection.');
+      toast.error(t('failed'));
     } finally {
       setBusy(false);
     }
@@ -100,7 +104,7 @@ export function StickyFromSelection({
         onClick={onClick}
         className="pointer-events-auto shadow-lg"
       >
-        <StickyNote className="size-3.5" /> New note from selection ({wordCount} words)
+        <StickyNote className="size-3.5" /> {t('label', { count: wordCount })}
       </Button>
     </div>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { BookOpen, X } from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
 import type { CanvasNoteHandle } from '@notai/editor';
@@ -116,6 +117,7 @@ export function ReadingMode({
   canvasRef: React.RefObject<CanvasNoteHandle | null>;
   noteTitle: string;
 }) {
+  const t = useTranslations('editor.readingMode');
   const [open, setOpen] = React.useState(false);
   const [blocks, setBlocks] = React.useState<RenderBlock[]>([]);
   const [todaySec, setTodaySec] = React.useState(0);
@@ -189,26 +191,31 @@ export function ReadingMode({
         size="sm"
         className="text-muted-foreground hover:text-foreground"
         onClick={() => setOpen(true)}
-        title={`Reading mode \u2014 ${Math.floor(todaySec / 60)} min today${reached ? ' \u2705 goal reached' : ` / ${Math.floor(goalSec / 60)} min goal`}`}
+        title={t('titleSuffix', {
+          minutes: Math.floor(todaySec / 60),
+          goal: reached
+            ? t('titleGoalReached')
+            : t('titleGoalRemaining', { minutes: Math.floor(goalSec / 60) }),
+        })}
       >
         <BookOpen className="size-3.5" />
-        Read
-        {reached && <span className="ml-1 text-amber-500">\u2728</span>}
+        {t('trigger')}
+        {reached && <span className="ml-1 text-amber-500">✨</span>}
       </Button>
       {open && (
         <div className="bg-background fixed inset-0 z-[150] overflow-y-auto">
           <button
             type="button"
             onClick={() => setOpen(false)}
-            aria-label="Close reading mode"
+            aria-label={t('closeAria')}
             className="text-muted-foreground hover:text-foreground bg-card hover:bg-accent fixed right-4 top-4 z-10 grid size-9 place-items-center rounded-full border shadow-sm"
           >
             <X className="size-4" />
           </button>
           <article className="prose dark:prose-invert mx-auto max-w-2xl px-6 py-16">
-            <h1>{noteTitle || 'Untitled'}</h1>
+            <h1>{noteTitle || t('untitled')}</h1>
             {blocks.length === 0 ? (
-              <p className="text-muted-foreground italic">This note has no text yet.</p>
+              <p className="text-muted-foreground italic">{t('emptyNote')}</p>
             ) : (
               (() => {
                 const { blocks: cleaned, footnotes } = processFootnotes(blocks);

@@ -1,4 +1,5 @@
 'use client';
+import { useTranslations } from 'next-intl';
 
 import * as React from 'react';
 import { Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
@@ -21,6 +22,7 @@ type ValueType = (typeof VALUE_TYPES)[number];
  * Save-on-blur keeps the surface quiet.
  */
 export function NotePropertiesPanel({ noteId }: { noteId: string }) {
+  const t = useTranslations('editor.properties');
   const [open, setOpen] = React.useState(false);
   const [props, setProps] = React.useState<NotePropertyDTO[] | null>(null);
   const [keysCache, setKeysCache] = React.useState<string[]>([]);
@@ -64,7 +66,7 @@ export function NotePropertiesPanel({ noteId }: { noteId: string }) {
         valueBool: p.valueBool,
       });
     } catch (err) {
-      toast.error((err as Error).message || 'Failed to save');
+      toast.error((err as Error).message || t('toast.saveFailed'));
     }
   }
 
@@ -73,7 +75,7 @@ export function NotePropertiesPanel({ noteId }: { noteId: string }) {
     try {
       await removeNoteProperty({ noteId, key });
     } catch (err) {
-      toast.error((err as Error).message || 'Failed to remove');
+      toast.error((err as Error).message || t('toast.removeFailed'));
     }
   }
 
@@ -102,7 +104,7 @@ export function NotePropertiesPanel({ noteId }: { noteId: string }) {
         onClick={() => setOpen((v) => !v)}
       >
         {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-        Properties
+        {t('title')}
         <span className="ml-1">({props.length})</span>
       </button>
       {open && (
@@ -127,7 +129,7 @@ export function NotePropertiesPanel({ noteId }: { noteId: string }) {
           ))}
           <Button size="sm" variant="ghost" className="h-7 gap-1 px-2 text-xs" onClick={addBlank}>
             <Plus className="size-3.5" />
-            Add property
+            {t('addProperty')}
           </Button>
         </div>
       )}
@@ -148,12 +150,13 @@ function PropertyRow({
   onCommit: (next: NotePropertyDTO) => void;
   onRemove: () => void;
 }) {
+  const t = useTranslations('editor.properties');
   return (
     <div className="grid grid-cols-[140px_90px_1fr_auto] items-center gap-2">
       <input
         list="notai-prop-keys"
         className="border-input bg-background w-full rounded-md border px-2 py-1 text-xs"
-        placeholder="Key"
+        placeholder={t('keyPlaceholder')}
         value={prop.key}
         onChange={(e) => onChange({ key: e.target.value })}
         onBlur={() => onCommit(prop)}
@@ -193,7 +196,7 @@ function PropertyRow({
         variant="ghost"
         className="h-7 px-1.5"
         onClick={onRemove}
-        aria-label="Remove property"
+        aria-label={t('removeAria')}
       >
         <Trash2 className="size-3.5" />
       </Button>

@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Sparkles,
   Loader2,
@@ -29,14 +30,17 @@ import { generateMindMap } from '@/server/actions/mind-map';
 
 type Mode = 'summary' | 'actions' | 'rewrite' | 'outline' | 'title' | 'fix-spelling';
 
-const META: Record<Mode, { label: string; Icon: React.ComponentType<{ className?: string }> }> = {
-  summary: { label: 'Summary', Icon: ScrollText },
-  actions: { label: 'Action items', Icon: ListChecks },
-  rewrite: { label: 'Rewrite for clarity', Icon: Wand2 },
-  outline: { label: 'Outline', Icon: ListTree },
-  title: { label: 'Suggest title', Icon: Heading1 },
-  'fix-spelling': { label: 'Fix spelling & grammar', Icon: SpellCheck },
-};
+type ModeKey = 'summary' | 'actions' | 'rewrite' | 'outline' | 'title' | 'fixSpelling';
+
+const META: Record<Mode, { labelKey: ModeKey; Icon: React.ComponentType<{ className?: string }> }> =
+  {
+    summary: { labelKey: 'summary', Icon: ScrollText },
+    actions: { labelKey: 'actions', Icon: ListChecks },
+    rewrite: { labelKey: 'rewrite', Icon: Wand2 },
+    outline: { labelKey: 'outline', Icon: ListTree },
+    title: { labelKey: 'title', Icon: Heading1 },
+    'fix-spelling': { labelKey: 'fixSpelling', Icon: SpellCheck },
+  };
 
 /**
  * Note-level AI actions. Renders a dropdown trigger and a result dialog.
@@ -52,6 +56,9 @@ export function NoteAiMenu({
   onInsert?: (markdown: string) => void;
   canvasRef?: React.RefObject<CanvasNoteHandle | null>;
 }) {
+  const t = useTranslations('editor.ai');
+  const tModes = useTranslations('editor.ai.modes');
+  const tToast = useTranslations('editor.ai.toast');
   const [open, setOpen] = React.useState(false);
   const [mode, setMode] = React.useState<Mode>('summary');
   const [result, setResult] = React.useState('');
@@ -64,7 +71,7 @@ export function NoteAiMenu({
     setMenuOpen(false);
     const api = canvasRef?.current?.getExcalidrawApi();
     if (!api) {
-      toast.error('Canvas not ready yet.');
+      toast.error(tToast('canvasNotReady'));
       return;
     }
     // Pick the selected text element if any; otherwise the latest one
@@ -75,7 +82,7 @@ export function NoteAiMenu({
         (el) => el.type === 'text' && !el.isDeleted && (el as { text?: string }).text?.trim(),
       );
     if (elements.length === 0) {
-      toast.error('Write something first \u2014 then I can continue from it.');
+      toast.error(tToast('writeFirst'));
       return;
     }
     const state = api.getAppState();
@@ -85,21 +92,21 @@ export function NoteAiMenu({
       selected ?? elements.reduce((a, b) => ((a.updated ?? 0) > (b.updated ?? 0) ? a : b));
     const prefix = (target as { text: string }).text.trim();
     if (prefix.length < 8) {
-      toast.error('Need a few more words to continue from.');
+      toast.error(tToast('moreWordsNeeded'));
       return;
     }
     setContinuing(true);
-    const t = toast.loading('Continuing your thought\u2026');
+    const tid = toast.loading(tToast('continuing'));
     try {
       const out = await continueWriting({ noteId, prefix: prefix.slice(-2000) });
       if (!out) {
-        toast.error('No continuation generated.', { id: t });
+        toast.error(tToast('noContinuation'), { id: tid });
         return;
       }
       appendTextToScene(api, out, { focus: true });
-      toast.success('Added.', { id: t });
+      toast.success(tToast('added'), { id: tid });
     } catch (err) {
-      toast.error((err as Error).message || 'Could not continue', { id: t });
+      toast.error((err as Error).message || tToast('couldNotContinue'), { id: tid });
     } finally {
       setContinuing(false);
     }
@@ -109,24 +116,22 @@ export function NoteAiMenu({
     setMenuOpen(false);
     const api = canvasRef?.current?.getExcalidrawApi();
     if (!api) {
-      toast.error('Canvas not ready yet.');
+      toast.error(tToast('canvasNotReady'));
       return;
     }
     const replacing = hasMindMap(api);
     if (replacing) {
-      const ok = window.confirm(
-        'A mind map already exists on this canvas. Replace it with a fresh one based on the current note?',
-      );
+      const ok = window.confirm(tToast('confirmReplaceMap'));
       if (!ok) return;
     }
     setMapBuilding(true);
-    const t = toast.loading(replacing ? 'Regenerating mind map…' : 'Generating mind map…');
+    const tid = toast.loading(replacing ? tToast('regenMindMap') : tToast('genMindMap'));
     try {
       const map = await generateMindMap(noteId);
       insertMindMap(api, map, { replace: replacing });
-      toast.success(replacing ? 'Mind map regenerated.' : 'Mind map inserted.', { id: t });
+      toast.success(replacing ? tToast('mindMapRegen') : tToast('mindMapInserted'), { id: tid });
     } catch (err) {
-      toast.error((err as Error).message, { id: t });
+      toast.error((err as Error).message, { id: tid });
     } finally {
       setMapBuilding(false);
     }
@@ -171,7 +176,7 @@ export function NoteAiMenu({
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs"
         >
           <Sparkles className="size-3.5 text-amber-500" />
-          AI
+          {t('triggerLabel')}
         </button>
         {menuOpen && (
           <>
@@ -179,7 +184,7 @@ export function NoteAiMenu({
               type="button"
               onClick={() => setMenuOpen(false)}
               className="fixed inset-0 z-10"
-              aria-label="Close menu"
+              aria-label={t('closeMenu')}
             />
             <ul className="bg-popover absolute right-0 z-20 mt-1 min-w-[200px] overflow-hidden rounded-lg border text-sm shadow-md">
               {(Object.keys(META) as Mode[]).map((m) => {
@@ -191,7 +196,7 @@ export function NoteAiMenu({
                       className="hover:bg-muted flex w-full items-center gap-2 px-3 py-2 text-left"
                       onClick={() => run(m)}
                     >
-                      <I className="size-4" /> {META[m].label}
+                      <I className="size-4" /> {tModes(META[m].labelKey)}
                     </button>
                   </li>
                 );
@@ -209,7 +214,7 @@ export function NoteAiMenu({
                     ) : (
                       <PenLine className="size-4" />
                     )}
-                    Continue this thought
+                    {t('continueThought')}
                   </button>
                 </li>
               )}
@@ -226,7 +231,7 @@ export function NoteAiMenu({
                     ) : (
                       <Network className="size-4" />
                     )}
-                    Generate mind map
+                    {t('generateMindMap')}
                   </button>
                 </li>
               )}
@@ -239,16 +244,16 @@ export function NoteAiMenu({
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Icon className="size-4" /> {META[mode].label}
+              <Icon className="size-4" /> {tModes(META[mode].labelKey)}
             </DialogTitle>
           </DialogHeader>
           <div className="bg-card min-h-[140px] whitespace-pre-wrap rounded-lg border p-4 text-sm leading-relaxed">
             {loading ? (
               <span className="text-muted-foreground inline-flex items-center gap-2">
-                <Loader2 className="size-4 animate-spin" /> Thinking…
+                <Loader2 className="size-4 animate-spin" /> {t('thinking')}
               </span>
             ) : (
-              result || 'No output.'
+              result || t('noOutput')
             )}
           </div>
           {!loading && result && (
@@ -257,11 +262,11 @@ export function NoteAiMenu({
                 type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(result);
-                  toast.success('Copied');
+                  toast.success(t('copied'));
                 }}
                 className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs"
               >
-                <Copy className="size-3.5" /> Copy
+                <Copy className="size-3.5" /> {t('copy')}
               </button>
               {onInsert && (
                 <button
@@ -269,11 +274,11 @@ export function NoteAiMenu({
                   onClick={() => {
                     onInsert(result);
                     setOpen(false);
-                    toast.success('Inserted');
+                    toast.success(t('inserted'));
                   }}
                   className="rounded-md bg-amber-500 px-3 py-1.5 text-xs text-white"
                 >
-                  Insert into note
+                  {t('insertIntoNote')}
                 </button>
               )}
             </div>
