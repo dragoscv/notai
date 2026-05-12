@@ -585,6 +585,32 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
       window.removeEventListener('notai:capture-share-preview', onRequest as EventListener);
   }, [note.id]);
 
+  // Auto-refresh blog-index thumbnail: when this note is both
+  // published AND blog-visible, debounce-watch the Excalidraw map
+  // and re-trigger the share preview capture 30s after the last
+  // edit. Avoids stale thumbnails on /u/<handle>. Cheap: piggybacks
+  // on the same window-event bridge above. State at mount time only
+  // — toggling blog visibility takes effect after a reload.
+  React.useEffect(() => {
+    if (!doc) return;
+    if (!note.blogVisible || !note.publicShareToken) return;
+    const excalidraw = doc.getMap('excalidraw');
+    let timer: number | null = null;
+    const onChange = () => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent('notai:capture-share-preview', { detail: { noteId: note.id } }),
+        );
+      }, 30000);
+    };
+    excalidraw.observeDeep(onChange);
+    return () => {
+      excalidraw.unobserveDeep(onChange);
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [doc, note.id, note.blogVisible, note.publicShareToken]);
+
   // Surface is applied either to the full page background or only to the
   // inner editor column, depending on the coverage setting.
   const surfaceDataAttr = surface.surface;
