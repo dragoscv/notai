@@ -2404,6 +2404,25 @@
       "deleteConfirm": "Ștergi definitiv această notă?",
       "untitled": "Fără titlu"
     },
+    "publicProfile": {
+      "metaNotFound": "Blogul nu a fost găsit · Notai",
+      "metaTitle": "{author} · Notai",
+      "metaDescription": "Notițe publicate de {author}.",
+      "eyebrow": "Blog Notai",
+      "rss": "RSS",
+      "postsOne": "{count} articol",
+      "postsOther": "{count} articole",
+      "noPublicNotes": "Încă nu există notițe publice.",
+      "untitled": "Fără titlu",
+      "madeWith": "Făcut cu"
+    },
+    "share": {
+      "missingTokenTitle": "Linkul de invitație nu are token",
+      "missingTokenBody": "Cere expeditorului linkul original din email.",
+      "invalidTitle": "Această invitație nu mai este validă",
+      "invalidBody": "Poate a expirat sau a fost revocată. Roagă proprietarul să-ți trimită o invitație nouă.",
+      "goToNotes": "Mergi la notițele tale"
+    },
     "workspaces": {
       "title": "Spații de lucru",
       "description": "Creează un spațiu de echipă, invită colegi și partajează foldere.",
@@ -2820,6 +2839,46 @@
       "pinnedOnTodayTitle": "Fixată pe Azi",
       "switchedToCustom": "Am trecut la ordine personalizată",
       "reorderFailed": "Reordonarea a eșuat: {error}"
+    }
+  },
+  "system": {
+    "error": {
+      "home": "Acasă",
+      "badge": "Ceva a luat-o razna",
+      "title": "Nu a mers cum trebuia.",
+      "body": "Am dat de o problemă neașteptată. Notițele tale sunt în siguranță — încearcă din nou sau întoarce-te în aplicație.",
+      "refLabel": "ref: {digest}",
+      "retry": "Încearcă din nou",
+      "backToNotes": "Înapoi la notițe"
+    },
+    "notFound": {
+      "metadataTitle": "Pagina nu a fost găsită",
+      "home": "Acasă",
+      "noteEyebrow": "notiță",
+      "stickyBody": "Hm. Pagina asta a alunecat de pe panou.",
+      "todoEyebrow": "de făcut",
+      "todoBody": "Găsește pagina 🔎",
+      "eyebrow": "Pierdută printre margini",
+      "title": "Nu am găsit notița aceea.",
+      "body": "Pagina pe care o cauți poate a fost mutată, ștearsă sau nu a existat niciodată. Hai să te ducem înapoi la caietul tău.",
+      "openNotes": "Deschide notițele",
+      "backToHome": "Înapoi la pagina principală"
+    },
+    "offline": {
+      "metadataTitle": "Offline",
+      "metadataDescription": "Ești offline. Notițele locale funcționează în continuare.",
+      "eyebrow": "Offline",
+      "title": "Ești offline.",
+      "body": "Notițele tale locale funcționează în continuare. Sincronizările în cloud și funcțiile AI revin imediat ce te reconectezi.",
+      "openNotes": "Deschide notițele",
+      "backToHome": "Înapoi acasă"
+    },
+    "stickyError": {
+      "badge": "eroare sticky",
+      "title": "Stickyul nu s-a putut încărca",
+      "unknownError": "Eroare necunoscută",
+      "refLabel": "ref: {digest}",
+      "retry": "Reîncearcă"
     }
   }
 }

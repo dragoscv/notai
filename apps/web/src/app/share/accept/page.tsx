@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { Button } from '@notai/ui/components/button';
 import { auth } from '@/auth';
 import { acceptInvite } from '@/server/actions/sharing';
@@ -10,10 +11,11 @@ interface PageProps {
 
 export default async function AcceptInvitePage({ searchParams }: PageProps) {
   const { token } = await searchParams;
+  const t = await getTranslations('pages.share');
   if (!token) {
     return (
-      <Wrapper title="Invite link is missing a token">
-        <p className="text-muted-foreground">Please ask the sender for the original email link.</p>
+      <Wrapper title={t('missingTokenTitle')}>
+        <p className="text-muted-foreground">{t('missingTokenBody')}</p>
       </Wrapper>
     );
   }
@@ -26,12 +28,10 @@ export default async function AcceptInvitePage({ searchParams }: PageProps) {
   const result = await acceptInvite(token);
   if (!result) {
     return (
-      <Wrapper title="This invite isn't valid anymore">
-        <p className="text-muted-foreground">
-          It may have expired or been revoked. Ask the owner to send a fresh invite.
-        </p>
+      <Wrapper title={t('invalidTitle')}>
+        <p className="text-muted-foreground">{t('invalidBody')}</p>
         <Button asChild>
-          <Link href="/app">Go to your notes</Link>
+          <Link href="/app">{t('goToNotes')}</Link>
         </Button>
       </Wrapper>
     );

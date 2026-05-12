@@ -2410,6 +2410,25 @@
       "billingMetaTitle": "Workspace billing · notai",
       "billingTitle": "Workspace billing",
       "billingDescription": "Per-seat subscription for this workspace. Charged per active member."
+    },
+    "publicProfile": {
+      "metaNotFound": "Blog not found · Notai",
+      "metaTitle": "{author} · Notai",
+      "metaDescription": "Notes published by {author}.",
+      "eyebrow": "Notai blog",
+      "rss": "RSS",
+      "postsOne": "{count} post",
+      "postsOther": "{count} posts",
+      "noPublicNotes": "No public notes yet.",
+      "untitled": "Untitled",
+      "madeWith": "Made with"
+    },
+    "share": {
+      "missingTokenTitle": "Invite link is missing a token",
+      "missingTokenBody": "Please ask the sender for the original email link.",
+      "invalidTitle": "This invite isn't valid anymore",
+      "invalidBody": "It may have expired or been revoked. Ask the owner to send a fresh invite.",
+      "goToNotes": "Go to your notes"
     }
   },
   "appFeatures": {
@@ -2820,6 +2839,46 @@
       "pinnedOnTodayTitle": "Pinned on Today",
       "switchedToCustom": "Switched to custom order",
       "reorderFailed": "Reorder failed: {error}"
+    }
+  },
+  "system": {
+    "error": {
+      "home": "Home",
+      "badge": "Something went sideways",
+      "title": "That didn't go as planned.",
+      "body": "We hit an unexpected snag. Your notes are safe — try again, or head back to the app.",
+      "refLabel": "ref: {digest}",
+      "retry": "Try again",
+      "backToNotes": "Back to notes"
+    },
+    "notFound": {
+      "metadataTitle": "Page not found",
+      "home": "Home",
+      "noteEyebrow": "note",
+      "stickyBody": "Hmm. This page slipped off the board.",
+      "todoEyebrow": "todo",
+      "todoBody": "Find this page 🔎",
+      "eyebrow": "Lost in the margins",
+      "title": "We couldn't find that note.",
+      "body": "The page you're looking for might have been moved, deleted, or never existed. Let's get you back to your notebook.",
+      "openNotes": "Open your notes",
+      "backToHome": "Back to homepage"
+    },
+    "offline": {
+      "metadataTitle": "Offline",
+      "metadataDescription": "You're offline. Your local notes still work.",
+      "eyebrow": "Offline",
+      "title": "You're offline.",
+      "body": "Your local notes still work. New cloud syncs and AI features will resume the moment you're back online.",
+      "openNotes": "Open my notes",
+      "backToHome": "Back to home"
+    },
+    "stickyError": {
+      "badge": "sticky error",
+      "title": "Sticky couldn't load",
+      "unknownError": "Unknown error",
+      "refLabel": "ref: {digest}",
+      "retry": "Retry"
     }
   }
 }

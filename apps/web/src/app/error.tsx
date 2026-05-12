@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { ArrowLeft, PenLine, RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 
 /**
@@ -16,6 +17,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations('system.error');
   useEffect(() => {
     if (typeof console !== 'undefined') console.error(error);
   }, [error]);
@@ -41,22 +43,18 @@ export default function GlobalError({
         href="/"
         className="text-muted-foreground hover:bg-card/60 hover:text-foreground absolute left-5 top-5 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors"
       >
-        <ArrowLeft className="size-3.5" /> Home
+        <ArrowLeft className="size-3.5" /> {t('home')}
       </Link>
 
       <div className="relative mx-auto w-full max-w-md">
         <div className="bg-card/80 shadow-foreground/5 relative overflow-hidden rounded-2xl border p-8 shadow-xl backdrop-blur">
           <span className="bg-background/60 text-muted-foreground inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px]">
             <span className="bg-destructive size-1.5 rounded-full" />
-            Something went sideways
+            {t('badge')}
           </span>
 
-          <h1 className="mt-4 font-serif text-3xl font-semibold tracking-tight">
-            That didn&apos;t go as planned.
-          </h1>
-          <p className="text-muted-foreground mt-2 text-sm">
-            We hit an unexpected snag. Your notes are safe — try again, or head back to the app.
-          </p>
+          <h1 className="mt-4 font-serif text-3xl font-semibold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground mt-2 text-sm">{t('body')}</p>
 
           {error.message && (
             <p className="bg-background/60 text-muted-foreground mt-4 rounded-md border px-3 py-2 text-xs">
@@ -64,16 +62,18 @@ export default function GlobalError({
             </p>
           )}
           {error.digest && (
-            <p className="text-muted-foreground mt-2 font-mono text-[11px]">ref: {error.digest}</p>
+            <p className="text-muted-foreground mt-2 font-mono text-[11px]">
+              {t('refLabel', { digest: error.digest })}
+            </p>
           )}
 
           <div className="mt-6 flex flex-col gap-2 sm:flex-row">
             <Button onClick={reset} className="shadow-primary/20 flex-1 shadow-sm">
-              <RefreshCw /> Try again
+              <RefreshCw /> {t('retry')}
             </Button>
             <Button asChild variant="outline" className="flex-1">
               <Link href="/app">
-                <PenLine /> Back to notes
+                <PenLine /> {t('backToNotes')}
               </Link>
             </Button>
           </div>

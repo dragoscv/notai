@@ -1,6 +1,7 @@
 'use client';
 
 import { RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 /**
  * Error boundary for /sticky/[id]. Without this, a server error renders a
@@ -14,6 +15,7 @@ export default function StickyError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations('system.stickyError');
   return (
     <div className="bg-background text-foreground relative grid min-h-dvh place-items-center overflow-hidden p-4">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
@@ -25,16 +27,16 @@ export default function StickyError({
         <div className="flex items-center gap-2">
           <span className="bg-destructive size-2 rounded-full" />
           <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wide">
-            sticky error
+            {t('badge')}
           </span>
         </div>
 
-        <h2 className="font-serif text-xl font-semibold tracking-tight">
-          Sticky couldn&apos;t load
-        </h2>
-        <p className="text-muted-foreground text-sm">{error.message || 'Unknown error'}</p>
+        <h2 className="font-serif text-xl font-semibold tracking-tight">{t('title')}</h2>
+        <p className="text-muted-foreground text-sm">{error.message || t('unknownError')}</p>
         {error.digest && (
-          <p className="text-muted-foreground font-mono text-[11px]">ref: {error.digest}</p>
+          <p className="text-muted-foreground font-mono text-[11px]">
+            {t('refLabel', { digest: error.digest })}
+          </p>
         )}
 
         <button
@@ -42,7 +44,7 @@ export default function StickyError({
           onClick={reset}
           className="bg-background hover:bg-accent hover:text-accent-foreground inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm shadow-sm transition-colors"
         >
-          <RefreshCw className="size-3.5" /> Retry
+          <RefreshCw className="size-3.5" /> {t('retry')}
         </button>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { db, users, notes, eq, and, desc, sql } from '@notai/db';
 
 export const dynamic = 'force-dynamic';
@@ -53,15 +54,16 @@ async function loadBlog(handleRaw: string) {
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { handle } = await params;
   const data = await loadBlog(handle);
-  if (!data) return { title: 'Blog not found · Notai' };
+  const t = await getTranslations('pages.publicProfile');
+  if (!data) return { title: t('metaNotFound') };
   const author = data.owner.name ?? handle;
   return {
-    title: `${author} · Notai`,
-    description: `Notes published by ${author}.`,
+    title: t('metaTitle', { author }),
+    description: t('metaDescription', { author }),
     alternates: {
       types: { 'application/rss+xml': `/u/${handle}/feed.xml` },
     },
-    openGraph: { title: `${author} · Notai`, type: 'profile' },
+    openGraph: { title: t('metaTitle', { author }), type: 'profile' },
   };
 }
 
@@ -70,12 +72,13 @@ export default async function BlogIndexPage({ params }: { params: Promise<Params
   const data = await loadBlog(handle);
   if (!data) notFound();
   const { owner, posts } = data;
+  const t = await getTranslations('pages.publicProfile');
   return (
     <main className="bg-background min-h-dvh">
       <article className="mx-auto max-w-2xl px-6 py-16">
         <header className="mb-10 border-b pb-6">
           <div className="text-muted-foreground mb-2 text-xs uppercase tracking-widest">
-            Notai blog
+            {t('eyebrow')}
           </div>
           <h1 className="font-serif text-4xl font-semibold">{owner.name ?? handle}</h1>
           <p className="text-muted-foreground mt-3 text-xs">
@@ -83,13 +86,16 @@ export default async function BlogIndexPage({ params }: { params: Promise<Params
               href={`/u/${handle}/feed.xml`}
               className="hover:text-foreground underline underline-offset-2"
             >
-              RSS
+              {t('rss')}
             </Link>{' '}
-            · {posts.length} {posts.length === 1 ? 'post' : 'posts'}
+            ·{' '}
+            {posts.length === 1
+              ? t('postsOne', { count: posts.length })
+              : t('postsOther', { count: posts.length })}
           </p>
         </header>
         {posts.length === 0 ? (
-          <p className="text-muted-foreground italic">No public notes yet.</p>
+          <p className="text-muted-foreground italic">{t('noPublicNotes')}</p>
         ) : (
           <ul className="space-y-8">
             {posts.map((p) => {
@@ -100,7 +106,7 @@ export default async function BlogIndexPage({ params }: { params: Promise<Params
                   <Link href={`/p/${encodeURIComponent(slug)}`} className="group block">
                     <h2 className="font-serif text-2xl font-semibold group-hover:underline">
                       {p.icon ? <span className="mr-2">{p.icon}</span> : null}
-                      {p.title || 'Untitled'}
+                      {p.title || t('untitled')}
                     </h2>
                     <p className="text-muted-foreground mt-2 text-xs">
                       {p.updatedAt.toLocaleDateString()}
@@ -117,7 +123,7 @@ export default async function BlogIndexPage({ params }: { params: Promise<Params
           </ul>
         )}
         <footer className="text-muted-foreground mt-16 border-t pt-6 text-center text-xs">
-          Made with{' '}
+          {t('madeWith')}{' '}
           <Link href="/" className="hover:text-foreground underline underline-offset-2">
             Notai
           </Link>
