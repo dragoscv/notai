@@ -13,6 +13,7 @@ import {
   and,
   or,
   asc,
+  desc,
   inArray,
   like,
   sql,
@@ -215,7 +216,8 @@ export async function listNotesByTag(tagId: string) {
     .from(notes)
     .innerJoin(noteTags, eq(noteTags.noteId, notes.id))
     .where(and(eq(notes.ownerId, me.id), eq(noteTags.tagId, tagId)))
-    .orderBy(notes.updatedAt);
+    .orderBy(desc(notes.updatedAt))
+    .limit(500);
   return rows;
 }
 
@@ -277,7 +279,8 @@ export async function listNotesByTagPath(name: string) {
         ),
       ),
     )
-    .orderBy(notes.updatedAt);
+    .orderBy(desc(notes.updatedAt))
+    .limit(500);
 
   return {
     tag: exact ?? { id: matching[0]!.id, name: cleaned, color: null },
