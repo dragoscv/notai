@@ -3,7 +3,7 @@
 import { auth } from '@/auth';
 import { db, notes, eq, and, or, isNull, desc, gte, sql } from '@notai/db';
 import { streamChat } from '@/server/openai';
-import { incrementAiUsage, requireQuota } from '@/server/plans';
+import { incrementAiUsage, QuotaExceededError, requireQuota } from '@/server/plans';
 
 const MAX_RECENT = 12;
 const MAX_PINNED = 6;
@@ -61,7 +61,20 @@ export async function generateMorningBrief(): Promise<MorningBriefResult> {
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
   if (!userId) throw new Error('Not signed in');
-  await requireQuota(userId, 'ai');
+  try {
+    await requireQuota(userId, 'ai');
+  } catch (err) {
+    if (err instanceof QuotaExceededError) {
+      return {
+        markdown:
+          "AI brief is paused — you've used your AI actions for this period. Upgrade to keep daily briefs flowing, or check back next month.",
+        generatedAt: new Date().toISOString(),
+        usedNotes: 0,
+        sources: [],
+      };
+    }
+    throw err;
+  }
 
   const since = new Date(Date.now() - RECENT_WINDOW_HOURS * 60 * 60 * 1000);
 
