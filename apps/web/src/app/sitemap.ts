@@ -15,6 +15,7 @@ const STATIC_PATHS: {
   { path: '/about', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/docs', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/changelog', changeFrequency: 'weekly', priority: 0.7 },
+  { path: '/roadmap', changeFrequency: 'weekly', priority: 0.7 },
   { path: '/faq', changeFrequency: 'monthly', priority: 0.6 },
   { path: '/contact', changeFrequency: 'yearly', priority: 0.4 },
   { path: '/support/new', changeFrequency: 'yearly', priority: 0.4 },

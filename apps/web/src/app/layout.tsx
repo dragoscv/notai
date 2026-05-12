@@ -12,6 +12,7 @@ import { CapacitorDeepLinkBridge } from '@/components/mobile/capacitor-deep-link
 import { CapacitorPushBridge } from '@/components/mobile/capacitor-push-bridge';
 import { UpgradeModalProvider } from '@/components/upgrade-modal';
 import { ConsentAwareAnalytics } from '@/components/analytics/consent-aware-analytics';
+import { JsonLd, ORGANIZATION_SCHEMA } from '@/components/seo/json-ld';
 import { resolveLocale } from '@/../i18n';
 import './globals.css';
 
@@ -26,8 +27,13 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: 'Notai', statusBarStyle: 'black-translucent' },
   icons: {
-    icon: [{ url: '/icons/icon.svg', type: 'image/svg+xml' }],
-    apple: '/icons/icon.svg',
+    icon: [
+      { url: '/icons/icon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/icon-64.png', sizes: '64x64', type: 'image/png' },
+      { url: '/icons/icon-256.png', sizes: '256x256', type: 'image/png' },
+    ],
+    apple: [{ url: '/icons/icon-256.png', sizes: '256x256', type: 'image/png' }],
+    shortcut: '/icons/icon-128.png',
   },
 };
 
@@ -50,6 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+        <JsonLd data={ORGANIZATION_SCHEMA} />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ThemeProvider>
             <TooltipProvider delayDuration={200}>

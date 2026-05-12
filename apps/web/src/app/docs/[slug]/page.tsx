@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { DOCS, DOCS_BY_SLUG } from '../_content';
 import { DocsShell } from '../_shell';
+import { JsonLd, articleSchema, breadcrumbSchema } from '@/components/seo/json-ld';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -39,6 +40,20 @@ export default async function DocsArticlePage({ params }: PageProps) {
       updated={doc.updated}
       readingMinutes={doc.readingMinutes}
     >
+      <JsonLd
+        data={[
+          articleSchema({
+            title: doc.title,
+            description: doc.summary,
+            slug: doc.slug,
+            updated: doc.updated,
+          }),
+          breadcrumbSchema([
+            { name: 'Docs', url: '/docs' },
+            { name: doc.title, url: `/docs/${doc.slug}` },
+          ]),
+        ]}
+      />
       {doc.body}
 
       {next ? (

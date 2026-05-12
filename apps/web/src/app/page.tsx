@@ -16,6 +16,7 @@ import {
 import { Button } from '@notai/ui/components/button';
 import { auth } from '@/auth';
 import { AnalyticsConsent } from '@/components/analytics/analytics-consent';
+import { JsonLd, SOFTWARE_APPLICATION_SCHEMA } from '@/components/seo/json-ld';
 import {
   AuroraBackground,
   MarketingFooter,
@@ -29,6 +30,7 @@ export default async function LandingPage() {
 
   return (
     <div className="bg-background text-foreground relative min-h-dvh overflow-hidden">
+      <JsonLd data={SOFTWARE_APPLICATION_SCHEMA} />
       <a href="#landing-main" className="a11y-skip-link">
         Skip to content
       </a>

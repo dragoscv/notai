@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalPage } from '@/components/layout/legal-page';
 import { LEGAL } from '@/lib/legal-info';
+import { JsonLd, faqSchema } from '@/components/seo/json-ld';
 
 export const metadata: Metadata = {
   title: 'Frequently asked questions',
@@ -220,6 +221,44 @@ const SECTIONS: { title: string; items: QA[] }[] = [
   },
 ];
 
+/**
+ * Plain-string Q/A pairs surfaced to Google as a FAQPage schema.org entity.
+ * Kept in sync with SECTIONS by hand — the rich JSX answers above can include
+ * links and components, which would not serialize cleanly into JSON-LD.
+ */
+const FAQ_SCHEMA_ITEMS: { question: string; answer: string }[] = [
+  {
+    question: 'What is Notai?',
+    answer:
+      'Notai is a local-first notes app with optional cloud sync. Your notes live in your browser or desktop app and only sync to our servers if you choose. We support rich text, checklists, attachments, drawings (Excalidraw), and sticky notes.',
+  },
+  {
+    question: 'Do I need an account?',
+    answer:
+      'No. You can use the web app and the desktop app fully offline without signing in. Cloud sync, sharing, and backups require a free account.',
+  },
+  {
+    question: 'Which platforms are supported?',
+    answer:
+      'Web (any modern browser), Windows desktop (signed installer + Microsoft Store), macOS (notarized), and a Chrome/Edge web clipper extension. Mobile apps are on the roadmap.',
+  },
+  {
+    question: 'Is there a free plan?',
+    answer:
+      'Yes. The Free plan covers personal use with up to 50 cloud-synced notes, 50 MB of attachments, and 7 days of version history. Local notes are unlimited.',
+  },
+  {
+    question: 'Where is my data stored?',
+    answer:
+      'Notes you choose to sync are stored in our PostgreSQL database hosted on Google Cloud (region: europe-west3, Frankfurt). Attachments live in Google Cloud Storage in the same region. Local-only notes never leave your device.',
+  },
+  {
+    question: 'Is Notai GDPR-compliant?',
+    answer:
+      'Yes. Notai is operated from Romania (EU), data lives in the EU, and we provide full data export and account deletion from Settings. See our Privacy Policy for the data processing details.',
+  },
+];
+
 export default function FaqPage() {
   return (
     <LegalPage
@@ -227,6 +266,7 @@ export default function FaqPage() {
       subtitle="Quick answers to the questions we hear most often. Can't find yours? Open a ticket."
       updated={LEGAL.lastUpdated}
     >
+      <JsonLd data={faqSchema(FAQ_SCHEMA_ITEMS)} />
       {SECTIONS.map((section) => (
         <section key={section.title}>
           <h2 dangerouslySetInnerHTML={{ __html: section.title }} />
