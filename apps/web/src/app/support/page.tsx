@@ -6,6 +6,7 @@ import { listMyTickets } from '@/server/actions/support';
 import { LegalPage } from '@/components/layout/legal-page';
 import { Badge } from '@notai/ui';
 import { LEGAL } from '@/lib/legal-info';
+import { resolveLocale } from '../../../i18n';
 
 export const metadata: Metadata = {
   title: 'My support tickets',
@@ -13,50 +14,83 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const STATUS_LABEL: Record<string, string> = {
+const STATUS_LABEL_EN: Record<string, string> = {
   open: 'Open',
   pending: 'Awaiting your reply',
   resolved: 'Resolved',
   closed: 'Closed',
 };
 
+const STATUS_LABEL_RO: Record<string, string> = {
+  open: 'Deschis',
+  pending: 'Așteaptă răspunsul tău',
+  resolved: 'Rezolvat',
+  closed: 'Închis',
+};
+
 export default async function SupportListPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/signin?redirect=/support');
 
-  const tickets = await listMyTickets();
+  const [tickets, locale] = await Promise.all([listMyTickets(), resolveLocale()]);
+  const isRo = locale === 'ro';
+  const statusLabel = isRo ? STATUS_LABEL_RO : STATUS_LABEL_EN;
 
   return (
     <LegalPage
-      title="Support"
-      subtitle="Open tickets, see past conversations, and get a reply by email."
+      title={isRo ? 'Suport' : 'Support'}
+      subtitle={
+        isRo
+          ? 'Deschide tichete, vezi conversațiile anterioare și primește un răspuns pe email.'
+          : 'Open tickets, see past conversations, and get a reply by email.'
+      }
       updated={LEGAL.lastUpdated}
     >
       <div className="not-prose mb-6 flex items-center justify-between">
         <p className="text-muted-foreground text-sm">
-          {tickets.length} ticket{tickets.length === 1 ? '' : 's'}
+          {isRo
+            ? `${tickets.length} ${tickets.length === 1 ? 'tichet' : 'tichete'}`
+            : `${tickets.length} ticket${tickets.length === 1 ? '' : 's'}`}
         </p>
         <Link
           href="/support/new"
           className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition"
         >
-          New ticket
+          {isRo ? 'Tichet nou' : 'New ticket'}
         </Link>
       </div>
 
       {tickets.length === 0 ? (
         <div className="not-prose border-border/60 bg-card/40 rounded-xl border p-8 text-center">
-          <p className="text-sm">You don&rsquo;t have any tickets yet.</p>
+          <p className="text-sm">
+            {isRo ? 'Încă nu ai niciun tichet.' : 'You don\u2019t have any tickets yet.'}
+          </p>
           <p className="text-muted-foreground mt-2 text-xs">
-            Got a question?{' '}
-            <Link className="underline" href="/support/new">
-              Open a ticket
-            </Link>{' '}
-            or browse the{' '}
-            <Link className="underline" href="/faq">
-              FAQ
-            </Link>
-            .
+            {isRo ? (
+              <>
+                Ai o întrebare?{' '}
+                <Link className="underline" href="/support/new">
+                  Deschide un tichet
+                </Link>{' '}
+                sau răsfoiește{' '}
+                <Link className="underline" href="/faq">
+                  întrebările frecvente
+                </Link>
+                .
+              </>
+            ) : (
+              <>
+                Got a question?{' '}
+                <Link className="underline" href="/support/new">
+                  Open a ticket
+                </Link>{' '}
+                or browse the{' '}
+                <Link className="underline" href="/faq">
+                  FAQ
+                </Link>
+                .
+              </>
+            )}
           </p>
         </div>
       ) : (
@@ -71,13 +105,13 @@ export default async function SupportListPage() {
                 <div className="flex items-center gap-2">
                   <code className="text-muted-foreground text-[10px]">{t.reference}</code>
                   <Badge variant="outline" className="text-[10px]">
-                    {STATUS_LABEL[t.status] ?? t.status}
+                    {statusLabel[t.status] ?? t.status}
                   </Badge>
                 </div>
                 <div className="mt-1 truncate text-sm font-medium">{t.subject}</div>
               </div>
               <time className="text-muted-foreground text-xs" dateTime={t.updatedAt.toISOString()}>
-                {new Date(t.updatedAt).toLocaleDateString('en-GB', {
+                {new Date(t.updatedAt).toLocaleDateString(isRo ? 'ro-RO' : 'en-GB', {
                   day: 'numeric',
                   month: 'short',
                 })}

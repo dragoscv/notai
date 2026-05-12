@@ -10,18 +10,21 @@ import {
   MarketingFooter,
   MarketingHeader,
 } from '@/components/marketing/site-shell';
+import { resolveLocale } from '../../../i18n';
 
-export const metadata: Metadata = {
-  title: 'Changelog',
-  description:
-    'Notai release notes. Every shipped feature, fix, and improvement, organized by version.',
-  alternates: { canonical: '/changelog' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await resolveLocale();
+  const isRo = locale === 'ro';
+  return {
+    title: 'Changelog',
+    description: isRo
+      ? 'Notele de release Notai. Fiecare funcție, fix și îmbunătățire lansată, organizate pe versiuni.'
+      : 'Notai release notes. Every shipped feature, fix, and improvement, organized by version.',
+    alternates: { canonical: '/changelog' },
+  };
+}
 
-export const dynamic = 'force-static';
-// Built once per deploy from CHANGELOG.md at the monorepo root; no
-// runtime revalidation needed (the file only changes between deploys).
-export const revalidate = false;
+export const dynamic = 'force-dynamic';
 
 interface Section {
   heading: string;
@@ -153,8 +156,9 @@ async function loadChangelog(): Promise<Release[]> {
 }
 
 export default async function ChangelogPage() {
-  const [session, releases] = await Promise.all([auth(), loadChangelog()]);
+  const [session, releases, locale] = await Promise.all([auth(), loadChangelog(), resolveLocale()]);
   const ctaHref = session?.user ? '/app' : '/signin';
+  const isRo = locale === 'ro';
 
   return (
     <div className="bg-background text-foreground relative min-h-dvh overflow-hidden">
@@ -165,17 +169,34 @@ export default async function ChangelogPage() {
         <section className="mx-auto max-w-3xl px-6 pb-8 pt-16 sm:pt-20">
           <p className="text-primary text-xs font-semibold uppercase tracking-wider">Changelog</p>
           <h1 className="mt-2 text-balance font-serif text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-            What we shipped.
+            {isRo ? 'Ce am livrat.' : 'What we shipped.'}
           </h1>
           <p className="text-muted-foreground mt-5 text-pretty text-lg">
-            Every notable release, automatically generated from{' '}
-            <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-sm">CHANGELOG.md</code>.
+            {isRo ? (
+              <>
+                Fiecare release notabil, generat automat din{' '}
+                <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-sm">
+                  CHANGELOG.md
+                </code>
+                .
+              </>
+            ) : (
+              <>
+                Every notable release, automatically generated from{' '}
+                <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-sm">
+                  CHANGELOG.md
+                </code>
+                .
+              </>
+            )}
           </p>
         </section>
 
         <section className="mx-auto max-w-3xl px-6 pb-16">
           {releases.length === 0 ? (
-            <p className="text-muted-foreground">Changelog is being prepared.</p>
+            <p className="text-muted-foreground">
+              {isRo ? 'Changelogul se pregătește.' : 'Changelog is being prepared.'}
+            </p>
           ) : (
             <ol className="space-y-12">
               {releases.map((r) => (
@@ -224,15 +245,24 @@ export default async function ChangelogPage() {
         </section>
 
         <section className="relative mx-auto max-w-3xl px-6 py-16 text-center">
-          <p className="text-muted-foreground">Want to follow along?</p>
+          <p className="text-muted-foreground">
+            {isRo ? 'Vrei să fii la curent?' : 'Want to follow along?'}
+          </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="shadow-primary/20 shadow-lg">
               <Link href={ctaHref}>
-                {session?.user ? 'Open your notes' : 'Get started — free'} <ArrowRight />
+                {session?.user
+                  ? isRo
+                    ? 'Deschide notițele tale'
+                    : 'Open your notes'
+                  : isRo
+                    ? 'Începe — gratuit'
+                    : 'Get started — free'}{' '}
+                <ArrowRight />
               </Link>
             </Button>
             <Button asChild size="lg" variant="ghost">
-              <Link href="/features">See features</Link>
+              <Link href="/features">{isRo ? 'Vezi funcționalitățile' : 'See features'}</Link>
             </Button>
           </div>
         </section>

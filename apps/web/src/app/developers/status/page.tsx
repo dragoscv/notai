@@ -1,15 +1,23 @@
 import { getApiStatus } from '@/server/actions/api-status';
+import type { Metadata } from 'next';
+import { resolveLocale } from '../../../../i18n';
 
-export const metadata = {
-  title: 'Notai API status',
-  description:
-    'Public health and latency metrics for the Notai REST API. Updated every 60 seconds.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await resolveLocale();
+  const isRo = locale === 'ro';
+  return {
+    title: isRo ? 'Status API Notai' : 'Notai API status',
+    description: isRo
+      ? 'Indicatori publici de stare și latență pentru API-ul REST Notai. Actualizat la fiecare 60 de secunde.'
+      : 'Public health and latency metrics for the Notai REST API. Updated every 60 seconds.',
+  };
+}
 export const dynamic = 'force-dynamic';
 export const revalidate = 60;
 
 export default async function ApiStatusPage() {
-  const s = await getApiStatus();
+  const [s, locale] = await Promise.all([getApiStatus(), resolveLocale()]);
+  const isRo = locale === 'ro';
   const errorRate = s.total24h > 0 ? s.errors24h / s.total24h : 0;
   const ok = errorRate < 0.01;
   const maxDay = Math.max(1, ...s.daily.map((d) => d.total));
@@ -18,10 +26,19 @@ export default async function ApiStatusPage() {
     <div className="mx-auto w-full max-w-4xl space-y-8 px-6 py-12">
       <header className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">API status</h1>
+          <h1 className="text-2xl font-semibold">{isRo ? 'Status API' : 'API status'}</h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Live metrics for <code className="bg-muted rounded px-1">/api/v1/*</code> over the last
-            24 hours. Updated every 60 seconds.
+            {isRo ? (
+              <>
+                Indicatori în direct pentru <code className="bg-muted rounded px-1">/api/v1/*</code>{' '}
+                din ultimele 24 de ore. Actualizat la fiecare 60 de secunde.
+              </>
+            ) : (
+              <>
+                Live metrics for <code className="bg-muted rounded px-1">/api/v1/*</code> over the
+                last 24 hours. Updated every 60 seconds.
+              </>
+            )}
           </p>
         </div>
         <span
@@ -31,21 +48,36 @@ export default async function ApiStatusPage() {
               : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
           }`}
         >
-          {ok ? 'All systems normal' : 'Elevated error rate'}
+          {ok
+            ? isRo
+              ? 'Toate sistemele funcționează normal'
+              : 'All systems normal'
+            : isRo
+              ? 'Rată de erori crescută'
+              : 'Elevated error rate'}
         </span>
       </header>
 
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="Requests (24h)" value={s.total24h.toLocaleString()} />
-        <Stat label="Error rate" value={`${(errorRate * 100).toFixed(2)}%`} muted={ok} />
-        <Stat label="Avg latency" value={`${s.avgLatencyMs} ms`} />
-        <Stat label="p95 latency" value={`${s.p95LatencyMs} ms`} />
+        <Stat
+          label={isRo ? 'Cereri (24h)' : 'Requests (24h)'}
+          value={s.total24h.toLocaleString()}
+        />
+        <Stat
+          label={isRo ? 'Rată de erori' : 'Error rate'}
+          value={`${(errorRate * 100).toFixed(2)}%`}
+          muted={ok}
+        />
+        <Stat label={isRo ? 'Latență medie' : 'Avg latency'} value={`${s.avgLatencyMs} ms`} />
+        <Stat label={isRo ? 'Latență p95' : 'p95 latency'} value={`${s.p95LatencyMs} ms`} />
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-medium">Last 7 days</h2>
+        <h2 className="mb-3 text-sm font-medium">{isRo ? 'Ultimele 7 zile' : 'Last 7 days'}</h2>
         {s.daily.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No traffic yet.</p>
+          <p className="text-muted-foreground text-sm">
+            {isRo ? 'Încă nu există trafic.' : 'No traffic yet.'}
+          </p>
         ) : (
           <div className="bg-card rounded-2xl border p-4">
             <div className="flex h-32 items-end gap-2">
@@ -58,7 +90,11 @@ export default async function ApiStatusPage() {
                       <div
                         className="bg-primary/30 hover:bg-primary/50 w-full rounded-t transition-colors"
                         style={{ height: `${h}%` }}
-                        title={`${d.total} requests · ${d.errors} errors`}
+                        title={
+                          isRo
+                            ? `${d.total} cereri · ${d.errors} erori`
+                            : `${d.total} requests · ${d.errors} errors`
+                        }
                       />
                       {errH > 0 && (
                         <div
@@ -77,19 +113,27 @@ export default async function ApiStatusPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-medium">Top routes (24h)</h2>
+        <h2 className="mb-3 text-sm font-medium">
+          {isRo ? 'Cele mai accesate rute (24h)' : 'Top routes (24h)'}
+        </h2>
         {s.routes.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No traffic yet.</p>
+          <p className="text-muted-foreground text-sm">
+            {isRo ? 'Încă nu există trafic.' : 'No traffic yet.'}
+          </p>
         ) : (
           <div className="overflow-x-auto rounded-2xl border">
             <table className="w-full text-left text-sm">
               <thead className="bg-muted/50 text-muted-foreground">
                 <tr>
-                  <th className="px-3 py-2 font-medium">Method</th>
-                  <th className="px-3 py-2 font-medium">Path</th>
-                  <th className="px-3 py-2 text-right font-medium">Calls</th>
-                  <th className="px-3 py-2 text-right font-medium">Error rate</th>
-                  <th className="px-3 py-2 text-right font-medium">Avg ms</th>
+                  <th className="px-3 py-2 font-medium">{isRo ? 'Metodă' : 'Method'}</th>
+                  <th className="px-3 py-2 font-medium">{isRo ? 'Cale' : 'Path'}</th>
+                  <th className="px-3 py-2 text-right font-medium">{isRo ? 'Apeluri' : 'Calls'}</th>
+                  <th className="px-3 py-2 text-right font-medium">
+                    {isRo ? 'Rată erori' : 'Error rate'}
+                  </th>
+                  <th className="px-3 py-2 text-right font-medium">
+                    {isRo ? 'ms medii' : 'Avg ms'}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -116,9 +160,19 @@ export default async function ApiStatusPage() {
 
       {s.throttled24h > 0 && (
         <p className="text-muted-foreground text-xs">
-          {s.throttled24h.toLocaleString()} request{s.throttled24h === 1 ? '' : 's'} were throttled
-          (HTTP 429) in the last 24h. See the rate-limit headers in the API reference for client
-          handling.
+          {isRo ? (
+            <>
+              {s.throttled24h.toLocaleString()}{' '}
+              {s.throttled24h === 1 ? 'cerere a fost' : 'cereri au fost'} limitate (HTTP 429) în
+              ultimele 24h. Vezi antetele de rate-limit din referința API pentru tratarea în client.
+            </>
+          ) : (
+            <>
+              {s.throttled24h.toLocaleString()} request{s.throttled24h === 1 ? '' : 's'} were
+              throttled (HTTP 429) in the last 24h. See the rate-limit headers in the API reference
+              for client handling.
+            </>
+          )}
         </p>
       )}
     </div>

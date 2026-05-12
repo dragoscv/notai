@@ -5,7 +5,15 @@ import { toast } from 'sonner';
 import { Button, Textarea } from '@notai/ui';
 import { addUserReply } from '@/server/actions/support';
 
-export function UserReplyForm({ ticketId }: { ticketId: string }) {
+interface ReplyLabels {
+  placeholder: string;
+  submit: string;
+  submitting: string;
+  success: string;
+  error: string;
+}
+
+export function UserReplyForm({ ticketId, labels }: { ticketId: string; labels: ReplyLabels }) {
   const [body, setBody] = React.useState('');
   const [pending, start] = React.useTransition();
 
@@ -18,9 +26,9 @@ export function UserReplyForm({ ticketId }: { ticketId: string }) {
           try {
             await addUserReply({ ticketId, body });
             setBody('');
-            toast.success('Reply sent');
+            toast.success(labels.success);
           } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Could not send reply');
+            toast.error(err instanceof Error ? err.message : labels.error);
           }
         });
       }}
@@ -29,13 +37,13 @@ export function UserReplyForm({ ticketId }: { ticketId: string }) {
       <Textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
-        placeholder="Write a reply…"
+        placeholder={labels.placeholder}
         rows={5}
         maxLength={8000}
       />
       <div className="flex justify-end">
         <Button type="submit" disabled={pending || !body.trim()}>
-          {pending ? 'Sending…' : 'Send reply'}
+          {pending ? labels.submitting : labels.submit}
         </Button>
       </div>
     </form>
