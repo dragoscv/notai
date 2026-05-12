@@ -43,7 +43,7 @@ export function GET(req: Request) {
       ],
       code_challenge_methods_supported: ['S256'],
       subject_types_supported: ['public'],
-      id_token_signing_alg_values_supported: [],
+      id_token_signing_alg_values_supported: ['ES256'],
       service_documentation: `${issuer}/docs/oauth`,
       // RFC 8707 — let clients bind tokens to a specific resource (MCP encourages this).
       authorization_response_iss_parameter_supported: true,

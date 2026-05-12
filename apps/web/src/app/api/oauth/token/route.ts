@@ -16,6 +16,8 @@ import {
   revokeTokenFamily,
 } from '@/server/oauth-store';
 import { getClientIp, rateLimit, tooManyRequestsResponse } from '@/lib/rate-limit';
+import { signIdToken } from '@/server/oidc-keys';
+import { db, eq, users } from '@notai/db';
 
 export async function POST(req: Request) {
   const ctype = req.headers.get('content-type') ?? '';
@@ -115,11 +117,49 @@ async function handleAuthCode(form: FormData, clientId: string, isPublic: boolea
     : null;
 
   void isPublic; // public clients still get the same response
+  let idToken: string | undefined;
+  if (scopes.includes('openid') && codeRow.userId) {
+    const meta = (codeRow.metadata ?? {}) as { nonce?: string };
+    const wantsProfile = scopes.includes('profile');
+    const wantsEmail = scopes.includes('email');
+    let claimsExtra: { email?: string; name?: string; picture?: string; email_verified?: boolean } =
+      {};
+    if (wantsProfile || wantsEmail) {
+      const [u] = await db
+        .select({ name: users.name, email: users.email, image: users.image })
+        .from(users)
+        .where(eq(users.id, codeRow.userId))
+        .limit(1);
+      if (u) {
+        if (wantsProfile) {
+          claimsExtra.name = u.name ?? undefined;
+          claimsExtra.picture = u.image ?? undefined;
+        }
+        if (wantsEmail) {
+          claimsExtra.email = u.email ?? undefined;
+          claimsExtra.email_verified = !!u.email;
+        }
+      }
+    }
+    const issuer = process.env.NEXT_PUBLIC_APP_URL ?? 'https://notai.ro';
+    const signed = await signIdToken(
+      {
+        iss: issuer,
+        sub: codeRow.userId,
+        aud: clientId,
+        nonce: meta.nonce,
+        ...claimsExtra,
+      },
+      TTL.accessToken,
+    );
+    if (signed) idToken = signed;
+  }
   return tokenResponse({
     access_token: access.token,
     expires_in: TTL.accessToken,
     scope: scopes.join(' '),
     refresh_token: refresh?.token,
+    id_token: idToken,
   });
 }
 
@@ -193,6 +233,7 @@ interface TokenBody {
   expires_in: number;
   scope: string;
   refresh_token?: string;
+  id_token?: string;
 }
 
 function tokenResponse(body: TokenBody) {

@@ -469,6 +469,9 @@ importers:
       ioredis:
         specifier: ^5.10.1
         version: 5.10.1
+      jose:
+        specifier: ^5.9.6
+        version: 5.10.0
       linkedom:
         specifier: ^0.18.12
         version: 0.18.12

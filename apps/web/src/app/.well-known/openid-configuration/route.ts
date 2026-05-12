@@ -17,6 +17,7 @@ export function GET(req: Request) {
       userinfo_endpoint: `${issuer}/api/oauth/userinfo`,
       revocation_endpoint: `${issuer}/api/oauth/revoke`,
       registration_endpoint: `${issuer}/api/oauth/register`,
+      jwks_uri: `${issuer}/.well-known/jwks.json`,
       scopes_supported: [
         'openid',
         'profile',
@@ -34,7 +35,7 @@ export function GET(req: Request) {
       token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none'],
       code_challenge_methods_supported: ['S256'],
       subject_types_supported: ['public'],
-      id_token_signing_alg_values_supported: [],
+      id_token_signing_alg_values_supported: ['ES256'],
     },
     { headers: { 'cache-control': 'public, max-age=300' } },
   );
