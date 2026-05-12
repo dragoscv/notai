@@ -8,11 +8,13 @@ import {
   plans,
   planPrices,
   referrals,
+  users,
   eq,
   and,
 } from '@notai/db';
 import { getStripe } from '@/server/stripe';
 import { env } from '@notai/lib';
+import { sendEmail } from '@/server/email';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -98,6 +100,21 @@ export async function POST(req: Request) {
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
         console.warn('[stripe] payment failed', invoice.id);
+        await handlePaymentFailed(stripe, invoice);
+        break;
+      }
+      case 'customer.subscription.trial_will_end': {
+        const sub = event.data.object as Stripe.Subscription;
+        await handleTrialWillEnd(sub);
+        break;
+      }
+      case 'charge.refunded':
+      case 'charge.dispute.created':
+      case 'charge.dispute.closed': {
+        // Log only; users see refunds/disputes through the Customer Portal.
+        // The billing_events row above gives us a permanent audit trail.
+        const charge = event.data.object as Stripe.Charge | Stripe.Dispute;
+        console.warn('[stripe] %s id=%s', event.type, charge.id);
         break;
       }
       default:
@@ -308,4 +325,65 @@ async function upsertWorkspaceSubscription(
       })
       .where(eq(workspaceSubscriptions.workspaceId, workspaceId));
   }
+}
+
+/**
+ * Mark the subscription `past_due` and email the customer once. Stripe
+ * keeps retrying for ~3 weeks before giving up, but the user needs an
+ * actionable nudge with a portal link the moment we know.
+ */
+async function handlePaymentFailed(stripe: Stripe, invoice: Stripe.Invoice): Promise<void> {
+  const customerId = invoice.customer as string | null;
+  if (!customerId) return;
+
+  // Reflect status into our DB if we know this user.
+  const row = await db.query.subscriptions.findFirst({
+    where: eq(subscriptions.stripeCustomerId, customerId),
+  });
+  if (row) {
+    await db
+      .update(subscriptions)
+      .set({ status: 'past_due', updatedAt: new Date() })
+      .where(eq(subscriptions.userId, row.userId));
+  }
+
+  // Resolve the email — try Stripe customer first, fall back to our user row.
+  let email: string | null = null;
+  try {
+    const cust = await stripe.customers.retrieve(customerId);
+    if (cust && !cust.deleted) email = cust.email ?? null;
+  } catch {
+    // ignore
+  }
+  if (!email && row) {
+    const u = await db.query.users.findFirst({ where: eq(users.id, row.userId) });
+    email = u?.email ?? null;
+  }
+  if (!email) return;
+
+  const portalBase = process.env.NEXT_PUBLIC_APP_URL ?? 'https://notai.ro';
+  await sendEmail({
+    to: email,
+    subject: 'Action required: your Notai payment failed',
+    text: `Hi,\n\nWe couldn't charge your card for the latest Notai invoice (${invoice.id}).\nStripe will retry automatically over the next few days. You can update your payment method any time at:\n\n${portalBase}/app/settings/billing\n\n— Notai`,
+  });
+}
+
+/**
+ * 3-day trial-ending warning. Stripe fires this exactly once per
+ * subscription, 3 days before `trial_end` (configurable in dashboard).
+ */
+async function handleTrialWillEnd(sub: Stripe.Subscription): Promise<void> {
+  const userId = (sub.metadata?.userId as string) ?? null;
+  if (!userId) return;
+  const u = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  if (!u?.email) return;
+
+  const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000) : null;
+  const portalBase = process.env.NEXT_PUBLIC_APP_URL ?? 'https://notai.ro';
+  await sendEmail({
+    to: u.email,
+    subject: 'Your Notai trial ends soon',
+    text: `Hi,\n\nYour Notai Pro trial ends ${trialEnd ? `on ${trialEnd.toUTCString()}` : 'soon'}. After that, your card will be charged automatically and you'll keep all your Pro features.\n\nIf you'd rather cancel, you can do so any time before the trial ends:\n\n${portalBase}/app/settings/billing\n\n— Notai`,
+  });
 }

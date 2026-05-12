@@ -2,10 +2,10 @@
 
 import * as React from 'react';
 import { History } from 'lucide-react';
-import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '@notai/ui/components/popover';
 import { readPromptHistory } from './daily-prompt-card';
 import { createNoteFromPrompt } from '@/server/actions/daily-prompt';
+import { showAiActionError } from '@/lib/ai-error-toast';
 import { useRouter } from 'next/navigation';
 
 /**
@@ -29,7 +29,7 @@ export function DailyPromptHistoryButton() {
       router.push(`/app/n/${id}`);
       setOpen(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not start a note');
+      showAiActionError(err, 'Could not start a note');
     }
   };
 

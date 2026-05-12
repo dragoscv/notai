@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Sparkles, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { showAiActionError } from '@/lib/ai-error-toast';
 import {
   Dialog,
   DialogContent,
@@ -47,7 +47,7 @@ export function DailyReviewDialog({
     dailyReview()
       .then(setState)
       .catch((err: unknown) => {
-        toast.error(err instanceof Error ? err.message : 'Could not build a review.');
+        showAiActionError(err, 'Could not build a review.');
         onOpenChange(false);
       })
       .finally(() => setLoading(false));
