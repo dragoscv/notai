@@ -6,7 +6,7 @@ import { ThemeProvider } from '@notai/ui/components/theme-provider';
 import { Toaster } from '@notai/ui/components/toaster';
 import { TooltipProvider } from '@notai/ui/components/tooltip';
 import { ConsentProvider } from '@notai/ui/components/consent-provider';
-import { CookieConsent } from '@notai/ui/components/cookie-consent';
+import { CookieConsentLocalized } from '@/components/legal/cookie-consent-localized';
 import { PreferencesApplier } from '@/components/settings/preferences-applier';
 import { CapacitorDeepLinkBridge } from '@/components/mobile/capacitor-deep-link-bridge';
 import { CapacitorPushBridge } from '@/components/mobile/capacitor-push-bridge';
@@ -66,7 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <CapacitorDeepLinkBridge />
                   <CapacitorPushBridge />
                   {children}
-                  <CookieConsent />
+                  <CookieConsentLocalized />
                   <ConsentAwareAnalytics />
                   <Toaster position="bottom-right" richColors />
                 </UpgradeModalProvider>

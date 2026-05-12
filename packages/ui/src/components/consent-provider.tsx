@@ -88,6 +88,25 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
     if (stored) {
       setConsent({ ...DEFAULT_CONSENT, ...stored.c, necessary: true });
       setDecided(true);
+      setLoading(false);
+      return;
+    }
+    // Honor the Global Privacy Control signal (https://globalprivacycontrol.org/).
+    // When the browser advertises GPC=1 and the user has not made a choice yet,
+    // treat it as a request to reject all optional cookies and persist that choice.
+    const gpc =
+      typeof navigator !== 'undefined' &&
+      (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true;
+    if (gpc) {
+      const rejected: ConsentState = {
+        necessary: true,
+        preferences: false,
+        analytics: false,
+        marketing: false,
+      };
+      writeConsent(rejected);
+      setConsent(rejected);
+      setDecided(true);
     }
     setLoading(false);
   }, []);

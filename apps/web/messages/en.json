@@ -30,21 +30,27 @@
     "termsConsent": "By continuing you agree to the terms and privacy policy."
   },
   "cookieConsent": {
-    "bannerTitle": "We use cookies",
-    "bannerBody": "We use essential cookies to make Notai work, and optional cookies for analytics. You can change this at any time from the footer.",
+    "ariaRegion": "Cookie consent",
+    "bannerTitle": "We respect your data.",
+    "bannerBody": "Notai uses cookies that are strictly necessary to sign you in and keep the app working. Optional cookies for preferences and anonymous analytics help us improve. You can change your mind anytime from the {link} page.",
+    "bannerBodyLink": "Cookie settings",
     "acceptAll": "Accept all",
-    "rejectAll": "Reject non-essential",
+    "rejectAll": "Reject optional",
     "customize": "Customize",
-    "settingsTitle": "Cookie preferences",
-    "necessary": "Necessary",
-    "necessaryDesc": "Required for sign-in, security, and to remember your preferences. Cannot be disabled.",
+    "settingsTitle": "Cookie settings",
+    "settingsDescription": "Choose which optional cookies Notai may use. Your choice is saved on this device for 12 months.",
+    "closeAriaLabel": "Close cookie settings",
+    "toggleAriaPrefix": "Toggle",
+    "toggleAriaSuffix": "cookies",
+    "necessary": "Strictly necessary",
+    "necessaryDesc": "Required for sign-in, security, and remembering your consent choice. These cookies cannot be turned off.",
     "preferences": "Preferences",
-    "preferencesDesc": "Stores your UI choices (theme, layout) on your device.",
+    "preferencesDesc": "Remember your theme, language, and editor width across visits. No personal data leaves your device.",
     "analytics": "Analytics",
-    "analyticsDesc": "Helps us understand which features are used and where the app is slow.",
+    "analyticsDesc": "Anonymous, aggregated usage statistics so we can understand which features matter and where the app gets stuck.",
     "marketing": "Marketing",
-    "marketingDesc": "Used to measure ad campaigns. We do not currently use any.",
-    "saveChoices": "Save choices"
+    "marketingDesc": "Currently unused — Notai has no advertising or third-party trackers. Reserved in case we add a referral program in the future.",
+    "saveChoices": "Save my choices"
   },
   "marketing": {
     "header": {
