@@ -30,6 +30,21 @@ interface MinimapShape {
   kind: 'block' | 'element';
 }
 
+export interface MinimapLabels {
+  /** Text inside the drag handle pill at the top of the minimap. */
+  handle: string;
+  /** title= attribute on the drag handle. */
+  dragHint: string;
+  /** aria-label on the SVG body. */
+  ariaMap: string;
+}
+
+const DEFAULT_MINIMAP_LABELS: MinimapLabels = {
+  handle: 'Map',
+  dragHint: 'Drag to reposition',
+  ariaMap: 'Note minimap',
+};
+
 interface MinimapProps {
   doc: Y.Doc;
   /** Live host element (the canvas-note wrapper) used for viewport size. */
@@ -40,6 +55,7 @@ interface MinimapProps {
   viewport: { zoom: number; scrollX: number; scrollY: number };
   corner: MinimapCorner;
   onCornerChange: (c: MinimapCorner) => void;
+  labels?: MinimapLabels;
 }
 
 const SIZE = 180; // px
@@ -218,7 +234,15 @@ function nearestCorner(
   return best.corner;
 }
 
-export function Minimap({ doc, host, api, viewport, corner, onCornerChange }: MinimapProps) {
+export function Minimap({
+  doc,
+  host,
+  api,
+  viewport,
+  corner,
+  onCornerChange,
+  labels = DEFAULT_MINIMAP_LABELS,
+}: MinimapProps) {
   const { shapes, bbox } = useMinimapShapes(doc);
   const viewportRect = computeViewportRect(host, viewport);
 
@@ -381,7 +405,7 @@ export function Minimap({ doc, host, api, viewport, corner, onCornerChange }: Mi
       <div
         role="button"
         tabIndex={0}
-        title="Drag to reposition"
+        title={labels.dragHint}
         onPointerDown={onHandlePointerDown}
         onPointerMove={onHandlePointerMove}
         onPointerUp={onHandlePointerUp}
@@ -391,7 +415,7 @@ export function Minimap({ doc, host, api, viewport, corner, onCornerChange }: Mi
           dragRef.current && 'cursor-grabbing',
         )}
       >
-        Map
+        {labels.handle}
       </div>
       <svg
         width={SIZE}
@@ -399,7 +423,7 @@ export function Minimap({ doc, host, api, viewport, corner, onCornerChange }: Mi
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         onClick={onMapClick}
         className="block cursor-pointer overflow-hidden"
-        aria-label="Note minimap"
+        aria-label={labels.ariaMap}
       >
         <rect width={SIZE} height={SIZE} fill="transparent" />
         {renderBBox &&

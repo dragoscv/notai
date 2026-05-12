@@ -11,13 +11,19 @@ import type {
 } from '@excalidraw/excalidraw/element/types';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
 import { cn } from '@notai/lib/utils';
-import { Minimap, type MinimapCorner } from './minimap';
+import { Minimap, type MinimapCorner, type MinimapLabels } from './minimap';
 import { useExcalidrawCalc } from './excalidraw-calc';
-import { ExcalidrawHeadingsToolbar } from './excalidraw-headings';
-import { ExcalidrawBacklinksOverlay } from './excalidraw-backlinks';
-import { ExcalidrawChecklistOverlay } from './excalidraw-checklist';
-import { ExcalidrawMathMermaidOverlay } from './excalidraw-math-mermaid';
-import { ExcalidrawRangeCalcOverlay } from './excalidraw-range-calc';
+import { ExcalidrawHeadingsToolbar, type ExcalidrawHeadingsLabels } from './excalidraw-headings';
+import { ExcalidrawBacklinksOverlay, type ExcalidrawBacklinksLabels } from './excalidraw-backlinks';
+import { ExcalidrawChecklistOverlay, type ExcalidrawChecklistLabels } from './excalidraw-checklist';
+import {
+  ExcalidrawMathMermaidOverlay,
+  type ExcalidrawMathMermaidLabels,
+} from './excalidraw-math-mermaid';
+import {
+  ExcalidrawRangeCalcOverlay,
+  type ExcalidrawRangeCalcLabels,
+} from './excalidraw-range-calc';
 import { appendTextToScene } from './append-to-scene';
 import { migrateLegacyDoc } from './migrate-doc';
 
@@ -134,6 +140,22 @@ export interface CanvasNoteProps {
    * Excalidraw's native behaviour.
    */
   onLongTextPaste?: (text: string) => boolean | void;
+  /**
+   * Localized strings for every overlay rendered inside the canvas
+   * (heading toolbar, backlinks, checklist, math/mermaid, range-calc,
+   * minimap). English defaults are used for any group not provided, so
+   * callers can localize incrementally.
+   */
+  labels?: CanvasNoteLabels;
+}
+
+export interface CanvasNoteLabels {
+  headings?: ExcalidrawHeadingsLabels;
+  backlinks?: ExcalidrawBacklinksLabels;
+  checklist?: ExcalidrawChecklistLabels;
+  mathMermaid?: ExcalidrawMathMermaidLabels;
+  rangeCalc?: ExcalidrawRangeCalcLabels;
+  minimap?: MinimapLabels;
 }
 
 /* -------------------------------------------------------------------- */
@@ -160,6 +182,7 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
     onMinimapCornerChange,
     onUrlPaste,
     onLongTextPaste,
+    labels,
   },
   ref,
 ) {
@@ -875,7 +898,7 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
           currently-selected text element. Renders nothing when the
           selection isn't a single text element. Suppressed on read-only
           canvases (sticky mirrors, shared-link viewers). */}
-      <ExcalidrawHeadingsToolbar api={api} enabled={!readOnly} />
+      <ExcalidrawHeadingsToolbar api={api} enabled={!readOnly} labels={labels?.headings} />
 
       {/* Phase-2 Excalidraw migration: clickable [[Backlink]] chips
           rendered beneath any text element that contains `[[…]]`
@@ -887,26 +910,27 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
         api={api}
         enabled={!stickyMode}
         searchBacklinks={searchBacklinks}
+        labels={labels?.backlinks}
       />
 
       {/* Phase-2 Excalidraw migration: click-to-toggle checkboxes for
           any line beginning with `[ ]` / `[x]` (with or without a
           bullet prefix). Read-only mirrors stay non-interactive via
           `enabled={!readOnly}`. */}
-      <ExcalidrawChecklistOverlay api={api} enabled={!readOnly} />
+      <ExcalidrawChecklistOverlay api={api} enabled={!readOnly} labels={labels?.checklist} />
 
       {/* Phase-2 Excalidraw migration: rendered KaTeX `$$…$$` and
           ```mermaid …``` blocks appear as live previews under the
           owning text element. Source stays editable; preview is
           read-only. Disabled on sticky mirrors to keep them lean. */}
-      <ExcalidrawMathMermaidOverlay api={api} enabled={!stickyMode} />
+      <ExcalidrawMathMermaidOverlay api={api} enabled={!stickyMode} labels={labels?.mathMermaid} />
 
       {/* Range-calc: when the user selects 2+ text elements, parse the
           numbers out of them and float a chip-bar with sum/mean/min/max
           plus a count. Click a chip to drop the result as a fresh
           highlighted text element below the selection. Disabled on
           read-only mirrors so they remain pure-display. */}
-      <ExcalidrawRangeCalcOverlay api={api} enabled={!readOnly} />
+      <ExcalidrawRangeCalcOverlay api={api} enabled={!readOnly} labels={labels?.rangeCalc} />
 
       {/* Phase-3 step-2 of the Excalidraw migration: the legacy TipTap
           BlockFrame layer is no longer rendered. Notes that still have
@@ -924,6 +948,7 @@ export const CanvasNote = React.forwardRef<CanvasNoteHandle, CanvasNoteProps>(fu
           viewport={viewport}
           corner={minimap.corner}
           onCornerChange={(c) => onMinimapCornerChange?.(c)}
+          labels={labels?.minimap}
         />
       )}
     </div>

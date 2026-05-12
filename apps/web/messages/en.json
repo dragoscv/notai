@@ -2117,6 +2117,56 @@
         "reanchoredOther": "Re-anchored {count} comments.",
         "reanchorFailed": "Comment re-anchor failed: {error}",
         "failed": "Migration failed: {error}"
+      },
+      "headings": {
+        "h1": "H1",
+        "h1Hint": "Title",
+        "h2": "H2",
+        "h2Hint": "Heading",
+        "h3": "H3",
+        "h3Hint": "Subheading",
+        "body": "Body",
+        "bodyHint": "Body text",
+        "bullet": "•",
+        "bulletHint": "Bullet list",
+        "numbered": "1.",
+        "numberedHint": "Numbered list",
+        "check": "☐",
+        "checkHint": "Checklist",
+        "monospace": "Monospace / code",
+        "callout": "Callout (highlighted box)"
+      },
+      "rangeCalc": {
+        "selection": "Selection:",
+        "sum": "Sum",
+        "sumHint": "Insert sum below",
+        "mean": "Mean",
+        "meanHint": "Insert mean below",
+        "min": "Min",
+        "minHint": "Insert min below",
+        "max": "Max",
+        "maxHint": "Insert max below"
+      },
+      "mathMermaid": {
+        "renderingMath": "Rendering math…",
+        "renderingDiagram": "Rendering diagram…",
+        "mathErrorPrefix": "math error",
+        "mermaidErrorPrefix": "mermaid error",
+        "mermaidLoadFailed": "Mermaid failed to load",
+        "katexLoadFailed": "KaTeX failed to load"
+      },
+      "checklist": {
+        "markAsDone": "Mark as done",
+        "markAsNotDone": "Mark as not done"
+      },
+      "backlinks": {
+        "openTitle": "Open \"{title}\"",
+        "noMatch": "No note matches \"{title}\" yet"
+      },
+      "minimap": {
+        "handle": "Map",
+        "dragHint": "Drag to reposition",
+        "ariaMap": "Note minimap"
       }
     },
     "blog": {

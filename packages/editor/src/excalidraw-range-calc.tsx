@@ -138,7 +138,13 @@ function fmt(n: number): string {
   return fracPart ? `${grouped}.${fracPart}` : grouped;
 }
 
-function makeResultElement(label: string, value: string, x: number, y: number): ExcalidrawElement {
+function makeResultElement(
+  label: string,
+  value: string,
+  x: number,
+  y: number,
+  kind: 'sum' | 'mean' | 'min' | 'max',
+): ExcalidrawElement {
   const text = `${label}: ${value}`;
   const fontSize = 16;
   const lineHeight = 1.35;
@@ -179,17 +185,49 @@ function makeResultElement(label: string, value: string, x: number, y: number): 
     boundElements: null,
     updated: Date.now(),
     link: null,
-    customData: { calcRangeResult: true, calcRangeKind: label.toLowerCase() },
+    customData: { calcRangeResult: true, calcRangeKind: kind },
     autoResize: true,
   } as unknown as ExcalidrawElement;
 }
 
+export interface ExcalidrawRangeCalcLabels {
+  /** Header word before the chip group, e.g. "Selection:". */
+  selection: string;
+  /** Label inserted as the prefix of the text element on the canvas
+   *  for the sum, e.g. "Sum" → "Sum: 1,234". */
+  sum: string;
+  sumHint: string;
+  mean: string;
+  meanHint: string;
+  min: string;
+  minHint: string;
+  max: string;
+  maxHint: string;
+}
+
+const DEFAULT_RANGE_CALC_LABELS: ExcalidrawRangeCalcLabels = {
+  selection: 'Selection:',
+  sum: 'Sum',
+  sumHint: 'Insert sum below',
+  mean: 'Mean',
+  meanHint: 'Insert mean below',
+  min: 'Min',
+  minHint: 'Insert min below',
+  max: 'Max',
+  maxHint: 'Insert max below',
+};
+
 interface ExcalidrawRangeCalcOverlayProps {
   api: ExcalidrawImperativeAPI | null;
   enabled: boolean;
+  labels?: ExcalidrawRangeCalcLabels;
 }
 
-export function ExcalidrawRangeCalcOverlay({ api, enabled }: ExcalidrawRangeCalcOverlayProps) {
+export function ExcalidrawRangeCalcOverlay({
+  api,
+  enabled,
+  labels = DEFAULT_RANGE_CALC_LABELS,
+}: ExcalidrawRangeCalcOverlayProps) {
   const sel = useSelectedTextElements(enabled ? api : null);
   const [, force] = React.useReducer((x: number) => x + 1, 0);
 
@@ -213,13 +251,13 @@ export function ExcalidrawRangeCalcOverlay({ api, enabled }: ExcalidrawRangeCalc
   const screenX = (sel.bounds.minX + state.scrollX) * state.zoom.value;
   const screenY = (sel.bounds.maxY + state.scrollY) * state.zoom.value;
 
-  const insert = (label: string, value: number) => {
+  const insert = (label: string, value: number, kind: 'sum' | 'mean' | 'min' | 'max') => {
     const padX = 0;
     const padY = 16;
     const target = sel.bounds.minX + padX;
     const targetY = sel.bounds.maxY + padY;
     const existing = api.getSceneElements();
-    const fresh = makeResultElement(label, fmt(value), target, targetY);
+    const fresh = makeResultElement(label, fmt(value), target, targetY, kind);
     api.updateScene({
       elements: [...existing, fresh],
       appState: { selectedElementIds: { [fresh.id]: true } },
@@ -237,36 +275,36 @@ export function ExcalidrawRangeCalcOverlay({ api, enabled }: ExcalidrawRangeCalc
       }}
       className="bg-popover/95 flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] shadow-md backdrop-blur"
     >
-      <span className="text-muted-foreground">Selection:</span>
+      <span className="text-muted-foreground">{labels.selection}</span>
       <button
         type="button"
-        onClick={() => insert('Sum', stats.sum)}
+        onClick={() => insert(labels.sum, stats.sum, 'sum')}
         className="hover:bg-accent rounded px-1.5 py-0.5 font-mono"
-        title="Insert sum below"
+        title={labels.sumHint}
       >
         Σ {fmt(stats.sum)}
       </button>
       <button
         type="button"
-        onClick={() => insert('Mean', stats.mean)}
+        onClick={() => insert(labels.mean, stats.mean, 'mean')}
         className="hover:bg-accent rounded px-1.5 py-0.5 font-mono"
-        title="Insert mean below"
+        title={labels.meanHint}
       >
         μ {fmt(stats.mean)}
       </button>
       <button
         type="button"
-        onClick={() => insert('Min', stats.min)}
+        onClick={() => insert(labels.min, stats.min, 'min')}
         className="hover:bg-accent rounded px-1.5 py-0.5 font-mono"
-        title="Insert min below"
+        title={labels.minHint}
       >
         ↓ {fmt(stats.min)}
       </button>
       <button
         type="button"
-        onClick={() => insert('Max', stats.max)}
+        onClick={() => insert(labels.max, stats.max, 'max')}
         className="hover:bg-accent rounded px-1.5 py-0.5 font-mono"
-        title="Insert max below"
+        title={labels.maxHint}
       >
         ↑ {fmt(stats.max)}
       </button>

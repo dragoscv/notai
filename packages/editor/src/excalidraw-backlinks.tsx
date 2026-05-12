@@ -99,16 +99,32 @@ function groupSignature(groups: ChipGroup[]): string {
     .join(';');
 }
 
+export interface ExcalidrawBacklinksLabels {
+  /** Tooltip when the chip resolves to an existing note.
+   *  `{title}` is replaced with the note title. */
+  openTitle: string;
+  /** Tooltip when the chip's title doesn't match any note yet.
+   *  `{title}` is replaced with the note title. */
+  noMatch: string;
+}
+
+const DEFAULT_BACKLINKS_LABELS: ExcalidrawBacklinksLabels = {
+  openTitle: 'Open "{title}"',
+  noMatch: 'No note matches "{title}" yet',
+};
+
 export interface ExcalidrawBacklinksOverlayProps {
   api: ExcalidrawImperativeAPI | null;
   enabled?: boolean;
   searchBacklinks?: (q: string) => Promise<Array<{ id: string; title: string }>>;
+  labels?: ExcalidrawBacklinksLabels;
 }
 
 export function ExcalidrawBacklinksOverlay({
   api,
   enabled = true,
   searchBacklinks,
+  labels = DEFAULT_BACKLINKS_LABELS,
 }: ExcalidrawBacklinksOverlayProps): React.ReactElement | null {
   const [groups, setGroups] = React.useState<ChipGroup[]>([]);
   const [viewport, setViewport] = React.useState({ scrollX: 0, scrollY: 0, zoom: 1 });
@@ -212,7 +228,11 @@ export function ExcalidrawBacklinksOverlay({
                   href={resolved ? `/app/n/${id}` : '#'}
                   data-backlink={resolved ? id : undefined}
                   data-backlink-title={c.title}
-                  title={resolved ? `Open "${c.title}"` : `No note matches "${c.title}" yet`}
+                  title={
+                    resolved
+                      ? labels.openTitle.replace('{title}', c.title)
+                      : labels.noMatch.replace('{title}', c.title)
+                  }
                   className={
                     'pointer-events-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium shadow-sm transition-colors ' +
                     (resolved

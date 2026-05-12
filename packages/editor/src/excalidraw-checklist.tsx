@@ -124,15 +124,27 @@ function applyToggle(api: ExcalidrawImperativeAPI, ownerId: string, lineIndex: n
   } as SceneUpdateArg);
 }
 
+export interface ExcalidrawChecklistLabels {
+  markAsDone: string;
+  markAsNotDone: string;
+}
+
+const DEFAULT_CHECKLIST_LABELS: ExcalidrawChecklistLabels = {
+  markAsDone: 'Mark as done',
+  markAsNotDone: 'Mark as not done',
+};
+
 export interface ExcalidrawChecklistOverlayProps {
   api: ExcalidrawImperativeAPI | null;
   /** Suppress in read-only / sticky mirror contexts. */
   enabled?: boolean;
+  labels?: ExcalidrawChecklistLabels;
 }
 
 export function ExcalidrawChecklistOverlay({
   api,
   enabled = true,
+  labels = DEFAULT_CHECKLIST_LABELS,
 }: ExcalidrawChecklistOverlayProps): React.ReactElement | null {
   const [marks, setMarks] = React.useState<ChecklistMark[]>([]);
   const [viewport, setViewport] = React.useState({ scrollX: 0, scrollY: 0, zoom: 1 });
@@ -187,7 +199,7 @@ export function ExcalidrawChecklistOverlay({
           <button
             key={m.key}
             type="button"
-            aria-label={m.checked ? 'Mark as not done' : 'Mark as done'}
+            aria-label={m.checked ? labels.markAsNotDone : labels.markAsDone}
             aria-pressed={m.checked}
             onMouseDown={(e) => {
               e.stopPropagation();

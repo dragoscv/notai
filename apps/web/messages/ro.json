@@ -2117,6 +2117,56 @@
         "reanchoredOther": "Am re-ancorat {count} comentarii.",
         "reanchorFailed": "Re-ancorarea comentariilor a eșuat: {error}",
         "failed": "Migrarea a eșuat: {error}"
+      },
+      "headings": {
+        "h1": "H1",
+        "h1Hint": "Titlu",
+        "h2": "H2",
+        "h2Hint": "Antet",
+        "h3": "H3",
+        "h3Hint": "Subantet",
+        "body": "Text",
+        "bodyHint": "Text obișnuit",
+        "bullet": "•",
+        "bulletHint": "Listă cu marcatori",
+        "numbered": "1.",
+        "numberedHint": "Listă numerotată",
+        "check": "☐",
+        "checkHint": "Listă cu bife",
+        "monospace": "Monospațiat / cod",
+        "callout": "Casetă evidențiată"
+      },
+      "rangeCalc": {
+        "selection": "Selecție:",
+        "sum": "Sumă",
+        "sumHint": "Inserează suma mai jos",
+        "mean": "Medie",
+        "meanHint": "Inserează media mai jos",
+        "min": "Min",
+        "minHint": "Inserează minimul mai jos",
+        "max": "Max",
+        "maxHint": "Inserează maximul mai jos"
+      },
+      "mathMermaid": {
+        "renderingMath": "Randez formula…",
+        "renderingDiagram": "Randez diagrama…",
+        "mathErrorPrefix": "eroare formulă",
+        "mermaidErrorPrefix": "eroare mermaid",
+        "mermaidLoadFailed": "Mermaid nu s-a încărcat",
+        "katexLoadFailed": "KaTeX nu s-a încărcat"
+      },
+      "checklist": {
+        "markAsDone": "Marchează ca finalizat",
+        "markAsNotDone": "Marchează ca nefinalizat"
+      },
+      "backlinks": {
+        "openTitle": "Deschide „{title}”",
+        "noMatch": "Nicio notă nu se potrivește cu „{title}” încă"
+      },
+      "minimap": {
+        "handle": "Hartă",
+        "dragHint": "Trage pentru a repoziționa",
+        "ariaMap": "Minimapă notă"
       }
     },
     "blog": {

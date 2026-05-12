@@ -115,6 +115,62 @@ export function NoteWorkspace({ note, token, realtimeUrl, user }: NoteWorkspaceP
 function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspaceProps) {
   const t = useTranslations('editor.workspace');
   const tToast = useTranslations('editor.workspace.toast');
+  const tCanvas = useTranslations('editor.canvas');
+  const canvasLabels = React.useMemo(
+    () => ({
+      headings: {
+        h1: tCanvas('headings.h1'),
+        h1Hint: tCanvas('headings.h1Hint'),
+        h2: tCanvas('headings.h2'),
+        h2Hint: tCanvas('headings.h2Hint'),
+        h3: tCanvas('headings.h3'),
+        h3Hint: tCanvas('headings.h3Hint'),
+        body: tCanvas('headings.body'),
+        bodyHint: tCanvas('headings.bodyHint'),
+        bullet: tCanvas('headings.bullet'),
+        bulletHint: tCanvas('headings.bulletHint'),
+        numbered: tCanvas('headings.numbered'),
+        numberedHint: tCanvas('headings.numberedHint'),
+        check: tCanvas('headings.check'),
+        checkHint: tCanvas('headings.checkHint'),
+        monospace: tCanvas('headings.monospace'),
+        callout: tCanvas('headings.callout'),
+      },
+      rangeCalc: {
+        selection: tCanvas('rangeCalc.selection'),
+        sum: tCanvas('rangeCalc.sum'),
+        sumHint: tCanvas('rangeCalc.sumHint'),
+        mean: tCanvas('rangeCalc.mean'),
+        meanHint: tCanvas('rangeCalc.meanHint'),
+        min: tCanvas('rangeCalc.min'),
+        minHint: tCanvas('rangeCalc.minHint'),
+        max: tCanvas('rangeCalc.max'),
+        maxHint: tCanvas('rangeCalc.maxHint'),
+      },
+      mathMermaid: {
+        renderingMath: tCanvas('mathMermaid.renderingMath'),
+        renderingDiagram: tCanvas('mathMermaid.renderingDiagram'),
+        mathErrorPrefix: tCanvas('mathMermaid.mathErrorPrefix'),
+        mermaidErrorPrefix: tCanvas('mathMermaid.mermaidErrorPrefix'),
+        mermaidLoadFailed: tCanvas('mathMermaid.mermaidLoadFailed'),
+        katexLoadFailed: tCanvas('mathMermaid.katexLoadFailed'),
+      },
+      checklist: {
+        markAsDone: tCanvas('checklist.markAsDone'),
+        markAsNotDone: tCanvas('checklist.markAsNotDone'),
+      },
+      backlinks: {
+        openTitle: tCanvas('backlinks.openTitle'),
+        noMatch: tCanvas('backlinks.noMatch'),
+      },
+      minimap: {
+        handle: tCanvas('minimap.handle'),
+        dragHint: tCanvas('minimap.dragHint'),
+        ariaMap: tCanvas('minimap.ariaMap'),
+      },
+    }),
+    [tCanvas],
+  );
   const { doc, provider, status, synced } = useNoteDoc({
     noteId: note.id,
     url: realtimeUrl,
@@ -941,6 +997,7 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
                     }
                     onUrlPaste={handleUrlPaste}
                     onLongTextPaste={handleLongTextPaste}
+                    labels={canvasLabels}
                   />
                 </CanvasFileDropZone>
                 <FocusModeOverlay

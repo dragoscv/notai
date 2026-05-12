@@ -198,7 +198,7 @@ async function renderTarget(t: RenderTarget): Promise<RenderedHTML> {
     if (t.kind === 'math') {
       const katex = await ensureKatex();
       if (!katex) {
-        result = { html: '', error: 'KaTeX failed to load' };
+        result = { html: '', error: 'KATEX_LOAD_FAILED' };
       } else {
         const html = katex.renderToString(t.source, {
           displayMode: true,
@@ -210,7 +210,7 @@ async function renderTarget(t: RenderTarget): Promise<RenderedHTML> {
     } else {
       const mermaid = await ensureMermaid();
       if (!mermaid) {
-        result = { html: '', error: 'Mermaid failed to load' };
+        result = { html: '', error: 'MERMAID_LOAD_FAILED' };
       } else {
         const id = `m-${Math.random().toString(36).slice(2, 10)}`;
         const { svg } = await mermaid.render(id, t.source);
@@ -232,14 +232,40 @@ async function renderTarget(t: RenderTarget): Promise<RenderedHTML> {
 
 /* ---------- Component ---------- */
 
+export interface ExcalidrawMathMermaidLabels {
+  /** Shown while KaTeX renders a `$$…$$` block. */
+  renderingMath: string;
+  /** Shown while Mermaid renders a diagram. */
+  renderingDiagram: string;
+  /** Prefix for math render errors, e.g. "math error: <details>". */
+  mathErrorPrefix: string;
+  /** Prefix for mermaid render errors, e.g. "mermaid error: <details>". */
+  mermaidErrorPrefix: string;
+  /** Shown when the Mermaid bundle fails to load. */
+  mermaidLoadFailed: string;
+  /** Shown when the KaTeX bundle fails to load. */
+  katexLoadFailed: string;
+}
+
+const DEFAULT_MATH_MERMAID_LABELS: ExcalidrawMathMermaidLabels = {
+  renderingMath: 'Rendering math…',
+  renderingDiagram: 'Rendering diagram…',
+  mathErrorPrefix: 'math error',
+  mermaidErrorPrefix: 'mermaid error',
+  mermaidLoadFailed: 'Mermaid failed to load',
+  katexLoadFailed: 'KaTeX failed to load',
+};
+
 export interface ExcalidrawMathMermaidOverlayProps {
   api: ExcalidrawImperativeAPI | null;
   enabled?: boolean;
+  labels?: ExcalidrawMathMermaidLabels;
 }
 
 export function ExcalidrawMathMermaidOverlay({
   api,
   enabled = true,
+  labels = DEFAULT_MATH_MERMAID_LABELS,
 }: ExcalidrawMathMermaidOverlayProps): React.ReactElement | null {
   const [targets, setTargets] = React.useState<RenderTarget[]>([]);
   const [viewport, setViewport] = React.useState({ scrollX: 0, scrollY: 0, zoom: 1 });
@@ -343,11 +369,17 @@ export function ExcalidrawMathMermaidOverlay({
             >
               {!r ? (
                 <span className="text-muted-foreground text-xs">
-                  Rendering {t.kind === 'math' ? 'math' : 'diagram'}…
+                  {t.kind === 'math' ? labels.renderingMath : labels.renderingDiagram}
                 </span>
               ) : r.error ? (
                 <span className="text-xs">
-                  {t.kind} error: {r.error}
+                  {(t.kind === 'math' ? labels.mathErrorPrefix : labels.mermaidErrorPrefix) +
+                    ': ' +
+                    (r.error === 'KATEX_LOAD_FAILED'
+                      ? labels.katexLoadFailed
+                      : r.error === 'MERMAID_LOAD_FAILED'
+                        ? labels.mermaidLoadFailed
+                        : r.error)}
                 </span>
               ) : (
                 <div

@@ -355,10 +355,50 @@ function applyCalloutToggle(api: ExcalidrawImperativeAPI, elementId: string): vo
   } as SceneUpdateArg);
 }
 
+export interface ExcalidrawHeadingsLabels {
+  h1: string;
+  h1Hint: string;
+  h2: string;
+  h2Hint: string;
+  h3: string;
+  h3Hint: string;
+  body: string;
+  bodyHint: string;
+  bullet: string;
+  bulletHint: string;
+  numbered: string;
+  numberedHint: string;
+  check: string;
+  checkHint: string;
+  monospace: string;
+  callout: string;
+}
+
+const DEFAULT_HEADINGS_LABELS: ExcalidrawHeadingsLabels = {
+  h1: 'H1',
+  h1Hint: 'Title',
+  h2: 'H2',
+  h2Hint: 'Heading',
+  h3: 'H3',
+  h3Hint: 'Subheading',
+  body: 'Body',
+  bodyHint: 'Body text',
+  bullet: '•',
+  bulletHint: 'Bullet list',
+  numbered: '1.',
+  numberedHint: 'Numbered list',
+  check: '☐',
+  checkHint: 'Checklist',
+  monospace: 'Monospace / code',
+  callout: 'Callout (highlighted box)',
+};
+
 export interface ExcalidrawHeadingsToolbarProps {
   api: ExcalidrawImperativeAPI | null;
   /** Suppress the toolbar (sticky read-only mirrors, etc.). */
   enabled?: boolean;
+  /** Localized strings. English defaults are used when omitted. */
+  labels?: ExcalidrawHeadingsLabels;
 }
 
 /**
@@ -369,6 +409,7 @@ export interface ExcalidrawHeadingsToolbarProps {
 export function ExcalidrawHeadingsToolbar({
   api,
   enabled = true,
+  labels = DEFAULT_HEADINGS_LABELS,
 }: ExcalidrawHeadingsToolbarProps): React.ReactElement | null {
   const sel = useSelectedText(enabled ? api : null);
   // Re-derive the active list mode whenever selection identity changes;
@@ -398,16 +439,16 @@ export function ExcalidrawHeadingsToolbar({
   if (!enabled || !api || !sel) return null;
 
   const styles: Array<{ key: HeadingStyle; label: string; hint: string }> = [
-    { key: 'h1', label: 'H1', hint: 'Title' },
-    { key: 'h2', label: 'H2', hint: 'Heading' },
-    { key: 'h3', label: 'H3', hint: 'Subheading' },
-    { key: 'body', label: 'Body', hint: 'Body text' },
+    { key: 'h1', label: labels.h1, hint: labels.h1Hint },
+    { key: 'h2', label: labels.h2, hint: labels.h2Hint },
+    { key: 'h3', label: labels.h3, hint: labels.h3Hint },
+    { key: 'body', label: labels.body, hint: labels.bodyHint },
   ];
 
   const lists: Array<{ key: ListMode; label: string; hint: string }> = [
-    { key: 'bullet', label: '•', hint: 'Bullet list' },
-    { key: 'numbered', label: '1.', hint: 'Numbered list' },
-    { key: 'check', label: '☐', hint: 'Checklist' },
+    { key: 'bullet', label: labels.bullet, hint: labels.bulletHint },
+    { key: 'numbered', label: labels.numbered, hint: labels.numberedHint },
+    { key: 'check', label: labels.check, hint: labels.checkHint },
   ];
 
   return (
@@ -470,7 +511,7 @@ export function ExcalidrawHeadingsToolbar({
               ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground')
           }
-          title="Monospace / code"
+          title={labels.monospace}
           aria-pressed={codeActive}
         >
           {'</>'}
@@ -485,7 +526,7 @@ export function ExcalidrawHeadingsToolbar({
               ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground')
           }
-          title="Callout (highlighted box)"
+          title={labels.callout}
           aria-pressed={calloutActive}
         >
           ❝
