@@ -85,5 +85,102 @@
         "accessibility": "Accessibility"
       }
     }
+  },
+  "home": {
+    "ctaSignedIn": "Open your notes",
+    "ctaSignedOut": "Get started — free",
+    "hero": {
+      "badge": "New · Sticky notes that float on top of your desktop",
+      "titleLeading": "Your calm place\nto ",
+      "titleHighlight": "think",
+      "titleTrailing": ".",
+      "description": "Write, draw, and sketch in one beautifully unhurried space. Pin sticky notes on top of every window. Everything syncs in realtime — even when you go offline.",
+      "secondaryCta": "See what's inside",
+      "bullets": {
+        "noCard": "No credit card",
+        "offline": "Works offline",
+        "platforms": "Web · Desktop · Mobile"
+      }
+    },
+    "bento": {
+      "eyebrow": "Everything in one place",
+      "title": "A notebook that finally keeps up.",
+      "subtitle": "Words, drawings, lists, sticky notes — all in the same calm space, all synced everywhere you work.",
+      "draw": {
+        "eyebrow": "Draw with your S Pen",
+        "title": "Sketch ideas the moment they show up.",
+        "text": "Pressure-sensitive strokes, palm rejection, and a canvas that stays out of your way until you need it."
+      },
+      "sticky": {
+        "eyebrow": "Always on top",
+        "title": "Sticky notes that float above every window.",
+        "text": "Install the desktop app and pin notes that stay visible while you work in any other app."
+      },
+      "sync": {
+        "eyebrow": "Realtime sync",
+        "title": "Your notes, on every device — instantly.",
+        "text": "Type on your laptop, keep editing on your phone. Cursors, selections, edits — all live."
+      },
+      "offlineFirst": {
+        "title": "Offline-first",
+        "text": "Keep writing on planes, in tunnels, anywhere. Changes sync the moment you reconnect."
+      },
+      "speed": {
+        "title": "Made for speed",
+        "text": "Local-first storage, instant search, no spinners. Your thoughts shouldn't wait."
+      },
+      "keyboard": {
+        "title": "Keyboard-first",
+        "tryShortcut": "anywhere.",
+        "tryPrefix": "A command palette for everything. Try"
+      }
+    },
+    "useCases": {
+      "eyebrow": "Built for the way you actually work",
+      "title": "Quiet, fast, and out of your way.",
+      "thinkers": {
+        "tag": "For thinkers",
+        "quote": "\"It feels like a paper notebook that finally syncs. I sketch in the morning and the same page is on my laptop by lunch.\"",
+        "author": "Lena · Product designer"
+      },
+      "students": {
+        "tag": "For students",
+        "quote": "\"Sticky notes pinned over my lecture videos changed how I study. Everything stays in flow.\"",
+        "author": "Marcus · CS grad"
+      },
+      "makers": {
+        "tag": "For makers",
+        "quote": "\"The canvas + checklists combo is what I always wanted. I plan, sketch, and ship from one spot.\"",
+        "author": "Iris · Indie dev"
+      }
+    },
+    "testimonials": {
+      "badge": "Loved by people who hate notes apps",
+      "title": "What early users are saying",
+      "q1": {
+        "quote": "I finally stopped losing ideas between Notion and Apple Notes. Quick capture is a cheat code.",
+        "author": "Maya R.",
+        "role": "Indie founder"
+      },
+      "q2": {
+        "quote": "The sticky-on-top window is what Stickies should have been. I keep my sprint goals there all day.",
+        "author": "Damien K.",
+        "role": "Staff engineer"
+      },
+      "q3": {
+        "quote": "My ADHD brain loves the daily template + estimate tags. I can plan a day in 90 seconds.",
+        "author": "Lex T.",
+        "role": "PM, fintech"
+      }
+    },
+    "finalCta": {
+      "badge": "One canvas for everything",
+      "titleLeading": "Start your next thought\nin a place that ",
+      "titleHighlight": "feels good to open",
+      "titleTrailing": ".",
+      "description": "Free to start. No credit card. Bring your S Pen, your laptop, your phone — Notai keeps up.",
+      "offlineNote": "Works online & offline from day one"
+    },
+    "skipLink": "Skip to content"
   }
 }

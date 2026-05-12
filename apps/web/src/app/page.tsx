@@ -13,6 +13,7 @@ import {
   Wifi,
   Zap,
 } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { Button } from '@notai/ui/components/button';
 import { auth } from '@/auth';
 import { AnalyticsConsent } from '@/components/analytics/analytics-consent';
@@ -25,14 +26,15 @@ import {
 
 export default async function LandingPage() {
   const session = await auth();
+  const t = await getTranslations('home');
   const ctaHref = session?.user ? '/app' : '/signin';
-  const ctaLabel = session?.user ? 'Open your notes' : 'Get started — free';
+  const ctaLabel = session?.user ? t('ctaSignedIn') : t('ctaSignedOut');
 
   return (
     <div className="bg-background text-foreground relative min-h-dvh overflow-hidden">
       <JsonLd data={SOFTWARE_APPLICATION_SCHEMA} />
       <a href="#landing-main" className="a11y-skip-link">
-        Skip to content
+        {t('skipLink')}
       </a>
       <AuroraBackground />
 
@@ -54,31 +56,34 @@ export default async function LandingPage() {
 
 /* ─────────────────────────── Hero ─────────────────────────── */
 
-function Hero({ ctaHref, ctaLabel }: { ctaHref: string; ctaLabel: string }) {
+async function Hero({ ctaHref, ctaLabel }: { ctaHref: string; ctaLabel: string }) {
+  const t = await getTranslations('home.hero');
+  const leading = t('titleLeading');
+  // Split on \n to render line break in the title — translators preserve the newline.
+  const [titlePart1, titlePart2] = leading.includes('\n') ? leading.split('\n') : [leading, ''];
   return (
     <section className="relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 pb-20 pt-10 sm:pt-16 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pb-28 lg:pt-24">
       <div className="relative">
         <span className="bg-card/70 text-muted-foreground inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs backdrop-blur">
           <Sparkles className="text-primary size-3" />
-          New · Sticky notes that float on top of your desktop
+          {t('badge')}
         </span>
 
         <h1 className="mt-5 text-balance font-serif text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
-          Your calm place
-          <br />
-          to{' '}
+          {titlePart1}
+          {titlePart2 ? <br /> : null}
+          {titlePart2}
           <span className="relative inline-block">
             <span className="from-primary via-primary to-primary/60 bg-gradient-to-br bg-clip-text text-transparent">
-              think
+              {t('titleHighlight')}
             </span>
             <UnderlineSquiggle className="text-primary/60 absolute -bottom-2 left-0 h-3 w-full" />
           </span>
-          .
+          {t('titleTrailing')}
         </h1>
 
         <p className="text-muted-foreground mt-6 max-w-xl text-pretty text-lg">
-          Write, draw, and sketch in one beautifully unhurried space. Pin sticky notes on top of
-          every window. Everything syncs in realtime — even when you go offline.
+          {t('description')}
         </p>
 
         <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
@@ -88,19 +93,19 @@ function Hero({ ctaHref, ctaLabel }: { ctaHref: string; ctaLabel: string }) {
             </Link>
           </Button>
           <Button asChild size="lg" variant="ghost">
-            <a href="#features">See what&apos;s inside</a>
+            <a href="#features">{t('secondaryCta')}</a>
           </Button>
         </div>
 
         <ul className="text-muted-foreground mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
           <li className="inline-flex items-center gap-1.5">
-            <Check className="text-primary size-3.5" /> No credit card
+            <Check className="text-primary size-3.5" /> {t('bullets.noCard')}
           </li>
           <li className="inline-flex items-center gap-1.5">
-            <Check className="text-primary size-3.5" /> Works offline
+            <Check className="text-primary size-3.5" /> {t('bullets.offline')}
           </li>
           <li className="inline-flex items-center gap-1.5">
-            <Check className="text-primary size-3.5" /> Web · Desktop · Mobile
+            <Check className="text-primary size-3.5" /> {t('bullets.platforms')}
           </li>
         </ul>
       </div>
@@ -230,29 +235,25 @@ function UnderlineSquiggle({ className }: { className?: string }) {
 
 /* ─────────────────────── Bento features ─────────────────────── */
 
-function BentoFeatures() {
+async function BentoFeatures() {
+  const t = await getTranslations('home.bento');
   return (
     <section id="features" className="relative mx-auto max-w-6xl px-6 py-16 sm:py-24">
       <div className="mx-auto mb-12 max-w-2xl text-center">
-        <p className="text-primary text-xs font-medium uppercase tracking-wider">
-          Everything in one place
-        </p>
+        <p className="text-primary text-xs font-medium uppercase tracking-wider">{t('eyebrow')}</p>
         <h2 className="mt-3 text-balance font-serif text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
-          A notebook that finally keeps up.
+          {t('title')}
         </h2>
-        <p className="text-muted-foreground mt-4">
-          Words, drawings, lists, sticky notes — all in the same calm space, all synced everywhere
-          you work.
-        </p>
+        <p className="text-muted-foreground mt-4">{t('subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-6 lg:gap-5">
         <BentoCard className="md:col-span-3 md:row-span-2">
           <BentoHeader
             icon={<PenLine />}
-            eyebrow="Draw with your S Pen"
-            title="Sketch ideas the moment they show up."
-            text="Pressure-sensitive strokes, palm rejection, and a canvas that stays out of your way until you need it."
+            eyebrow={t('draw.eyebrow')}
+            title={t('draw.title')}
+            text={t('draw.text')}
           />
           <DrawingPreview />
         </BentoCard>
@@ -262,9 +263,9 @@ function BentoFeatures() {
             <div className="flex-1">
               <BentoHeader
                 icon={<StickyNote />}
-                eyebrow="Always on top"
-                title="Sticky notes that float above every window."
-                text="Install the desktop app and pin notes that stay visible while you work in any other app."
+                eyebrow={t('sticky.eyebrow')}
+                title={t('sticky.title')}
+                text={t('sticky.text')}
               />
             </div>
             <StickyPreview />
@@ -274,9 +275,9 @@ function BentoFeatures() {
         <BentoCard className="md:col-span-3">
           <BentoHeader
             icon={<Users />}
-            eyebrow="Realtime sync"
-            title="Your notes, on every device — instantly."
-            text="Type on your laptop, keep editing on your phone. Cursors, selections, edits — all live."
+            eyebrow={t('sync.eyebrow')}
+            title={t('sync.title')}
+            text={t('sync.text')}
           />
           <CursorsPreview />
         </BentoCard>
@@ -284,27 +285,24 @@ function BentoFeatures() {
         <BentoCard className="md:col-span-2">
           <BentoMini
             icon={<CloudOff />}
-            title="Offline-first"
-            text="Keep writing on planes, in tunnels, anywhere. Changes sync the moment you reconnect."
+            title={t('offlineFirst.title')}
+            text={t('offlineFirst.text')}
           />
         </BentoCard>
 
         <BentoCard className="md:col-span-2">
-          <BentoMini
-            icon={<Zap />}
-            title="Made for speed"
-            text="Local-first storage, instant search, no spinners. Your thoughts shouldn't wait."
-          />
+          <BentoMini icon={<Zap />} title={t('speed.title')} text={t('speed.text')} />
         </BentoCard>
 
         <BentoCard className="md:col-span-2">
           <BentoMini
             icon={<Command />}
-            title="Keyboard-first"
+            title={t('keyboard.title')}
             text={
               <>
-                A command palette for everything. Try{' '}
-                <kbd className="bg-muted rounded border px-1 text-[10px]">⌘K</kbd> anywhere.
+                {t('keyboard.tryPrefix')}{' '}
+                <kbd className="bg-muted rounded border px-1 text-[10px]">⌘K</kbd>{' '}
+                {t('keyboard.tryShortcut')}
               </>
             }
           />
@@ -522,27 +520,25 @@ function Cursor({ color, name, className }: { color: string; name: string; class
 
 /* ─────────────────────── Use cases ─────────────────────── */
 
-function UseCases() {
+async function UseCases() {
+  const t = await getTranslations('home.useCases');
   const items = [
     {
-      tag: 'For thinkers',
-      quote:
-        '"It feels like a paper notebook that finally syncs. I sketch in the morning and the same page is on my laptop by lunch."',
-      author: 'Lena · Product designer',
+      tag: t('thinkers.tag'),
+      quote: t('thinkers.quote'),
+      author: t('thinkers.author'),
       color: 'bg-sticky-yellow',
     },
     {
-      tag: 'For students',
-      quote:
-        '"Sticky notes pinned over my lecture videos changed how I study. Everything stays in flow."',
-      author: 'Marcus · CS grad',
+      tag: t('students.tag'),
+      quote: t('students.quote'),
+      author: t('students.author'),
       color: 'bg-sticky-pink',
     },
     {
-      tag: 'For makers',
-      quote:
-        '"The canvas + checklists combo is what I always wanted. I plan, sketch, and ship from one spot."',
-      author: 'Iris · Indie dev',
+      tag: t('makers.tag'),
+      quote: t('makers.quote'),
+      author: t('makers.author'),
       color: 'bg-sticky-blue',
     },
   ];
@@ -550,11 +546,9 @@ function UseCases() {
   return (
     <section id="for-you" className="relative mx-auto max-w-6xl px-6 py-16 sm:py-24">
       <div className="mx-auto mb-12 max-w-2xl text-center">
-        <p className="text-primary text-xs font-medium uppercase tracking-wider">
-          Built for the way you actually work
-        </p>
+        <p className="text-primary text-xs font-medium uppercase tracking-wider">{t('eyebrow')}</p>
         <h2 className="mt-3 text-balance font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
-          Quiet, fast, and out of your way.
+          {t('title')}
         </h2>
       </div>
 
@@ -579,45 +573,34 @@ function UseCases() {
 
 /* ─────────────────────── Final CTA ─────────────────────── */
 
-function Testimonials() {
+async function Testimonials() {
+  const t = await getTranslations('home.testimonials');
   const quotes = [
-    {
-      q: 'I finally stopped losing ideas between Notion and Apple Notes. Quick capture is a cheat code.',
-      a: 'Maya R.',
-      r: 'Indie founder',
-    },
-    {
-      q: 'The sticky-on-top window is what Stickies should have been. I keep my sprint goals there all day.',
-      a: 'Damien K.',
-      r: 'Staff engineer',
-    },
-    {
-      q: 'My ADHD brain loves the daily template + estimate tags. I can plan a day in 90 seconds.',
-      a: 'Lex T.',
-      r: 'PM, fintech',
-    },
+    { q: t('q1.quote'), a: t('q1.author'), r: t('q1.role') },
+    { q: t('q2.quote'), a: t('q2.author'), r: t('q2.role') },
+    { q: t('q3.quote'), a: t('q3.author'), r: t('q3.role') },
   ];
   return (
     <section className="relative mx-auto max-w-6xl px-6 py-16 sm:py-24">
       <div className="mb-10 text-center">
         <span className="bg-card/70 text-muted-foreground inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs backdrop-blur">
-          <Sparkles className="text-primary size-3" /> Loved by people who hate notes apps
+          <Sparkles className="text-primary size-3" /> {t('badge')}
         </span>
         <h2 className="mt-4 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
-          What early users are saying
+          {t('title')}
         </h2>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
-        {quotes.map((t) => (
+        {quotes.map((tq) => (
           <figure
-            key={t.a}
+            key={tq.a}
             className="bg-card/70 hover:shadow-foreground/5 rounded-2xl border p-6 backdrop-blur transition hover:shadow-md"
           >
             <blockquote className="text-foreground/90 text-sm leading-relaxed">
-              &ldquo;{t.q}&rdquo;
+              &ldquo;{tq.q}&rdquo;
             </blockquote>
             <figcaption className="text-muted-foreground mt-4 text-xs">
-              <span className="text-foreground font-medium">{t.a}</span> \u2014 {t.r}
+              <span className="text-foreground font-medium">{tq.a}</span> — {tq.r}
             </figcaption>
           </figure>
         ))}
@@ -635,6 +618,21 @@ function FinalCta({
   ctaLabel: string;
   signedIn: boolean;
 }) {
+  return <FinalCtaInner ctaHref={ctaHref} ctaLabel={ctaLabel} signedIn={signedIn} />;
+}
+
+async function FinalCtaInner({
+  ctaHref,
+  ctaLabel,
+  signedIn,
+}: {
+  ctaHref: string;
+  ctaLabel: string;
+  signedIn: boolean;
+}) {
+  const t = await getTranslations('home.finalCta');
+  const leading = t('titleLeading');
+  const [titlePart1, titlePart2] = leading.includes('\n') ? leading.split('\n') : [leading, ''];
   return (
     <section id="start" className="relative mx-auto max-w-6xl px-6 pb-24">
       <div className="from-primary/15 via-card/80 to-sticky-pink/30 shadow-primary/10 dark:to-sticky-purple/30 relative overflow-hidden rounded-3xl border bg-gradient-to-br p-10 text-center shadow-xl sm:p-14">
@@ -652,20 +650,18 @@ function FinalCta({
         <div className="relative">
           <div className="bg-card/70 text-muted-foreground mx-auto mb-5 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs backdrop-blur">
             <Layers className="text-primary size-3" />
-            One canvas for everything
+            {t('badge')}
           </div>
           <h2 className="mx-auto max-w-2xl text-balance font-serif text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-            Start your next thought
-            <br className="hidden sm:block" /> in a place that{' '}
+            {titlePart1}
+            {titlePart2 ? <br className="hidden sm:block" /> : null}
+            {titlePart2}
             <span className="from-primary to-primary/60 bg-gradient-to-br bg-clip-text text-transparent">
-              feels good to open
+              {t('titleHighlight')}
             </span>
-            .
+            {t('titleTrailing')}
           </h2>
-          <p className="text-muted-foreground mx-auto mt-4 max-w-lg">
-            Free to start. No credit card. Bring your S Pen, your laptop, your phone — Notai keeps
-            up.
-          </p>
+          <p className="text-muted-foreground mx-auto mt-4 max-w-lg">{t('description')}</p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="shadow-primary/20 shadow-lg">
               <Link href={ctaHref}>
@@ -674,7 +670,7 @@ function FinalCta({
             </Button>
             {!signedIn && (
               <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
-                <Wifi className="size-3.5" /> Works online & offline from day one
+                <Wifi className="size-3.5" /> {t('offlineNote')}
               </span>
             )}
           </div>

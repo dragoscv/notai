@@ -85,5 +85,102 @@
         "accessibility": "Accesibilitate"
       }
     }
+  },
+  "home": {
+    "ctaSignedIn": "Deschide notițele",
+    "ctaSignedOut": "Începe acum — gratuit",
+    "hero": {
+      "badge": "Nou · Notițe lipicioase care plutesc deasupra desktopului",
+      "titleLeading": "Locul tău liniștit\nca să ",
+      "titleHighlight": "gândești",
+      "titleTrailing": ".",
+      "description": "Scrie, desenează și schițează într-un spațiu calm, fără grabă. Lipește notițe deasupra oricărei ferestre. Totul se sincronizează în timp real — chiar și când ești offline.",
+      "secondaryCta": "Vezi ce conține",
+      "bullets": {
+        "noCard": "Fără card bancar",
+        "offline": "Merge offline",
+        "platforms": "Web · Desktop · Mobil"
+      }
+    },
+    "bento": {
+      "eyebrow": "Totul într-un singur loc",
+      "title": "Un caiet care, în sfârșit, ține pasul cu tine.",
+      "subtitle": "Cuvinte, desene, liste, notițe lipicioase — toate în același spațiu calm, toate sincronizate oriunde lucrezi.",
+      "draw": {
+        "eyebrow": "Desenează cu S Pen",
+        "title": "Schițează ideile chiar în clipa în care apar.",
+        "text": "Trasee sensibile la presiune, ignorarea palmei și o pânză care rămâne deoparte până când ai nevoie de ea."
+      },
+      "sticky": {
+        "eyebrow": "Mereu deasupra",
+        "title": "Notițe lipicioase care plutesc deasupra fiecărei ferestre.",
+        "text": "Instalează aplicația desktop și fixează notițe care rămân vizibile în timp ce lucrezi în orice altă aplicație."
+      },
+      "sync": {
+        "eyebrow": "Sincronizare în timp real",
+        "title": "Notițele tale, pe fiecare dispozitiv — instant.",
+        "text": "Scrie pe laptop, continuă pe telefon. Cursoare, selecții, modificări — toate live."
+      },
+      "offlineFirst": {
+        "title": "Offline-first",
+        "text": "Scrie mai departe în avion, în tunel, oriunde. Modificările se sincronizează imediat ce te reconectezi."
+      },
+      "speed": {
+        "title": "Construit pentru viteză",
+        "text": "Stocare local-first, căutare instant, fără spinnere. Gândurile tale nu trebuie să aștepte."
+      },
+      "keyboard": {
+        "title": "Tastatura mai întâi",
+        "tryPrefix": "O paletă de comenzi pentru tot. Încearcă",
+        "tryShortcut": "oriunde."
+      }
+    },
+    "useCases": {
+      "eyebrow": "Făcut pentru felul în care chiar lucrezi",
+      "title": "Liniștit, rapid și fără să-ți stea în drum.",
+      "thinkers": {
+        "tag": "Pentru gânditori",
+        "quote": "„Pare un caiet de hârtie care, în sfârșit, se sincronizează. Schițez dimineața și aceeași pagină e pe laptop la prânz.”",
+        "author": "Lena · Product designer"
+      },
+      "students": {
+        "tag": "Pentru studenți",
+        "quote": "„Notițele lipicioase fixate peste cursurile video mi-au schimbat felul în care învăț. Totul rămâne în flux.”",
+        "author": "Marcus · absolvent CS"
+      },
+      "makers": {
+        "tag": "Pentru creatori",
+        "quote": "„Combinația pânză + checklist e exact ce mi-am dorit dintotdeauna. Planific, schițez și livrez din același loc.”",
+        "author": "Iris · dezvoltatoare indie"
+      }
+    },
+    "testimonials": {
+      "badge": "Iubit de oameni care urăsc aplicațiile de notițe",
+      "title": "Ce spun primii utilizatori",
+      "q1": {
+        "quote": "Am încetat în sfârșit să pierd idei între Notion și Apple Notes. Capturarea rapidă e un cheat code.",
+        "author": "Maya R.",
+        "role": "fondatoare indie"
+      },
+      "q2": {
+        "quote": "Fereastra care stă deasupra e ceea ce Stickies ar fi trebuit să fie. Țin obiectivele sprintului acolo toată ziua.",
+        "author": "Damien K.",
+        "role": "staff engineer"
+      },
+      "q3": {
+        "quote": "Creierul meu cu ADHD adoră șablonul zilnic și tag-urile de estimare. Pot planifica o zi în 90 de secunde.",
+        "author": "Lex T.",
+        "role": "PM, fintech"
+      }
+    },
+    "finalCta": {
+      "badge": "O singură pânză pentru tot",
+      "titleLeading": "Pornește următorul gând\nîntr-un loc care ",
+      "titleHighlight": "te face să vrei să-l deschizi",
+      "titleTrailing": ".",
+      "description": "Gratuit pentru început. Fără card. Adu-ți S Pen-ul, laptopul, telefonul — Notai ține pasul.",
+      "offlineNote": "Merge online și offline din prima zi"
+    },
+    "skipLink": "Sari la conținut"
   }
 }
