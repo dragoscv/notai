@@ -2,6 +2,7 @@
 import * as React from 'react';
 import * as Y from 'yjs';
 import { Clock } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface Props {
   doc: Y.Doc;
@@ -18,6 +19,7 @@ const WORDS_PER_MINUTE = 220;
  */
 export function NoteStats({ doc }: Props) {
   const [stats, setStats] = React.useState({ words: 0, minutes: 0 });
+  const t = useTranslations('noteWorkspace.stats');
 
   React.useEffect(() => {
     const compute = () => {
@@ -56,13 +58,16 @@ export function NoteStats({ doc }: Props) {
   return (
     <span
       className="text-muted-foreground inline-flex items-center gap-1 text-xs"
-      title={`${stats.words.toLocaleString()} words \u00b7 ~${stats.minutes} min read`}
+      title={t('wordsTitle', {
+        count: stats.words.toLocaleString(),
+        time: `~${stats.minutes} min`,
+      })}
     >
       <span className="font-mono">{stats.words.toLocaleString()}</span>
-      <span>words</span>
+      <span>{t('wordsLabelShort')}</span>
       <span aria-hidden>&middot;</span>
       <Clock className="size-3" />
-      <span>{stats.minutes}m</span>
+      <span>{t('minutesShort', { minutes: stats.minutes })}</span>
     </span>
   );
 }

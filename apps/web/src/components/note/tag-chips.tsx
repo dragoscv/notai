@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { Hash, Plus, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import {
   attachTag,
   detachTag,
@@ -35,6 +36,7 @@ function colorFor(name: string) {
  * tagging feels like an afterthought (which is when people actually do it).
  */
 export function TagChips({ noteId }: { noteId: string }) {
+  const tr = useTranslations('noteWorkspace.tags');
   const [tags, setTags] = React.useState<Tag[]>([]);
   const [draft, setDraft] = React.useState('');
   const [showInput, setShowInput] = React.useState(false);
@@ -57,7 +59,7 @@ export function TagChips({ noteId }: { noteId: string }) {
         // Refresh the autocomplete pool so brand-new tags surface next time.
         void loadAllTags();
       } catch (err) {
-        toast.error((err as Error).message ?? "Couldn't add tag");
+        toast.error((err as Error).message ?? tr('couldntAdd'));
       }
     });
   };
@@ -103,11 +105,10 @@ export function TagChips({ noteId }: { noteId: string }) {
       // Drop ones already attached.
       const existing = new Set(tags.map((t) => t.name));
       const fresh = raw.filter((t) => !existing.has(t));
-      if (fresh.length === 0)
-        toast.message('No new tag ideas \u2014 try writing a bit more first.');
+      if (fresh.length === 0) toast.message(tr('noNewIdeas'));
       setSuggestions(fresh);
     } catch (err) {
-      toast.error((err as Error).message ?? "Couldn't suggest tags");
+      toast.error((err as Error).message ?? tr('couldntSuggest'));
     } finally {
       setSuggesting(false);
     }
@@ -155,7 +156,7 @@ export function TagChips({ noteId }: { noteId: string }) {
         setTags((arr) => (arr.some((x) => x.id === t.id) ? arr : [...arr, t]));
         setSuggestions((s) => s.filter((x) => x !== name));
       } catch (err) {
-        toast.error((err as Error).message ?? "Couldn't add tag");
+        toast.error((err as Error).message ?? tr('couldntAdd'));
       }
     });
 
@@ -181,7 +182,7 @@ export function TagChips({ noteId }: { noteId: string }) {
               type="button"
               onClick={() => remove(t.id)}
               className="hover:bg-foreground/10 ml-0.5 rounded-full p-0.5"
-              aria-label={`Remove tag ${t.name}`}
+              aria-label={tr('removeTag', { name: t.name })}
               disabled={pending}
             >
               <X className="size-2.5" />
@@ -221,7 +222,7 @@ export function TagChips({ noteId }: { noteId: string }) {
                 setHover((h) => (h - 1 + matches.length) % matches.length);
               }
             }}
-            placeholder="tag…"
+            placeholder={tr('placeholder')}
             className="text-foreground/80 placeholder:text-muted-foreground w-32 bg-transparent text-[11px] outline-none"
           />
           {matches.length > 0 && (
@@ -254,7 +255,7 @@ export function TagChips({ noteId }: { noteId: string }) {
           onClick={() => setShowInput(true)}
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-[11px]"
         >
-          <Plus className="size-3" /> tag
+          <Plus className="size-3" /> {tr('addTag')}
         </button>
       )}
       <button
@@ -262,10 +263,10 @@ export function TagChips({ noteId }: { noteId: string }) {
         onClick={requestSuggestions}
         disabled={suggesting}
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-[11px] disabled:opacity-50"
-        title="Suggest tags with AI"
+        title={tr('suggestTitle')}
       >
         <Sparkles className={suggesting ? 'size-3 animate-pulse' : 'size-3'} />
-        {suggesting ? 'thinking\u2026' : 'suggest'}
+        {suggesting ? tr('thinking') : tr('suggest')}
       </button>
       {suggestions.map((name) => (
         <button
@@ -274,7 +275,7 @@ export function TagChips({ noteId }: { noteId: string }) {
           onClick={() => acceptSuggestion(name)}
           disabled={pending}
           className={`inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-[11px] font-medium opacity-80 hover:opacity-100 ${colorFor(name)}`}
-          title="Click to accept this AI-suggested tag"
+          title={tr('acceptSuggestion')}
         >
           <Plus className="size-2.5" />
           {name}

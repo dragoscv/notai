@@ -12,6 +12,7 @@ import {
   AtSign,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@notai/ui/components/avatar';
 import { Textarea } from '@notai/ui/components/textarea';
@@ -52,6 +53,7 @@ export function NoteCommentsPanel({
   pendingAnchor,
   onPendingAnchorClear,
 }: NoteCommentsPanelProps) {
+  const t = useTranslations('noteWorkspace.comments');
   const [items, setItems] = React.useState<CommentRow[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [body, setBody] = React.useState('');
@@ -183,7 +185,7 @@ export function NoteCommentsPanel({
   };
 
   const onDelete = async (c: CommentRow) => {
-    if (!confirm('Delete this comment?')) return;
+    if (!confirm(t('deleteConfirm'))) return;
     try {
       await deleteComment({ id: c.id });
       await reload();
@@ -208,11 +210,11 @@ export function NoteCommentsPanel({
     <aside
       className="bg-card flex h-full w-[380px] shrink-0 flex-col border-l"
       data-focus-hide
-      aria-label="Note comments"
+      aria-label={t('panelAria')}
     >
       <header className="flex items-center gap-2 border-b px-3 py-2">
         <MessageCircle className="size-4 text-amber-500" />
-        <span className="text-sm font-semibold">Comments</span>
+        <span className="text-sm font-semibold">{t('heading')}</span>
         <span className="text-muted-foreground ml-1 text-xs">
           {items.length === 0 ? '' : `(${items.length})`}
         </span>
@@ -221,8 +223,8 @@ export function NoteCommentsPanel({
           variant="ghost"
           className="ml-auto"
           onClick={() => onOpenChange(false)}
-          aria-label="Close"
-          title="Close"
+          aria-label={t('close')}
+          title={t('close')}
         >
           <X className="size-3.5" />
         </Button>
@@ -232,16 +234,16 @@ export function NoteCommentsPanel({
         {loading ? (
           <div className="text-muted-foreground inline-flex items-center gap-2 text-xs">
             <Loader2 className="size-3.5 animate-spin" />
-            Loading…
+            {t('loading')}
           </div>
         ) : topLevel.length === 0 && !pendingAnchor ? (
           <div className="text-muted-foreground space-y-2 py-6 text-center text-xs">
             <MessageCircle className="text-primary mx-auto size-5" />
-            <p>No comments yet.</p>
+            <p>{t('emptyHeading')}</p>
             <p>
-              Start a conversation about this note.
+              {t('emptyHint1')}
               <br />
-              Tip: hover a block in the canvas → comment icon → discussion is anchored to it.
+              {t('emptyHint2')}
             </p>
           </div>
         ) : (
@@ -272,11 +274,15 @@ export function NoteCommentsPanel({
           <div className="text-muted-foreground mb-1 flex items-center gap-1 text-[11px]">
             <CornerDownRight className="size-3" />
             {replyTo ? (
-              <>Replying to {replyTo.author.name || replyTo.author.email || 'comment'}</>
+              <>
+                {t('replyingTo', {
+                  who: replyTo.author.name || replyTo.author.email || t('comment'),
+                })}
+              </>
             ) : pendingAnchor?.kind === 'block' ? (
-              <>Comment anchored to a block</>
+              <>{t('anchoredBlock')}</>
             ) : pendingAnchor?.kind === 'canvas' ? (
-              <>Comment anchored to canvas pin</>
+              <>{t('anchoredCanvas')}</>
             ) : null}
             <button
               type="button"
@@ -285,7 +291,7 @@ export function NoteCommentsPanel({
                 onPendingAnchorClear?.();
               }}
               className="hover:bg-accent ml-auto rounded"
-              aria-label="Clear context"
+              aria-label={t('clearContext')}
             >
               <X className="size-3" />
             </button>
@@ -325,7 +331,7 @@ export function NoteCommentsPanel({
                 }
               }
             }}
-            placeholder="Write a comment, use @ to mention…"
+            placeholder={t('placeholder')}
             rows={2}
             className="min-h-[2.25rem] resize-none border-0 bg-transparent text-sm shadow-none focus-visible:ring-0"
           />
@@ -333,7 +339,7 @@ export function NoteCommentsPanel({
             type="submit"
             size="icon-sm"
             disabled={body.trim().length < 1 || busy}
-            aria-label="Send"
+            aria-label={t('send')}
           >
             {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
           </Button>
@@ -356,7 +362,7 @@ export function NoteCommentsPanel({
                       {getInitials(u.name ?? '', u.email ?? '')}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="min-w-0 flex-1 truncate">{u.name || u.email || 'user'}</span>
+                  <span className="min-w-0 flex-1 truncate">{u.name || u.email || t('user')}</span>
                   {u.email && u.name && (
                     <span className="text-muted-foreground max-w-[120px] truncate text-[10px]">
                       {u.email}
@@ -369,7 +375,7 @@ export function NoteCommentsPanel({
         </div>
         <p className="text-muted-foreground mt-1 px-1 text-[10px]">
           <AtSign className="mr-0.5 inline size-2.5" />
-          mention any collaborator on this note
+          {t('mentionHint')}
         </p>
       </form>
     </aside>
@@ -425,6 +431,7 @@ function CommentRowView({
   onResolve?: () => void;
   onDelete?: () => void;
 }) {
+  const t = useTranslations('noteWorkspace.comments');
   const isResolved = !!comment.resolvedAt;
   return (
     <div className="space-y-1">
@@ -436,28 +443,28 @@ function CommentRowView({
           </AvatarFallback>
         </Avatar>
         <span className="text-xs font-medium">
-          {comment.author.name || comment.author.email || 'user'}
+          {comment.author.name || comment.author.email || t('user')}
         </span>
         <time
           dateTime={comment.createdAt}
           className="text-muted-foreground text-[10px]"
           title={new Date(comment.createdAt).toLocaleString()}
         >
-          {timeAgo(comment.createdAt)}
+          {timeAgo(comment.createdAt, t('now'))}
         </time>
         {comment.anchor.kind === 'block' && (
           <span className="text-muted-foreground rounded-full border px-1.5 py-0 text-[9px] uppercase">
-            block
+            {t('block')}
           </span>
         )}
         {comment.anchor.kind === 'canvas' && (
           <span className="text-muted-foreground rounded-full border px-1.5 py-0 text-[9px] uppercase">
-            pin
+            {t('pin')}
           </span>
         )}
         {isResolved && (
           <span className="text-muted-foreground inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0 text-[9px] uppercase">
-            <Check className="size-2.5" /> resolved
+            <Check className="size-2.5" /> {t('resolved')}
           </span>
         )}
       </div>
@@ -465,7 +472,7 @@ function CommentRowView({
       <div className="text-muted-foreground flex gap-2 pl-8 text-[10px]">
         {onReply && (
           <button type="button" className="hover:text-foreground" onClick={onReply}>
-            Reply
+            {t('reply')}
           </button>
         )}
         {onResolve && (
@@ -476,11 +483,11 @@ function CommentRowView({
           >
             {isResolved ? (
               <>
-                <RotateCcw className="size-2.5" /> Reopen
+                <RotateCcw className="size-2.5" /> {t('reopen')}
               </>
             ) : (
               <>
-                <Check className="size-2.5" /> Resolve
+                <Check className="size-2.5" /> {t('resolve')}
               </>
             )}
           </button>
@@ -490,7 +497,7 @@ function CommentRowView({
             type="button"
             className="hover:text-destructive ml-auto inline-flex items-center gap-0.5"
             onClick={onDelete}
-            aria-label="Delete"
+            aria-label={t('deleteAria')}
           >
             <Trash2 className="size-2.5" />
           </button>
@@ -500,9 +507,9 @@ function CommentRowView({
   );
 }
 
-function timeAgo(iso: string) {
+function timeAgo(iso: string, nowLabel = 'now') {
   const ms = Date.now() - new Date(iso).getTime();
-  if (ms < 60_000) return 'now';
+  if (ms < 60_000) return nowLabel;
   if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
   if (ms < 86_400_000) return `${Math.round(ms / 3_600_000)}h`;
   if (ms < 7 * 86_400_000) return `${Math.round(ms / 86_400_000)}d`;

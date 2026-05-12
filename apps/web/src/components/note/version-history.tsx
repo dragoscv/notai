@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { History, RefreshCcw, Loader2, Trash2, GitCompare, Tag } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
 import {
   listVersions,
@@ -110,6 +111,7 @@ function diffLines(a: string, b: string): DiffLine[] {
  * the current Y.Doc — open windows reconnect on next load.
  */
 export function VersionHistory({ noteId }: { noteId: string }) {
+  const t = useTranslations('noteWorkspace.versions');
   const [open, setOpen] = React.useState(false);
   const [versions, setVersions] = React.useState<Version[] | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -154,7 +156,7 @@ export function VersionHistory({ noteId }: { noteId: string }) {
     startTransition(async () => {
       try {
         await restoreVersion({ noteId, versionId: v.id });
-        toast.success('Restored. Reload other windows to see the change.');
+        toast.success(t('restored'));
         setOpen(false);
       } catch (err) {
         toast.error((err as Error).message);
@@ -175,13 +177,13 @@ export function VersionHistory({ noteId }: { noteId: string }) {
         onClick={() => setOpen(true)}
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs"
       >
-        <History className="size-3.5" /> History
+        <History className="size-3.5" /> {t('trigger')}
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <History className="size-4" /> Version history
+              <History className="size-4" /> {t('title')}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
@@ -192,9 +194,7 @@ export function VersionHistory({ noteId }: { noteId: string }) {
                 </li>
               )}
               {versions?.length === 0 && (
-                <li className="text-muted-foreground p-3 text-center">
-                  No snapshots yet. Edits become snapshots after activity.
-                </li>
+                <li className="text-muted-foreground p-3 text-center">{t('empty')}</li>
               )}
               {versions?.map((v) => (
                 <li
@@ -217,7 +217,7 @@ export function VersionHistory({ noteId }: { noteId: string }) {
                   <button
                     type="button"
                     onClick={async () => {
-                      const next = window.prompt('Label this snapshot:', v.label ?? '');
+                      const next = window.prompt(t('labelPrompt'), v.label ?? '');
                       if (next === null) return;
                       try {
                         await labelVersion({
@@ -232,13 +232,13 @@ export function VersionHistory({ noteId }: { noteId: string }) {
                               )
                             : rows,
                         );
-                        toast.success('Label saved');
+                        toast.success(t('labelSaved'));
                       } catch (err) {
                         toast.error((err as Error).message);
                       }
                     }}
                     className="text-muted-foreground hover:text-foreground p-1"
-                    aria-label="Label snapshot"
+                    aria-label={t('labelAria')}
                     disabled={pending}
                   >
                     <Tag className="size-3.5" />
@@ -247,7 +247,7 @@ export function VersionHistory({ noteId }: { noteId: string }) {
                     type="button"
                     onClick={() => remove(v)}
                     className="text-muted-foreground hover:text-destructive p-1"
-                    aria-label="Delete snapshot"
+                    aria-label={t('deleteAria')}
                     disabled={pending}
                   >
                     <Trash2 className="size-3.5" />
@@ -258,7 +258,7 @@ export function VersionHistory({ noteId }: { noteId: string }) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-muted-foreground text-[11px] uppercase tracking-wide">
-                  {showDiff ? 'Diff vs current' : 'Snapshot preview'}
+                  {showDiff ? t('diffHeading') : t('previewHeading')}
                 </p>
                 {selected && (
                   <button
@@ -267,13 +267,13 @@ export function VersionHistory({ noteId }: { noteId: string }) {
                     className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px]"
                   >
                     <GitCompare className="size-3" />
-                    {showDiff ? 'Plain preview' : 'Compare with current'}
+                    {showDiff ? t('plainPreview') : t('compare')}
                   </button>
                 )}
               </div>
               <div className="bg-card max-h-[60vh] overflow-y-auto rounded-lg border p-4 text-sm">
                 {!selected ? (
-                  <span className="text-muted-foreground">Select a snapshot to preview.</span>
+                  <span className="text-muted-foreground">{t('selectToPreview')}</span>
                 ) : showDiff ? (
                   <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
                     {(() => {
@@ -328,7 +328,9 @@ export function VersionHistory({ noteId }: { noteId: string }) {
                     })()}
                   </pre>
                 ) : (
-                  <span className="whitespace-pre-wrap">{selected.preview || '(empty)'}</span>
+                  <span className="whitespace-pre-wrap">
+                    {selected.preview || t('emptyPreview')}
+                  </span>
                 )}
               </div>
               {selected && (
@@ -338,7 +340,7 @@ export function VersionHistory({ noteId }: { noteId: string }) {
                   disabled={pending}
                   className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-3 py-1.5 text-xs text-white disabled:opacity-50"
                 >
-                  <RefreshCcw className="size-3.5" /> Restore this version
+                  <RefreshCcw className="size-3.5" /> {t('restore')}
                 </button>
               )}
             </div>

@@ -2,6 +2,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Bell, BellRing, Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@notai/ui/components/popover';
 import { cn } from '@notai/lib/utils';
@@ -18,6 +19,7 @@ export function NotificationBell() {
   const [items, setItems] = React.useState<NotificationRow[]>([]);
   const [unread, setUnread] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
+  const t = useTranslations('sidebarTree.notifications');
 
   const refreshCount = React.useCallback(async () => {
     try {
@@ -63,7 +65,7 @@ export function NotificationBell() {
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label={unread > 0 ? `${unread} unread notifications` : 'Notifications'}
+          aria-label={unread > 0 ? t('openLabelUnread', { count: unread }) : t('openLabel')}
           className="relative"
         >
           {unread > 0 ? <BellRing className="size-4" /> : <Bell className="size-4" />}
@@ -76,7 +78,7 @@ export function NotificationBell() {
       </PopoverTrigger>
       <PopoverContent align="end" side="bottom" sideOffset={6} className="w-[340px] p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
-          <span className="text-sm font-semibold">Notifications</span>
+          <span className="text-sm font-semibold">{t('heading')}</span>
           <button
             type="button"
             className="text-muted-foreground hover:text-foreground text-[11px]"
@@ -92,19 +94,17 @@ export function NotificationBell() {
               }
             }}
           >
-            Mark all read
+            {t('markAllRead')}
           </button>
         </div>
         <div className="max-h-[60vh] overflow-y-auto py-1">
           {loading ? (
             <div className="text-muted-foreground inline-flex items-center gap-2 px-3 py-3 text-xs">
               <Loader2 className="size-3.5 animate-spin" />
-              Loading…
+              {t('loading')}
             </div>
           ) : items.length === 0 ? (
-            <p className="text-muted-foreground px-3 py-6 text-center text-xs">
-              No notifications yet.
-            </p>
+            <p className="text-muted-foreground px-3 py-6 text-center text-xs">{t('empty')}</p>
           ) : (
             <ul className="divide-y">
               {groupNotifications(items).map((g) => (
@@ -149,18 +149,22 @@ function NotificationItem({
   onClick: () => void;
   extraCount?: number;
 }) {
+  const t = useTranslations('sidebarTree.notifications');
   const noteId = n.payload.noteId;
   const href = noteId
     ? `/app/n/${noteId}${n.payload.commentId ? `?comment=${n.payload.commentId}` : ''}`
     : '#';
   const verb =
     n.kind === 'comment_mention'
-      ? 'mentioned you'
+      ? t('verbMention')
       : n.kind === 'comment_reply'
-        ? 'replied to your comment'
+        ? t('verbReply')
         : n.kind === 'daily_digest'
-          ? `wrapped up your day — ${n.payload.editedCount ?? 0} edited, ${n.payload.createdCount ?? 0} new`
-          : 'invited you';
+          ? t('verbDigest', {
+              edited: n.payload.editedCount ?? 0,
+              created: n.payload.createdCount ?? 0,
+            })
+          : t('verbInvite');
   return (
     <Link
       href={href}
@@ -171,21 +175,25 @@ function NotificationItem({
       )}
     >
       <div className="flex items-baseline gap-2">
-        <span className="text-xs font-medium">{n.payload.fromUserName ?? 'Someone'}</span>
+        <span className="text-xs font-medium">{n.payload.fromUserName ?? t('someone')}</span>
         <span className="text-muted-foreground text-[11px]">
-          {extraCount > 0 ? `and ${extraCount} other${extraCount === 1 ? '' : 's'} ${verb}` : verb}
+          {extraCount > 0
+            ? extraCount === 1
+              ? t('andOthersOne', { verb })
+              : t('andOthersOther', { count: extraCount, verb })
+            : verb}
         </span>
         <time
           className="text-muted-foreground ml-auto text-[10px]"
           dateTime={n.createdAt}
           title={new Date(n.createdAt).toLocaleString()}
         >
-          {timeAgo(n.createdAt)}
+          {timeAgo(n.createdAt, t('now'))}
         </time>
       </div>
       {n.payload.noteTitle && (
         <p className="text-muted-foreground mt-0.5 truncate text-[11px]">
-          in <span className="text-foreground/80">{n.payload.noteTitle}</span>
+          {t('inPrefix')} <span className="text-foreground/80">{n.payload.noteTitle}</span>
         </p>
       )}
       {n.payload.snippet && <p className="mt-0.5 line-clamp-2 text-xs">{n.payload.snippet}</p>}
@@ -193,9 +201,9 @@ function NotificationItem({
   );
 }
 
-function timeAgo(iso: string) {
+function timeAgo(iso: string, nowLabel = 'now') {
   const ms = Date.now() - new Date(iso).getTime();
-  if (ms < 60_000) return 'now';
+  if (ms < 60_000) return nowLabel;
   if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
   if (ms < 86_400_000) return `${Math.round(ms / 3_600_000)}h`;
   if (ms < 7 * 86_400_000) return `${Math.round(ms / 86_400_000)}d`;

@@ -12,6 +12,7 @@ import {
   Tag,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import {
   DropdownMenu,
@@ -106,6 +107,7 @@ export function SidebarBulkBar({ folders }: { folders: Folder[] }) {
   const router = useRouter();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const [pending, startTransition] = React.useTransition();
+  const t = useTranslations('sidebarTree.bulk');
 
   if (!enabled || selected.size === 0) {
     return confirmDialog;
@@ -113,53 +115,58 @@ export function SidebarBulkBar({ folders }: { folders: Folder[] }) {
 
   const ids = [...selected];
 
-  const runPatch = (patch: Parameters<typeof bulkUpdateNotes>[0]['patch'], label: string) => {
+  const runPatch = (
+    patch: Parameters<typeof bulkUpdateNotes>[0]['patch'],
+    successOne: string,
+    successOther: string,
+    failKey: string,
+  ) => {
     startTransition(async () => {
       try {
         const { updated } = await bulkUpdateNotes({ ids, patch });
-        toast.success(`${label} ${updated} note${updated === 1 ? '' : 's'}`);
+        toast.success(updated === 1 ? t(successOne) : t(successOther, { count: updated }));
         clear();
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : `${label} failed`);
+        toast.error(err instanceof Error ? err.message : t(failKey));
       }
     });
   };
 
   const move = (folderId: string | null) => {
-    runPatch({ folderId }, 'Moved');
+    runPatch({ folderId }, 'movedOne', 'movedOther', 'moveFailed');
   };
 
   const tagAll = () => {
-    const raw = window.prompt('Tag name to apply to selected notes (e.g. "work/clients/acme")');
+    const raw = window.prompt(t('tagPrompt'));
     if (!raw || !raw.trim()) return;
     startTransition(async () => {
       try {
         const { attached } = await bulkAttachTag({ noteIds: ids, name: raw });
-        toast.success(`Tagged ${attached} note${attached === 1 ? '' : 's'}`);
+        toast.success(attached === 1 ? t('taggedOne') : t('taggedOther', { count: attached }));
         clear();
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Tag failed');
+        toast.error(err instanceof Error ? err.message : t('tagFailed'));
       }
     });
   };
 
   const doDelete = () => {
     confirm({
-      title: `Delete ${ids.length} note${ids.length === 1 ? '' : 's'}?`,
-      description: 'They will move to trash and can be restored for 30 days.',
+      title: ids.length === 1 ? t('deleteTitleOne') : t('deleteTitleOther', { count: ids.length }),
+      description: t('deleteBody'),
       destructive: true,
-      confirmLabel: 'Delete',
+      confirmLabel: t('delete'),
       onConfirm: () => {
         startTransition(async () => {
           try {
             const { deleted } = await bulkDeleteNotes(ids);
-            toast.success(`Deleted ${deleted} note${deleted === 1 ? '' : 's'}`);
+            toast.success(deleted === 1 ? t('deletedOne') : t('deletedOther', { count: deleted }));
             clear();
             router.refresh();
           } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Delete failed');
+            toast.error(err instanceof Error ? err.message : t('deleteFailed'));
           }
         });
       },
@@ -171,14 +178,14 @@ export function SidebarBulkBar({ folders }: { folders: Folder[] }) {
       {confirmDialog}
       <div className="bg-card/95 border-primary/20 sticky bottom-0 z-10 mx-2 mb-2 flex flex-col gap-1.5 rounded-xl border p-2 shadow-lg backdrop-blur">
         <div className="flex items-center justify-between gap-2 px-1">
-          <span className="text-xs font-medium">{ids.length} selected</span>
+          <span className="text-xs font-medium">{t('selectedCount', { count: ids.length })}</span>
           <Button
             size="icon-sm"
             variant="ghost"
             onClick={clear}
             disabled={pending}
-            aria-label="Cancel selection"
-            title="Cancel (Esc)"
+            aria-label={t('cancelSelection')}
+            title={t('cancelEsc')}
           >
             <X className="size-3.5" />
           </Button>
@@ -187,38 +194,46 @@ export function SidebarBulkBar({ folders }: { folders: Folder[] }) {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => runPatch({ isArchived: true }, 'Archived')}
+            onClick={() =>
+              runPatch({ isArchived: true }, 'archivedOne', 'archivedOther', 'archiveFailed')
+            }
             disabled={pending}
           >
-            <Archive className="size-3.5" /> Archive
+            <Archive className="size-3.5" /> {t('archive')}
           </Button>
           <Button
             size="sm"
             variant="outline"
-            onClick={() => runPatch({ isArchived: false }, 'Restored')}
+            onClick={() =>
+              runPatch({ isArchived: false }, 'restoredOne', 'restoredOther', 'restoreFailed')
+            }
             disabled={pending}
           >
-            <ArchiveRestore className="size-3.5" /> Unarchive
+            <ArchiveRestore className="size-3.5" /> {t('unarchive')}
           </Button>
           <Button
             size="sm"
             variant="outline"
-            onClick={() => runPatch({ isFavorite: true }, 'Favorited')}
+            onClick={() =>
+              runPatch({ isFavorite: true }, 'favoritedOne', 'favoritedOther', 'favoriteFailed')
+            }
             disabled={pending}
           >
-            <Star className="size-3.5" /> Favorite
+            <Star className="size-3.5" /> {t('favorite')}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" variant="outline" disabled={pending}>
-                <FolderInput className="size-3.5" /> Move
+                <FolderInput className="size-3.5" /> {t('move')}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="max-h-80 w-56 overflow-y-auto">
-              <DropdownMenuLabel>Move to…</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('moveTo')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => move(null)}>(Root, no folder)</DropdownMenuItem>
-              {folders.length === 0 && <DropdownMenuItem disabled>No folders yet</DropdownMenuItem>}
+              <DropdownMenuItem onSelect={() => move(null)}>{t('rootNoFolder')}</DropdownMenuItem>
+              {folders.length === 0 && (
+                <DropdownMenuItem disabled>{t('noFoldersYet')}</DropdownMenuItem>
+              )}
               {folders.map((f) => (
                 <DropdownMenuItem key={f.id} onSelect={() => move(f.id)}>
                   {f.name}
@@ -227,7 +242,7 @@ export function SidebarBulkBar({ folders }: { folders: Folder[] }) {
             </DropdownMenuContent>
           </DropdownMenu>
           <Button size="sm" variant="outline" onClick={tagAll} disabled={pending}>
-            <Tag className="size-3.5" /> Tag
+            <Tag className="size-3.5" /> {t('tag')}
           </Button>
           <Button
             size="sm"
@@ -236,7 +251,7 @@ export function SidebarBulkBar({ folders }: { folders: Folder[] }) {
             disabled={pending}
             className="ml-auto"
           >
-            <Trash2 className="size-3.5" /> Delete
+            <Trash2 className="size-3.5" /> {t('delete')}
           </Button>
         </div>
       </div>
@@ -258,6 +273,7 @@ export function SidebarSelectCheckbox({
   className?: string;
 }) {
   const { enabled, selected, toggle } = useSidebarSelection();
+  const t = useTranslations('sidebarTree.bulk');
   if (!enabled) return null;
   const isSelected = selected.has(noteId);
   return (
@@ -269,7 +285,7 @@ export function SidebarSelectCheckbox({
         toggle(noteId);
       }}
       className={className}
-      aria-label={isSelected ? 'Deselect' : 'Select'}
+      aria-label={isSelected ? t('deselect') : t('select')}
     >
       <CheckSquare
         className={isSelected ? 'text-primary size-3.5' : 'text-muted-foreground/50 size-3.5'}

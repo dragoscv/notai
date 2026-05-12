@@ -15,6 +15,7 @@ import { Input } from '@notai/ui/components/input';
 import { Label } from '@notai/ui/components/label';
 import { getInitials } from '@notai/lib/utils';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import {
   inviteToNote,
   listShare,
@@ -41,13 +42,14 @@ export function ShareDialog({
   const [loading, setLoading] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
   const isOwner = ownerId === currentUserId;
+  const t = useTranslations('noteWorkspace.share');
 
   React.useEffect(() => {
     if (!open) return;
     setLoading(true);
     listShare(noteId)
       .then(setRows)
-      .catch(() => toast.error("Couldn't load share details"))
+      .catch(() => toast.error(t('couldntLoad')))
       .finally(() => setLoading(false));
   }, [open, noteId]);
 
@@ -63,13 +65,13 @@ export function ShareDialog({
     startTransition(async () => {
       try {
         const res = await inviteToNote({ noteId, email: email.trim(), role });
-        if (res.status === 'added') toast.success('Added to the note');
-        else if (res.status === 'invited') toast.success(`Invite sent to ${email}`);
-        else if (res.status === 'already_owner') toast.info("That's you 🙂");
+        if (res.status === 'added') toast.success(t('added'));
+        else if (res.status === 'invited') toast.success(t('invited', { email }));
+        else if (res.status === 'already_owner') toast.info(t('alreadyOwner'));
         setEmail('');
         refresh();
       } catch (err) {
-        toast.error((err as Error).message ?? 'Invite failed');
+        toast.error((err as Error).message ?? t('inviteFailed'));
       }
     });
   };
@@ -78,16 +80,14 @@ export function ShareDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2 text-xs">
-          <Users className="size-3.5" /> Share
+          <Users className="size-3.5" /> {t('trigger')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Share this note</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            {isOwner
-              ? 'Invite anyone by email. They get a link to open the note in real time.'
-              : 'You have access to this note. Only the owner can invite others.'}
+            {isOwner ? t('descriptionOwner') : t('descriptionGuest')}
           </DialogDescription>
         </DialogHeader>
 
@@ -96,13 +96,13 @@ export function ShareDialog({
         {isOwner && (
           <form onSubmit={onInvite} className="flex flex-col gap-2">
             <Label htmlFor="invite-email" className="text-xs font-medium">
-              Email
+              {t('emailLabel')}
             </Label>
             <div className="flex gap-2">
               <Input
                 id="invite-email"
                 type="email"
-                placeholder="teammate@example.com"
+                placeholder={t('emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -112,13 +112,13 @@ export function ShareDialog({
                 value={role}
                 onChange={(e) => setRole(e.target.value as 'editor' | 'viewer')}
                 className="bg-background h-9 rounded-md border px-2 text-sm"
-                aria-label="Role"
+                aria-label={t('roleAria')}
               >
-                <option value="editor">Can edit</option>
-                <option value="viewer">Can view</option>
+                <option value="editor">{t('roleEditor')}</option>
+                <option value="viewer">{t('roleViewer')}</option>
               </select>
               <Button type="submit" disabled={pending || !email.trim()}>
-                {pending ? <Loader2 className="size-4 animate-spin" /> : 'Invite'}
+                {pending ? <Loader2 className="size-4 animate-spin" /> : t('invite')}
               </Button>
             </div>
           </form>
@@ -126,11 +126,11 @@ export function ShareDialog({
 
         <div className="mt-2">
           <p className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wide">
-            People with access
+            {t('peopleHeading')}
           </p>
           {loading ? (
             <p className="text-muted-foreground py-4 text-center text-sm">
-              <Loader2 className="mr-2 inline size-4 animate-spin" /> Loading…
+              <Loader2 className="mr-2 inline size-4 animate-spin" /> {t('loading')}
             </p>
           ) : (
             <ul className="divide-border divide-y rounded-md border">
@@ -145,13 +145,13 @@ export function ShareDialog({
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm">{r.name || r.email || 'User'}</p>
+                        <p className="truncate text-sm">{r.name || r.email || t('userFallback')}</p>
                         {r.email && (
                           <p className="text-muted-foreground truncate text-xs">{r.email}</p>
                         )}
                       </div>
                       {r.role === 'owner' ? (
-                        <span className="text-muted-foreground text-xs">Owner</span>
+                        <span className="text-muted-foreground text-xs">{t('owner')}</span>
                       ) : isOwner ? (
                         <>
                           <select
@@ -169,13 +169,13 @@ export function ShareDialog({
                             }}
                             className="bg-background h-7 rounded border px-1.5 text-xs"
                           >
-                            <option value="editor">Editor</option>
-                            <option value="viewer">Viewer</option>
+                            <option value="editor">{t('editor')}</option>
+                            <option value="viewer">{t('viewer')}</option>
                           </select>
                           <Button
                             size="icon-sm"
                             variant="ghost"
-                            aria-label="Remove"
+                            aria-label={t('remove')}
                             onClick={() =>
                               startTransition(async () => {
                                 await removeCollaborator({ noteId, userId: r.userId });
@@ -198,14 +198,17 @@ export function ShareDialog({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm">{r.email}</p>
                         <p className="text-muted-foreground text-xs">
-                          Invited as {r.role} · expires {new Date(r.expiresAt).toLocaleDateString()}
+                          {t('invitedAs', {
+                            role: r.role,
+                            date: new Date(r.expiresAt).toLocaleDateString(),
+                          })}
                         </p>
                       </div>
                       {isOwner && (
                         <Button
                           size="icon-sm"
                           variant="ghost"
-                          aria-label="Revoke invite"
+                          aria-label={t('revoke')}
                           onClick={() =>
                             startTransition(async () => {
                               await revokeInvite({ inviteId: r.inviteId, noteId });
@@ -222,7 +225,7 @@ export function ShareDialog({
               ))}
               {rows.length === 0 && (
                 <li className="text-muted-foreground flex items-center gap-2 px-3 py-3 text-sm">
-                  <UserRound className="size-4" /> Just you so far.
+                  <UserRound className="size-4" /> {t('justYou')}
                 </li>
               )}
             </ul>

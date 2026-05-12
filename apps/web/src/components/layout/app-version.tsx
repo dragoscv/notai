@@ -2,9 +2,15 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 import { RefreshCw, AlertTriangle, Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { isTauri, invoke } from '@/lib/tauri';
 import { cn } from '@notai/lib/utils';
-import { showUpdateAvailableToast, showUpToDateToast, type UpdateInfo } from './update-toast';
+import {
+  showUpdateAvailableToast,
+  showUpToDateToast,
+  type UpdateInfo,
+  type UpdateToastLabels,
+} from './update-toast';
 
 const WEB_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.0.0';
 const REALTIME_VERSION = process.env.NEXT_PUBLIC_REALTIME_VERSION ?? '0.0.0';
@@ -15,6 +21,20 @@ export function AppVersion({ collapsed }: { collapsed?: boolean }) {
   const [desktopVersion, setDesktopVersion] = React.useState<string | null>(null);
   const [state, setState] = React.useState<CheckState>('idle');
   const inTauri = isTauri();
+  const tUp = useTranslations('sidebarTree.updater');
+  const tVer = useTranslations('sidebarTree.version');
+  const labels = React.useMemo<UpdateToastLabels>(
+    () => ({
+      available: (version) => tUp('available', { version }),
+      youAreOn: (current) => tUp('youAreOn', { current }),
+      installRestart: tUp('installRestart'),
+      downloading: tUp('downloading'),
+      updateFailed: (error) => tUp('updateFailed', { error }),
+      later: tUp('later'),
+      upToDate: (current) => tUp('upToDate', { current }),
+    }),
+    [tUp],
+  );
 
   React.useEffect(() => {
     if (!inTauri) return;
@@ -59,13 +79,13 @@ export function AppVersion({ collapsed }: { collapsed?: boolean }) {
       const info = await invoke<UpdateInfo | null>('check_for_update');
       if (info) {
         setState('available');
-        showUpdateAvailableToast(info);
+        showUpdateAvailableToast(info, labels);
       } else {
         setState('uptodate');
-        showUpToDateToast(desktopVersion ?? WEB_VERSION);
+        showUpToDateToast(desktopVersion ?? WEB_VERSION, labels);
       }
     } catch (err) {
-      toast.error(`Update check failed: ${String(err)}`, { duration: 5000 });
+      toast.error(tVer('checkFailed', { error: String(err) }), { duration: 5000 });
       setState('idle');
     }
   };
@@ -95,12 +115,12 @@ export function AppVersion({ collapsed }: { collapsed?: boolean }) {
         : 'text-muted-foreground/70 hover:text-foreground';
   const tooltip =
     state === 'available'
-      ? 'Update available — click to install'
+      ? tVer('available')
       : state === 'uptodate'
-        ? 'You are on the latest version'
+        ? tVer('upToDate')
         : state === 'checking'
-          ? 'Checking for updates…'
-          : 'Check for updates';
+          ? tVer('checking')
+          : tVer('check');
 
   return (
     <div className="text-muted-foreground/70 flex items-center gap-1.5 px-3 pb-1 pt-0.5 text-[10px] leading-tight">

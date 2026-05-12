@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, FileText, Loader2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { applyTemplate, listTemplates, type TemplateSummary } from '@/server/actions/templates';
 
 /**
@@ -17,6 +18,7 @@ export function NewFromTemplateButton({ folderId }: { folderId?: string | null }
   const [open, setOpen] = React.useState(false);
   const [templates, setTemplates] = React.useState<TemplateSummary[] | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
+  const t = useTranslations('sidebarTree.newFromTemplate');
 
   React.useEffect(() => {
     if (!open) return;
@@ -36,7 +38,7 @@ export function NewFromTemplateButton({ folderId }: { folderId?: string | null }
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       if (!msg.includes('NEXT_REDIRECT')) {
-        toast.error(msg || 'Could not apply template');
+        toast.error(msg || t('couldNotApply'));
       }
     } finally {
       setBusy(null);
@@ -52,8 +54,8 @@ export function NewFromTemplateButton({ folderId }: { folderId?: string | null }
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        title="New from template"
-        aria-label="New from template"
+        title={t('openLabel')}
+        aria-label={t('openLabel')}
         className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex size-7 items-center justify-center rounded-md"
       >
         <ChevronDown className="size-3.5" />
@@ -64,50 +66,50 @@ export function NewFromTemplateButton({ folderId }: { folderId?: string | null }
             type="button"
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-10"
-            aria-label="Close template picker"
+            aria-label={t('closePicker')}
           />
           <div className="bg-popover absolute right-0 z-20 mt-1 max-h-[60vh] w-72 overflow-y-auto rounded-lg border text-sm shadow-md">
             <div className="text-muted-foreground border-b px-3 py-2 text-[11px] uppercase tracking-wider">
-              Start from template
+              {t('header')}
             </div>
             {templates == null ? (
               <div className="text-muted-foreground flex items-center gap-2 px-3 py-3 text-xs">
-                <Loader2 className="size-3 animate-spin" /> Loading…
+                <Loader2 className="size-3 animate-spin" /> {t('loading')}
               </div>
             ) : templates.length === 0 ? (
               <div className="text-muted-foreground px-3 py-3 text-xs">
-                No templates yet. Visit{' '}
+                {t('noTemplatesPrefix')}
                 <a className="underline" href="/app/templates">
                   /app/templates
-                </a>{' '}
-                to add one.
+                </a>
+                {t('noTemplatesSuffix')}
               </div>
             ) : (
               <ul>
-                {templates.map((t) => {
-                  const isBusy = busy === t.slug;
+                {templates.map((tpl) => {
+                  const isBusy = busy === tpl.slug;
                   return (
-                    <li key={t.slug}>
+                    <li key={tpl.slug}>
                       <button
                         type="button"
                         disabled={isBusy || busy != null}
-                        onClick={() => void pick(t.slug)}
+                        onClick={() => void pick(tpl.slug)}
                         className="hover:bg-muted flex w-full items-start gap-3 px-3 py-2 text-left disabled:opacity-60"
                       >
                         <span className="mt-0.5 text-base" aria-hidden>
-                          {t.icon ?? '📄'}
+                          {tpl.icon ?? '📄'}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium">{t.title}</span>
-                          {t.description && (
+                          <span className="block truncate font-medium">{tpl.title}</span>
+                          {tpl.description && (
                             <span className="text-muted-foreground block truncate text-xs">
-                              {t.description}
+                              {tpl.description}
                             </span>
                           )}
                         </span>
                         {isBusy ? (
                           <Loader2 className="mt-1 size-3.5 animate-spin" />
-                        ) : t.isOfficial ? (
+                        ) : tpl.isOfficial ? (
                           <Sparkles className="mt-1 size-3.5 text-amber-500" />
                         ) : (
                           <FileText className="text-muted-foreground mt-1 size-3.5" />
@@ -122,7 +124,7 @@ export function NewFromTemplateButton({ folderId }: { folderId?: string | null }
               href="/app/templates"
               className="text-muted-foreground hover:bg-muted block border-t px-3 py-2 text-xs"
             >
-              Manage templates →
+              {t('manage')}
             </a>
           </div>
         </>

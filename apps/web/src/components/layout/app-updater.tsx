@@ -1,8 +1,9 @@
 'use client';
 import * as React from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { isTauri, invoke } from '@/lib/tauri';
-import { showUpdateAvailableToast, type UpdateInfo } from './update-toast';
+import { showUpdateAvailableToast, type UpdateInfo, type UpdateToastLabels } from './update-toast';
 
 const POLL_MS = 60 * 60 * 1000; // re-check every hour while the app is open
 
@@ -21,6 +22,19 @@ const POLL_MS = 60 * 60 * 1000; // re-check every hour while the app is open
  *    over, offer a Reload toast.
  */
 export function AppUpdater() {
+  const t = useTranslations('sidebarTree.updater');
+  const labels = React.useMemo<UpdateToastLabels>(
+    () => ({
+      available: (version) => t('available', { version }),
+      youAreOn: (current) => t('youAreOn', { current }),
+      installRestart: t('installRestart'),
+      downloading: t('downloading'),
+      updateFailed: (error) => t('updateFailed', { error }),
+      later: t('later'),
+      upToDate: (current) => t('upToDate', { current }),
+    }),
+    [t],
+  );
   React.useEffect(() => {
     if (isTauri()) {
       let cancelled = false;
@@ -31,7 +45,7 @@ export function AppUpdater() {
         try {
           const info = await invoke<UpdateInfo | null>('check_for_update');
           if (cancelled || !info) return;
-          showUpdateAvailableToast(info);
+          showUpdateAvailableToast(info, labels);
         } catch {
           // offline, GitHub rate-limit, or command missing — silent.
         }
@@ -41,7 +55,7 @@ export function AppUpdater() {
         try {
           const { listen } = await import('@tauri-apps/api/event');
           const un = await listen<UpdateInfo>('updater://available', (ev) => {
-            if (ev.payload) showUpdateAvailableToast(ev.payload);
+            if (ev.payload) showUpdateAvailableToast(ev.payload, labels);
           });
           if (cancelled) un();
           else unlisten = un;
@@ -72,11 +86,11 @@ export function AppUpdater() {
     const onControllerChange = () => {
       if (reloaded) return;
       reloaded = true;
-      toast('Notai updated — reload to apply', {
+      toast(t('pwaUpdated'), {
         id: 'pwa-updated',
         duration: 10_000,
         action: {
-          label: 'Reload',
+          label: t('reload'),
           onClick: () => window.location.reload(),
         },
       });
@@ -95,7 +109,7 @@ export function AppUpdater() {
     return () => {
       navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
     };
-  }, []);
+  }, [labels, t]);
 
   return null;
 }

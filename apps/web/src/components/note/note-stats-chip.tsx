@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Clock } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 /**
  * Small chip showing word count + estimated reading time for the note's
@@ -13,6 +14,7 @@ import { Clock } from 'lucide-react';
  * report as "<1 min".
  */
 export function NoteStatsChip({ plaintext }: { plaintext: string | null }) {
+  const t = useTranslations('noteWorkspace.stats');
   const stats = React.useMemo(() => {
     const text = (plaintext ?? '').trim();
     if (!text) return { words: 0, minutes: 0 };
@@ -23,14 +25,19 @@ export function NoteStatsChip({ plaintext }: { plaintext: string | null }) {
 
   if (stats.words === 0) return null;
 
-  const wordsLabel = stats.words.toLocaleString('en-US');
-  const timeLabel = stats.words < 200 ? '<1 min' : `${stats.minutes} min`;
+  const wordsLabel = stats.words.toLocaleString();
+  const timeLabel =
+    stats.words < 200 ? t('lessThanMin') : t('minLabel', { minutes: stats.minutes });
 
   return (
     <span
       className="text-muted-foreground hidden items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs sm:inline-flex"
-      title={`${wordsLabel} words · ${timeLabel} read`}
-      aria-label={`${wordsLabel} words, about ${timeLabel} to read`}
+      title={t('wordsTitle', { count: wordsLabel, time: timeLabel })}
+      aria-label={
+        stats.words === 1
+          ? t('wordsAriaOne', { time: timeLabel })
+          : t('wordsAriaOther', { count: wordsLabel, time: timeLabel })
+      }
     >
       <Clock className="size-3" />
       {wordsLabel} <span className="text-muted-foreground/70">·</span> {timeLabel}

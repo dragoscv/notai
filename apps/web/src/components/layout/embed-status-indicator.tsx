@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@notai/ui/components/tooltip';
 import { getEmbedBacklog } from '@/server/actions/embed-status';
 
@@ -14,6 +15,7 @@ const POLL_MS = 30_000;
  */
 export function EmbedStatusIndicator() {
   const [pending, setPending] = React.useState<number | null>(null);
+  const t = useTranslations('sidebarTree.embedStatus');
 
   React.useEffect(() => {
     let cancelled = false;
@@ -43,7 +45,9 @@ export function EmbedStatusIndicator() {
       <TooltipTrigger asChild>
         <span
           className="text-muted-foreground bg-muted/40 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]"
-          aria-label={`${pending} notes indexing`}
+          aria-label={
+            pending === 1 ? t('indexingLabelOne') : t('indexingLabelOther', { count: pending })
+          }
         >
           <Loader2 className="size-3 animate-spin" />
           <Sparkles className="size-3" />
@@ -51,8 +55,7 @@ export function EmbedStatusIndicator() {
         </span>
       </TooltipTrigger>
       <TooltipContent side="bottom">
-        Indexing {pending} note{pending === 1 ? '' : 's'} for AI search \u2014 Related notes & Ask
-        will catch up shortly.
+        {pending === 1 ? t('tooltipOne') : t('tooltipOther', { count: pending })}
       </TooltipContent>
     </Tooltip>
   );

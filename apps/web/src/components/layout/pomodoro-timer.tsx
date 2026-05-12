@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Pause, Play, RotateCcw, Timer, X, Coffee } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 
 const STORAGE_KEY = 'notai:pomodoro-v1';
@@ -61,6 +62,7 @@ export function PomodoroTimer() {
   const [state, setState] = React.useState<PomoState>(readState);
   const [open, setOpen] = React.useState<boolean>(false);
   const [now, setNow] = React.useState<number>(() => Date.now());
+  const t = useTranslations('sidebarTree.pomodoro');
 
   const update = React.useCallback((next: PomoState) => {
     setState(next);
@@ -95,10 +97,10 @@ export function PomodoroTimer() {
     let nextPhase: Phase;
     if (state.phase === 'focus') {
       nextPhase = cycles % 4 === 0 ? 'long-break' : 'short-break';
-      toast.success('Focus block done. Take a breather.');
+      toast.success(t('focusDone'));
     } else {
       nextPhase = 'focus';
-      toast.success('Break over \u2014 back to the work.');
+      toast.success(t('breakOver'));
     }
     update({
       phase: nextPhase,
@@ -107,7 +109,7 @@ export function PomodoroTimer() {
       cyclesCompleted: cycles,
     });
     beep();
-  }, [state.phase, state.cyclesCompleted, update, beep]);
+  }, [state.phase, state.cyclesCompleted, update, beep, t]);
 
   // Tick every 500ms while running so the displayed time updates.
   React.useEffect(() => {
@@ -143,22 +145,22 @@ export function PomodoroTimer() {
     return (
       <button
         type="button"
-        aria-label="Open Pomodoro timer"
+        aria-label={t('openLabel')}
         onClick={() => setOpen(true)}
         className="bg-card/90 hover:bg-card text-foreground/80 hover:text-foreground fixed bottom-4 left-4 z-40 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs shadow-lg backdrop-blur"
       >
         <Timer className="size-3.5" />
-        {state.endsAt !== null ? formatRemaining(remainingMs) : 'Pomodoro'}
+        {state.endsAt !== null ? formatRemaining(remainingMs) : t('buttonLabel')}
       </button>
     );
   }
 
   const phaseLabel =
     state.phase === 'focus'
-      ? 'Focus'
+      ? t('phaseFocus')
       : state.phase === 'short-break'
-        ? 'Short break'
-        : 'Long break';
+        ? t('phaseShort')
+        : t('phaseLong');
   const PhaseIcon = state.phase === 'focus' ? Timer : Coffee;
 
   return (
@@ -170,7 +172,7 @@ export function PomodoroTimer() {
         </div>
         <button
           type="button"
-          aria-label="Close timer"
+          aria-label={t('closeLabel')}
           className="text-muted-foreground hover:text-foreground"
           onClick={() => setOpen(false)}
         >
@@ -181,19 +183,21 @@ export function PomodoroTimer() {
         {formatRemaining(remainingMs)}
       </div>
       <div className="text-muted-foreground mt-1 text-center text-[10px] uppercase tracking-wider">
-        {state.cyclesCompleted} focus block{state.cyclesCompleted === 1 ? '' : 's'} done
+        {state.cyclesCompleted === 1
+          ? t('blocksDoneOne')
+          : t('blocksDoneOther', { count: state.cyclesCompleted })}
       </div>
       <div className="mt-2 flex items-center gap-1">
         {state.endsAt === null ? (
           <Button size="sm" className="flex-1" onClick={start}>
-            <Play className="size-3.5" /> Start
+            <Play className="size-3.5" /> {t('start')}
           </Button>
         ) : (
           <Button size="sm" variant="outline" className="flex-1" onClick={pause}>
-            <Pause className="size-3.5" /> Pause
+            <Pause className="size-3.5" /> {t('pause')}
           </Button>
         )}
-        <Button size="sm" variant="ghost" onClick={reset} aria-label="Reset">
+        <Button size="sm" variant="ghost" onClick={reset} aria-label={t('reset')}>
           <RotateCcw className="size-3.5" />
         </Button>
       </div>

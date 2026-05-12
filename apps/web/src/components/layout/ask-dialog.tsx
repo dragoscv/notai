@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Sparkles, Send, Loader2, X, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
 import { createNote } from '@/server/actions/notes';
 
@@ -35,6 +36,7 @@ export function AskDialog({
   const [savingNote, setSavingNote] = React.useState(false);
   const abortRef = React.useRef<AbortController | null>(null);
   const router = useRouter();
+  const t = useTranslations('sidebarTree.askDialog');
 
   React.useEffect(() => {
     if (!open) {
@@ -103,19 +105,21 @@ export function AskDialog({
     const a = answer.trim();
     if (!q || !a || savingNote) return;
     setSavingNote(true);
-    const t = toast.loading('Saving answer…');
+    const toastId = toast.loading(t('saving'));
     try {
       const note = await createNote({
         title: q.slice(0, 80),
         icon: '✨',
       });
-      if (!note) throw new Error('Failed to create note');
+      if (!note) throw new Error(t('answerNoteFailed'));
       const sourcesBlock =
         hits.length === 0
           ? ''
-          : '\n\n## Sources\n\n' +
+          : '\n\n## ' +
+            t('sourcesHeading') +
+            '\n\n' +
             hits
-              .map((h, i) => `[#${i + 1}] ${h.icon ?? '\uD83D\uDCDD'} ${h.title || 'Untitled'}`)
+              .map((h, i) => `[#${i + 1}] ${h.icon ?? '\uD83D\uDCDD'} ${h.title || t('untitled')}`)
               .join('\n');
       const body = `# ${q}\n\n${a}${sourcesBlock}`;
       try {
@@ -126,15 +130,15 @@ export function AskDialog({
       } catch {
         /* localStorage off — the note still opens */
       }
-      toast.success('Answer saved', { id: t });
+      toast.success(t('answerSaved'), { id: toastId });
       onOpenChange(false);
       router.push(`/app/n/${note.id}`);
     } catch (err) {
-      toast.error((err as Error).message, { id: t });
+      toast.error((err as Error).message, { id: toastId });
     } finally {
       setSavingNote(false);
     }
-  }, [question, answer, hits, savingNote, onOpenChange, router]);
+  }, [question, answer, hits, savingNote, onOpenChange, router, t]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -142,7 +146,7 @@ export function AskDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="size-4 text-amber-500" />
-            Ask my notes
+            {t('title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -157,7 +161,7 @@ export function AskDialog({
                 ask();
               }
             }}
-            placeholder="What does Future Me need to remember?"
+            placeholder={t('placeholder')}
             className="border-input bg-background flex-1 rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
           />
           <button
@@ -195,14 +199,14 @@ export function AskDialog({
               ) : (
                 <FileText className="size-3.5" />
               )}
-              Save answer to a new note
+              {t('saveAnswer')}
             </button>
           </div>
         )}
 
         {hits.length > 0 && (
           <div className="space-y-1">
-            <p className="text-muted-foreground text-xs">Sources</p>
+            <p className="text-muted-foreground text-xs">{t('sourcesHeading')}</p>
             <ul className="space-y-1">
               {hits.map((h, i) => (
                 <li key={h.id}>
@@ -248,6 +252,7 @@ function AnswerWithCitations({
   hits: Hit[];
   onNavigate?: () => void;
 }) {
+  const t = useTranslations('sidebarTree.askDialog');
   const paragraphs = text.split(/\n\s*\n+/);
   return (
     <div className="space-y-3">
@@ -258,7 +263,7 @@ function AnswerWithCitations({
           <div key={pi}>
             {cited.length > 0 && (
               <div className="text-muted-foreground mb-1 flex flex-wrap items-center gap-1 text-[11px]">
-                <span>Sources:</span>
+                <span>{t('sourcesInlineLabel')}</span>
                 {cited.map((c) => (
                   <Link
                     key={c.n}
@@ -268,7 +273,7 @@ function AnswerWithCitations({
                     className="bg-muted inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 hover:bg-amber-500/15 hover:text-amber-700 dark:hover:text-amber-400"
                   >
                     <span className="font-mono">#{c.n}</span>
-                    <span className="max-w-[14ch] truncate">{c.hit.title || 'Untitled'}</span>
+                    <span className="max-w-[14ch] truncate">{c.hit.title || t('untitled')}</span>
                   </Link>
                 ))}
               </div>

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Globe, Copy, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { Switch } from '@notai/ui/components/switch';
 import {
@@ -19,6 +20,7 @@ import { BlogControls } from './blog-controls';
  * existing ShareDialog. Owner-only.
  */
 export function PublicShareSection({ noteId }: { noteId: string }) {
+  const t = useTranslations('noteWorkspace.publicShare');
   const [enabled, setEnabled] = React.useState(false);
   const [token, setToken] = React.useState<string | null>(null);
   const [expiresAt, setExpiresAt] = React.useState<Date | null>(null);
@@ -52,16 +54,16 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
         setEnabled(true);
         setToken(res.token);
         setExpiresAt(res.expiresAt);
-        toast.success('Public link created.');
+        toast.success(t('linkCreated'));
       } else {
         await disablePublicShare(noteId);
         setEnabled(false);
         setToken(null);
         setExpiresAt(null);
-        toast.message('Public link disabled.');
+        toast.message(t('linkDisabled'));
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update share state');
+      toast.error(err instanceof Error ? err.message : t('updateFailed'));
     } finally {
       setBusy(false);
     }
@@ -71,9 +73,9 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
-      toast.success('Link copied');
+      toast.success(t('linkCopied'));
     } catch {
-      toast.error("Couldn't copy");
+      toast.error(t('couldntCopy'));
     }
   };
 
@@ -82,15 +84,13 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
       <div className="flex items-center gap-2">
         <Globe className="text-muted-foreground size-4" />
         <div className="flex-1">
-          <div className="text-sm font-medium">Public read-only link</div>
-          <div className="text-muted-foreground text-xs">
-            Anyone with the link can read the latest version of this note.
-          </div>
+          <div className="text-sm font-medium">{t('title')}</div>
+          <div className="text-muted-foreground text-xs">{t('description')}</div>
         </div>
         {busy ? (
           <Loader2 className="size-4 animate-spin" />
         ) : (
-          <Switch checked={enabled} onCheckedChange={onToggle} aria-label="Public read-only link" />
+          <Switch checked={enabled} onCheckedChange={onToggle} aria-label={t('linkAria')} />
         )}
       </div>
       {enabled && url && (
@@ -108,10 +108,10 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
       )}
       {enabled && url && (
         <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-[11px]">
-          <span>Share:</span>
+          <span>{t('shareLabel')}</span>
           <a
             className="hover:text-foreground underline"
-            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent('Check out this note')}&url=${encodeURIComponent(url)}`}
+            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(t('shareTwitterText'))}&url=${encodeURIComponent(url)}`}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -127,7 +127,7 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
           </a>
           <a
             className="hover:text-foreground underline"
-            href={`mailto:?subject=${encodeURIComponent('A note from Notai')}&body=${encodeURIComponent(url)}`}
+            href={`mailto:?subject=${encodeURIComponent(t('shareEmailSubject'))}&body=${encodeURIComponent(url)}`}
           >
             Email
           </a>
@@ -139,7 +139,7 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
           <input
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
-            placeholder="custom-slug (optional)"
+            placeholder={t('slugPlaceholder')}
             pattern="[a-zA-Z0-9-]*"
             maxLength={60}
             className="bg-background flex-1 rounded-md border px-2 py-1 text-xs"
@@ -154,32 +154,32 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
               try {
                 const res = await setPublicShareSlug({ noteId, slug });
                 setSlug(res.slug ?? '');
-                toast.success(res.slug ? `Slug set to /${res.slug}` : 'Slug cleared');
+                toast.success(res.slug ? t('slugSet', { slug: res.slug }) : t('slugCleared'));
               } catch (e) {
-                toast.error(e instanceof Error ? e.message : 'Could not save slug');
+                toast.error(e instanceof Error ? e.message : t('slugFailed'));
               } finally {
                 setSavingSlug(false);
               }
             }}
           >
-            {savingSlug ? <Loader2 className="size-3.5 animate-spin" /> : 'Save slug'}
+            {savingSlug ? <Loader2 className="size-3.5 animate-spin" /> : t('saveSlug')}
           </Button>
         </div>
       )}
       {enabled && expiresAt && (
         <p className="text-muted-foreground text-[11px]">
-          Expires {expiresAt.toLocaleDateString()}.
+          {t('expires', { date: expiresAt.toLocaleDateString() })}
         </p>
       )}
       <div className="border-t pt-2">
         <details className="text-xs">
           <summary className="text-muted-foreground hover:text-foreground cursor-pointer select-none">
-            \ud83d\udd12 Password lock\u2026
+            {t('passwordSummary')}
           </summary>
           <div className="mt-2 flex items-center gap-2">
             <input
               type="password"
-              placeholder="New password (4+ chars)"
+              placeholder={t('passwordPlaceholder')}
               minLength={4}
               maxLength={200}
               className="bg-background flex-1 rounded-md border px-2 py-1 text-xs"
@@ -193,19 +193,19 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
                 const el = document.getElementById(`pw-${noteId}`) as HTMLInputElement | null;
                 const pw = el?.value ?? '';
                 if (pw.length < 4) {
-                  toast.error('Password too short');
+                  toast.error(t('tooShort'));
                   return;
                 }
                 try {
                   await setNotePassword({ noteId, password: pw });
                   if (el) el.value = '';
-                  toast.success('Password set');
+                  toast.success(t('passwordSet'));
                 } catch (e) {
-                  toast.error(e instanceof Error ? e.message : 'Failed');
+                  toast.error(e instanceof Error ? e.message : t('passwordFailed'));
                 }
               }}
             >
-              Set
+              {t('set')}
             </Button>
             <Button
               type="button"
@@ -214,13 +214,13 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
               onClick={async () => {
                 try {
                   await clearNotePassword(noteId);
-                  toast.message('Password cleared');
+                  toast.message(t('passwordCleared'));
                 } catch (e) {
-                  toast.error(e instanceof Error ? e.message : 'Failed');
+                  toast.error(e instanceof Error ? e.message : t('passwordFailed'));
                 }
               }}
             >
-              Clear
+              {t('clear')}
             </Button>
           </div>
         </details>

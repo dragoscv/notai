@@ -58,6 +58,7 @@ import {
   CheckSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -272,6 +273,7 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
   const { confirm, dialog: confirmDialog } = useConfirm();
   const { prompt, dialog: promptDialog } = usePrompt();
   const selection = useSidebarSelection();
+  const t = useTranslations('sidebarTree.tree');
 
   React.useEffect(() => {
     if (!selection.enabled) return;
@@ -318,7 +320,9 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
         if (selection.enabled && selection.selected.size > 1 && selection.selected.has(drag.id)) {
           const ids = [...selection.selected];
           await bulkUpdateNotes({ ids, patch: { folderId } });
-          toast.success(`Moved ${ids.length} notes`);
+          toast.success(
+            ids.length === 1 ? t('movedManyOne') : t('movedManyOther', { count: ids.length }),
+          );
           selection.clear();
         } else {
           await moveNote({ noteId: drag.id, folderId, index });
@@ -329,7 +333,7 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
       }
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Move failed');
+      toast.error(err instanceof Error ? err.message : t('moveFailed'));
     }
   };
 
@@ -341,16 +345,16 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
       if (folderId) expand(folderId);
       if (note) router.push(`/app/n/${note.id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not create note');
+      toast.error(err instanceof Error ? err.message : t('couldNotCreate'));
     }
   };
 
   const openNewFolder = (parentId: string | null) => {
     prompt({
-      title: 'New folder',
-      label: 'Folder name',
-      placeholder: 'Ideas, Work, Recipes…',
-      confirmLabel: 'Create',
+      title: t('newFolderTitle'),
+      label: t('newFolderLabel'),
+      placeholder: t('newFolderPlaceholder'),
+      confirmLabel: t('createBtn'),
       defaultValue: '',
       onSubmit: async (name) => {
         await createFolder({ name, parentId });
@@ -362,10 +366,10 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
 
   const renameNoteAction = (note: Note) => {
     prompt({
-      title: 'Rename note',
-      label: 'Title',
+      title: t('renameNote'),
+      label: t('titleLabel'),
       defaultValue: note.title,
-      confirmLabel: 'Rename',
+      confirmLabel: t('renameBtn'),
       maxLength: 200,
       onSubmit: async (title) => {
         await updateNote({ id: note.id, title });
@@ -376,10 +380,10 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
 
   const renameFolderAction = (folder: Folder) => {
     prompt({
-      title: 'Rename folder',
-      label: 'Folder name',
+      title: t('renameFolder'),
+      label: t('newFolderLabel'),
       defaultValue: folder.name,
-      confirmLabel: 'Rename',
+      confirmLabel: t('renameBtn'),
       onSubmit: async (name) => {
         await renameFolder({ id: folder.id, name });
         router.refresh();
@@ -389,23 +393,23 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
 
   const deleteNoteAction = (note: Note) => {
     confirm({
-      title: 'Delete note?',
+      title: t('deleteNoteTitle'),
       description: (
         <>
-          <span className="font-medium">{note.title}</span> and its content will be permanently
-          deleted. This cannot be undone.
+          <span className="font-medium">{note.title}</span>
+          {t('deleteNoteBodyPrefix')}
         </>
       ),
       destructive: true,
-      confirmLabel: 'Delete',
+      confirmLabel: t('delete'),
       onConfirm: async () => {
         try {
           await deleteNote(note.id);
           if (pathname === `/app/n/${note.id}`) router.push('/app');
           else router.refresh();
-          toast.success('Note deleted');
+          toast.success(t('noteDeleted'));
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Delete failed');
+          toast.error(err instanceof Error ? err.message : t('deleteFailed'));
         }
       },
     });
@@ -414,25 +418,20 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
   const deleteFolderAction = (folder: Folder, noteCount: number) => {
     const hasContent = noteCount > 0 || folders.some((f) => f.parentId === folder.id);
     confirm({
-      title: hasContent ? `Delete "${folder.name}"?` : 'Delete folder?',
-      description: hasContent ? (
-        <>
-          Subfolders inside this folder will also be deleted. Notes inside will be{' '}
-          <span className="font-medium">moved to the root</span> (not deleted).
-        </>
-      ) : (
-        <>The folder is empty. This cannot be undone.</>
-      ),
+      title: hasContent
+        ? t('deleteFolderTitledTitle', { name: folder.name })
+        : t('deleteFolderTitle'),
+      description: hasContent ? <>{t('deleteFolderHasContent')}</> : <>{t('deleteFolderEmpty')}</>,
       destructive: true,
-      confirmLabel: 'Delete folder',
+      confirmLabel: t('deleteFolderBtn'),
       confirmTypedText: hasContent ? folder.name : undefined,
       onConfirm: async () => {
         try {
           await deleteFolder(folder.id);
           router.refresh();
-          toast.success('Folder deleted');
+          toast.success(t('folderDeleted'));
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Delete failed');
+          toast.error(err instanceof Error ? err.message : t('deleteFailed'));
         }
       },
     });
@@ -447,7 +446,7 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
       await updateNote({ id: note.id, [flag]: nextValue });
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Update failed');
+      toast.error(err instanceof Error ? err.message : t('updateFailed'));
     }
   };
 
@@ -455,11 +454,11 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
     try {
       const copy = await duplicateNote(note.id);
       if (copy) {
-        toast.success('Note duplicated');
+        toast.success(t('noteDuplicated'));
         router.refresh();
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Duplicate failed');
+      toast.error(err instanceof Error ? err.message : t('duplicateFailed'));
     }
   };
 
@@ -470,18 +469,22 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
       <div className="mt-4 flex items-center justify-between px-3 pb-1">
         <h3 className="text-primary inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]">
           <span className="bg-primary/60 size-1 rounded-full" />
-          Notes
+          {t('header')}
         </h3>
         <div className="flex items-center gap-0.5">
           <EmbedStatusIndicator />
           <IconHeaderBtn
-            aria-label="New folder"
-            title="New folder"
+            aria-label={t('newFolder')}
+            title={t('newFolder')}
             onClick={() => openNewFolder(null)}
           >
             <FolderPlus className="size-3.5" />
           </IconHeaderBtn>
-          <IconHeaderBtn aria-label="New note" title="New note" onClick={() => openNewNote(null)}>
+          <IconHeaderBtn
+            aria-label={t('newNote')}
+            title={t('newNote')}
+            onClick={() => openNewNote(null)}
+          >
             <Plus className="size-3.5" />
           </IconHeaderBtn>
           <NewFromTemplateButton folderId={null} />
@@ -540,10 +543,10 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
               selection.enabled &&
               selection.selected.size > 1 &&
               selection.selected.has(activeDrag.id)
-                ? `${selection.selected.size} notes`
+                ? t('movedManyOther', { count: selection.selected.size })
                 : activeDrag.kind === 'note'
-                  ? (notes.find((n) => n.id === activeDrag.id)?.title ?? 'Note')
-                  : (folders.find((f) => f.id === activeDrag.id)?.name ?? 'Folder')}
+                  ? (notes.find((n) => n.id === activeDrag.id)?.title ?? t('noteFallback'))
+                  : (folders.find((f) => f.id === activeDrag.id)?.name ?? t('folderFallback'))}
             </div>
           ) : null}
         </DragOverlay>
@@ -680,6 +683,8 @@ function FolderRow(props: FolderRowProps) {
   const isOpen = expanded.has(node.folder.id);
   const dragId: DragId = { kind: 'folder', id: node.folder.id };
   const [defaultTagsOpen, setDefaultTagsOpen] = React.useState(false);
+  const t = useTranslations('sidebarTree.tree');
+  const tm = useTranslations('sidebarTree.tree.menu');
 
   // Droppable: drop INTO this folder (makes it the parent)
   const { setNodeRef: setContentsRef, isOver: isOverContents } = useDroppable({
@@ -752,17 +757,17 @@ function FolderRow(props: FolderRowProps) {
         </ContextMenuTrigger>
         <ContextMenuContent className="w-56">
           <ContextMenuItem onSelect={() => onNewNote(node.folder.id)}>
-            <FilePlus2 className="size-4" /> New note here
+            <FilePlus2 className="size-4" /> {tm('newNoteHere')}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => onNewFolder(node.folder.id)}>
-            <FolderPlus className="size-4" /> New subfolder
+            <FolderPlus className="size-4" /> {tm('newSubfolder')}
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem onSelect={() => onRenameFolder(node.folder)}>
-            <Pencil className="size-4" /> Rename
+            <Pencil className="size-4" /> {tm('rename')}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => setDefaultTagsOpen(true)}>
-            <Hash className="size-4" /> Default tags\u2026
+            <Hash className="size-4" /> {tm('defaultTags')}
           </ContextMenuItem>
           <ContextMenuSeparator />
           <div className="grid grid-cols-8 gap-1 px-2 py-1.5">
@@ -797,7 +802,7 @@ function FolderRow(props: FolderRowProps) {
                   'hover:bg-muted flex size-6 items-center justify-center rounded text-sm',
                   node.folder.icon === emoji && 'bg-muted',
                 )}
-                title={emoji === '\u274c' ? 'Clear icon' : `Set icon to ${emoji}`}
+                title={emoji === '\u274c' ? tm('clearIcon') : tm('setIcon', { emoji })}
               >
                 {emoji}
               </button>
@@ -808,7 +813,7 @@ function FolderRow(props: FolderRowProps) {
             className="text-destructive focus:text-destructive"
             onSelect={() => onDeleteFolder(node.folder, notesCount)}
           >
-            <Trash2 className="size-4" /> Delete folder
+            <Trash2 className="size-4" /> {tm('deleteFolder')}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -842,7 +847,7 @@ function FolderRow(props: FolderRowProps) {
               className="text-muted-foreground/60 pl-8 text-xs italic"
               style={{ paddingLeft: `${(depth + 1) * 12 + 22}px` }}
             >
-              Empty folder
+              {t('emptyFolder')}
             </li>
           )}
         </ul>
@@ -880,6 +885,8 @@ function NoteRow({
   const [mergeOpen, setMergeOpen] = React.useState(false);
   const selection = useSidebarSelection();
   const isSelected = selection.selected.has(note.id);
+  const t = useTranslations('sidebarTree.tree');
+  const tm = useTranslations('sidebarTree.tree.menu');
 
   const openAsSticky = async () => {
     try {
@@ -906,9 +913,9 @@ function NoteRow({
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success('Exported as Markdown');
+      toast.success(t('exportedMarkdown'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Export failed');
+      toast.error(err instanceof Error ? err.message : t('exportFailed'));
     }
   };
 
@@ -916,20 +923,20 @@ function NoteRow({
     try {
       const { content } = await exportNoteMarkdown(note.id);
       await navigator.clipboard.writeText(content);
-      toast.success('Copied note as Markdown');
+      toast.success(t('copiedMarkdown'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Copy failed');
+      toast.error(err instanceof Error ? err.message : t('copyFailed'));
     }
   };
 
   const saveAsTemplate = async () => {
-    const title = window.prompt('Template name', note.title || 'My template');
+    const title = window.prompt(t('templateNamePrompt'), note.title || t('myTemplate'));
     if (!title) return;
     try {
       await createPersonalTemplate({ noteId: note.id, title });
-      toast.success('Saved as personal template');
+      toast.success(t('savedAsTemplate'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not save template');
+      toast.error(err instanceof Error ? err.message : t('couldNotSaveTemplate'));
     }
   };
 
@@ -945,9 +952,9 @@ function NoteRow({
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success('Exported as Word document');
+      toast.success(t('exportedDoc'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Export failed');
+      toast.error(err instanceof Error ? err.message : t('exportFailed'));
     }
   };
 
@@ -966,14 +973,14 @@ function NoteRow({
       iframe.style.height = '0';
       iframe.style.border = '0';
       document.body.appendChild(iframe);
-      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${note.title || 'Untitled'}</title><style>
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${note.title || t('untitled')}</title><style>
         body{font-family:ui-serif,Georgia,Cambria,'Times New Roman',Times,serif;font-size:12pt;line-height:1.55;max-width:680px;margin:24px auto;padding:0 16px;color:#111;}
         h1{font-size:22pt;margin:0 0 16px;font-weight:600;}
         pre{white-space:pre-wrap;word-wrap:break-word;font-family:inherit;}
         @page{margin:18mm;}
       </style></head><body><pre>${content.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c]!)}</pre></body></html>`;
       const doc = iframe.contentDocument;
-      if (!doc) throw new Error('Print frame unavailable');
+      if (!doc) throw new Error(t('printFrameUnavailable'));
       doc.open();
       doc.write(html);
       doc.close();
@@ -985,7 +992,7 @@ function NoteRow({
       // up after a comfortable timeout.
       setTimeout(() => iframe.remove(), 2000);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Print failed');
+      toast.error(err instanceof Error ? err.message : t('printFailed'));
     }
   };
 
@@ -1031,7 +1038,7 @@ function NoteRow({
             >
               <SidebarSelectCheckbox noteId={note.id} className="-ml-1 shrink-0" />
               <span className="shrink-0 text-xs">{note.icon ?? '📝'}</span>
-              <span className="min-w-0 flex-1 truncate">{note.title || 'Untitled'}</span>
+              <span className="min-w-0 flex-1 truncate">{note.title || t('untitled')}</span>
               {note.color && note.color !== 'default' && (
                 <span
                   aria-hidden
@@ -1056,42 +1063,42 @@ function NoteRow({
             <CheckSquare className="size-4" />{' '}
             {selection.enabled
               ? isSelected
-                ? 'Deselect'
-                : 'Add to selection'
-              : 'Select multiple…'}
+                ? tm('deselect')
+                : tm('addToSelection')
+              : tm('selectMultiple')}
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem onSelect={() => onRename(note)}>
-            <Pencil className="size-4" /> Rename
+            <Pencil className="size-4" /> {tm('rename')}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => onDuplicate(note)}>
-            <Copy className="size-4" /> Duplicate
+            <Copy className="size-4" /> {tm('duplicate')}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => setMergeOpen(true)}>
-            <GitMerge className="size-4" /> Merge into\u2026
+            <GitMerge className="size-4" /> {tm('mergeInto')}
           </ContextMenuItem>
           <ContextMenuSub>
             <ContextMenuSubTrigger>
-              <LayersIcon className="size-4" /> More
+              <LayersIcon className="size-4" /> {tm('more')}
             </ContextMenuSubTrigger>
             <ContextMenuSubContent className="w-52">
               <ContextMenuItem onSelect={openAsSticky}>
-                <ExternalLink className="size-4" /> Open as sticky
+                <ExternalLink className="size-4" /> {tm('openAsSticky')}
               </ContextMenuItem>
               <ContextMenuItem onSelect={exportMarkdown}>
-                <Download className="size-4" /> Export as Markdown
+                <Download className="size-4" /> {tm('exportMarkdown')}
               </ContextMenuItem>
               <ContextMenuItem onSelect={copyMarkdown}>
-                <ClipboardCopy className="size-4" /> Copy as Markdown
+                <ClipboardCopy className="size-4" /> {tm('copyMarkdown')}
               </ContextMenuItem>
               <ContextMenuItem onSelect={exportPdf}>
-                <Printer className="size-4" /> Print / Save as PDF
+                <Printer className="size-4" /> {tm('printPdf')}
               </ContextMenuItem>
               <ContextMenuItem onSelect={exportDoc}>
-                <Download className="size-4" /> Export as Word (.doc)
+                <Download className="size-4" /> {tm('exportDoc')}
               </ContextMenuItem>
               <ContextMenuItem onSelect={saveAsTemplate}>
-                <BookmarkPlus className="size-4" /> Save as template\u2026
+                <BookmarkPlus className="size-4" /> {tm('saveAsTemplate')}
               </ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>
@@ -1099,33 +1106,33 @@ function NoteRow({
           <ContextMenuItem onSelect={() => onToggleFlag(note, 'isPinned', !note.isPinned)}>
             {note.isPinned ? (
               <>
-                <PinOff className="size-4" /> Unpin
+                <PinOff className="size-4" /> {tm('unpin')}
               </>
             ) : (
               <>
-                <Pin className="size-4" /> Pin to top
+                <Pin className="size-4" /> {tm('pinToTop')}
               </>
             )}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => onToggleFlag(note, 'isFavorite', !note.isFavorite)}>
             {note.isFavorite ? (
               <>
-                <StarOff className="size-4" /> Remove from favorites
+                <StarOff className="size-4" /> {tm('removeFavorite')}
               </>
             ) : (
               <>
-                <Star className="size-4" /> Add to favorites
+                <Star className="size-4" /> {tm('addFavorite')}
               </>
             )}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => onToggleFlag(note, 'isArchived', !note.isArchived)}>
             {note.isArchived ? (
               <>
-                <ArchiveRestore className="size-4" /> Unarchive
+                <ArchiveRestore className="size-4" /> {tm('unarchive')}
               </>
             ) : (
               <>
-                <Archive className="size-4" /> Archive
+                <Archive className="size-4" /> {tm('archive')}
               </>
             )}
           </ContextMenuItem>
@@ -1134,7 +1141,7 @@ function NoteRow({
             className="text-destructive focus:text-destructive"
             onSelect={() => onDelete(note)}
           >
-            <Trash2 className="size-4" /> Delete
+            <Trash2 className="size-4" /> {tm('delete')}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>

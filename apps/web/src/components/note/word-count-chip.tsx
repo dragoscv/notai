@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import type { CanvasNoteHandle } from '@notai/editor';
 
 interface SceneEl {
@@ -27,6 +28,7 @@ export function WordCountChip({
   canvasRef: React.RefObject<CanvasNoteHandle | null>;
 }) {
   const [text, setText] = React.useState('');
+  const t = useTranslations('noteWorkspace.stats');
 
   React.useEffect(() => {
     const api = canvasRef.current?.getExcalidrawApi() as unknown as ExApi | null;
@@ -48,12 +50,15 @@ export function WordCountChip({
   if (words === 0) return null;
 
   const minutes = Math.max(1, Math.round(words / WPM));
-  const label = `${words.toLocaleString()} word${words === 1 ? '' : 's'} \u00b7 ${minutes} min read`;
+  const label =
+    words === 1
+      ? t('wordsAndReadOne', { minutes })
+      : t('wordsAndReadOther', { count: words.toLocaleString(), minutes });
 
   return (
     <span
       className="text-muted-foreground/80 hidden text-[11px] tabular-nums sm:inline"
-      title={`Reading time at ${WPM} wpm`}
+      title={t('readingTimeAt', { wpm: WPM })}
     >
       {label}
     </span>

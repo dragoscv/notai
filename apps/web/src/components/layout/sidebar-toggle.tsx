@@ -1,5 +1,6 @@
 'use client';
 import { Menu } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { cn } from '@notai/lib/utils';
 import { useSidebar } from './app-shell';
@@ -10,6 +11,7 @@ import { useSidebar } from './app-shell';
  */
 export function SidebarToggle({ className }: { className?: string }) {
   const { toggleMobile } = useSidebar();
+  const t = useTranslations('sidebarTree.toggle');
   return (
     <Button
       type="button"
@@ -17,8 +19,8 @@ export function SidebarToggle({ className }: { className?: string }) {
       variant="ghost"
       className={cn('md:hidden', className)}
       onClick={toggleMobile}
-      aria-label="Open navigation"
-      title="Open navigation"
+      aria-label={t('openNav')}
+      title={t('openNav')}
     >
       <Menu />
     </Button>

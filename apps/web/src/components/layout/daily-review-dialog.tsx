@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Sparkles, Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { showAiActionError } from '@/lib/ai-error-toast';
 import {
   Dialog,
@@ -34,6 +35,7 @@ export function DailyReviewDialog({
   const [state, setState] = React.useState<ReviewState | null>(null);
   const [loading, setLoading] = React.useState(false);
   const triedRef = React.useRef(false);
+  const t = useTranslations('sidebarTree.dailyReview');
 
   React.useEffect(() => {
     if (!open) {
@@ -47,24 +49,24 @@ export function DailyReviewDialog({
     dailyReview()
       .then(setState)
       .catch((err: unknown) => {
-        showAiActionError(err, 'Could not build a review.');
+        showAiActionError(err, t('couldNotBuild'));
         onOpenChange(false);
       })
       .finally(() => setLoading(false));
-  }, [open, onOpenChange]);
+  }, [open, onOpenChange, t]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="size-4" /> End of day
+            <Sparkles className="size-4" /> {t('title')}
           </DialogTitle>
-          <DialogDescription>A short, calm wrap-up of what you wrote today.</DialogDescription>
+          <DialogDescription>{t('description')}</DialogDescription>
         </DialogHeader>
         {loading ? (
           <div className="text-muted-foreground flex items-center gap-2 py-6 text-sm">
-            <Loader2 className="size-4 animate-spin" /> Composing your review\u2026
+            <Loader2 className="size-4 animate-spin" /> {t('composing')}
           </div>
         ) : state ? (
           <>
@@ -72,7 +74,7 @@ export function DailyReviewDialog({
             {state.notes.length > 0 && (
               <div className="space-y-1">
                 <div className="text-muted-foreground text-[10px] uppercase tracking-widest">
-                  Notes touched today
+                  {t('notesTouched')}
                 </div>
                 <ul className="space-y-1">
                   {state.notes.map((n) => (
@@ -83,7 +85,7 @@ export function DailyReviewDialog({
                         onClick={() => onOpenChange(false)}
                       >
                         <span>{n.icon ?? '\u{1F4DD}'}</span>
-                        <span className="truncate">{n.title || 'Untitled'}</span>
+                        <span className="truncate">{n.title || t('untitled')}</span>
                       </Link>
                     </li>
                   ))}
@@ -92,7 +94,7 @@ export function DailyReviewDialog({
             )}
             <div className="flex justify-end">
               <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-                Close
+                {t('close')}
               </Button>
             </div>
           </>
