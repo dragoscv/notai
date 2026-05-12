@@ -30,10 +30,15 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 interface SidebarSelectionValue {
   enabled: boolean;
   selected: ReadonlySet<string>;
+  anchorId: string | null;
+  visibleIds: readonly string[];
   toggle: (id: string) => void;
   selectMany: (ids: string[]) => void;
+  selectRange: (toId: string) => void;
+  selectAllVisible: () => void;
   clear: () => void;
   enable: (initialId?: string) => void;
+  setVisibleIds: (ids: readonly string[]) => void;
 }
 
 const SidebarSelectionContext = React.createContext<SidebarSelectionValue | null>(null);
@@ -41,6 +46,10 @@ const SidebarSelectionContext = React.createContext<SidebarSelectionValue | null
 export function SidebarSelectionProvider({ children }: { children: React.ReactNode }) {
   const [enabled, setEnabled] = React.useState(false);
   const [selected, setSelected] = React.useState<Set<string>>(() => new Set());
+  const [anchorId, setAnchorId] = React.useState<string | null>(null);
+  // visibleIds is mutated by SidebarTreeInner via setVisibleIds. Stored
+  // as a ref so updating it doesn't force a re-render of the bulk bar.
+  const visibleIdsRef = React.useRef<readonly string[]>([]);
 
   const toggle = React.useCallback((id: string) => {
     setSelected((prev) => {
@@ -49,6 +58,7 @@ export function SidebarSelectionProvider({ children }: { children: React.ReactNo
       else next.add(id);
       return next;
     });
+    setAnchorId(id);
   }, []);
 
   const selectMany = React.useCallback((ids: string[]) => {
@@ -57,21 +67,81 @@ export function SidebarSelectionProvider({ children }: { children: React.ReactNo
       for (const id of ids) next.add(id);
       return next;
     });
+    if (ids.length > 0) setAnchorId(ids[ids.length - 1] ?? null);
+  }, []);
+
+  const selectRange = React.useCallback((toId: string) => {
+    const visible = visibleIdsRef.current;
+    setAnchorId((prevAnchor) => {
+      const fromId = prevAnchor ?? toId;
+      const i = visible.indexOf(fromId);
+      const j = visible.indexOf(toId);
+      if (i === -1 || j === -1) {
+        setSelected((prev) => new Set(prev).add(toId));
+        return toId;
+      }
+      const [lo, hi] = i <= j ? [i, j] : [j, i];
+      const slice = visible.slice(lo, hi + 1);
+      setSelected((prev) => {
+        const next = new Set(prev);
+        for (const id of slice) next.add(id);
+        return next;
+      });
+      return toId;
+    });
+  }, []);
+
+  const selectAllVisible = React.useCallback(() => {
+    const all = visibleIdsRef.current;
+    if (all.length === 0) return;
+    setSelected(new Set(all));
+    setAnchorId(all[all.length - 1] ?? null);
   }, []);
 
   const clear = React.useCallback(() => {
     setSelected(new Set());
     setEnabled(false);
+    setAnchorId(null);
   }, []);
 
   const enable = React.useCallback((initialId?: string) => {
     setEnabled(true);
-    if (initialId) setSelected((prev) => new Set(prev).add(initialId));
+    if (initialId) {
+      setSelected((prev) => new Set(prev).add(initialId));
+      setAnchorId(initialId);
+    }
+  }, []);
+
+  const setVisibleIds = React.useCallback((ids: readonly string[]) => {
+    visibleIdsRef.current = ids;
   }, []);
 
   const value = React.useMemo<SidebarSelectionValue>(
-    () => ({ enabled, selected, toggle, selectMany, clear, enable }),
-    [enabled, selected, toggle, selectMany, clear, enable],
+    () => ({
+      enabled,
+      selected,
+      anchorId,
+      visibleIds: visibleIdsRef.current,
+      toggle,
+      selectMany,
+      selectRange,
+      selectAllVisible,
+      clear,
+      enable,
+      setVisibleIds,
+    }),
+    [
+      enabled,
+      selected,
+      anchorId,
+      toggle,
+      selectMany,
+      selectRange,
+      selectAllVisible,
+      clear,
+      enable,
+      setVisibleIds,
+    ],
   );
 
   return (
@@ -88,10 +158,15 @@ export function useSidebarSelection(): SidebarSelectionValue {
     return {
       enabled: false,
       selected: new Set(),
+      anchorId: null,
+      visibleIds: [],
       toggle: () => undefined,
       selectMany: () => undefined,
+      selectRange: () => undefined,
+      selectAllVisible: () => undefined,
       clear: () => undefined,
       enable: () => undefined,
+      setVisibleIds: () => undefined,
     };
   }
   return ctx;
@@ -103,7 +178,7 @@ export function useSidebarSelection(): SidebarSelectionValue {
  * delete, and exit.
  */
 export function SidebarBulkBar({ folders }: { folders: Folder[] }) {
-  const { enabled, selected, clear } = useSidebarSelection();
+  const { enabled, selected, clear, selectAllVisible } = useSidebarSelection();
   const router = useRouter();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const [pending, startTransition] = React.useTransition();
@@ -179,16 +254,28 @@ export function SidebarBulkBar({ folders }: { folders: Folder[] }) {
       <div className="bg-card/95 border-primary/20 sticky bottom-0 z-10 mx-2 mb-2 flex flex-col gap-1.5 rounded-xl border p-2 shadow-lg backdrop-blur">
         <div className="flex items-center justify-between gap-2 px-1">
           <span className="text-xs font-medium">{t('selectedCount', { count: ids.length })}</span>
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            onClick={clear}
-            disabled={pending}
-            aria-label={t('cancelSelection')}
-            title={t('cancelEsc')}
-          >
-            <X className="size-3.5" />
-          </Button>
+          <div className="flex items-center gap-0.5">
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={selectAllVisible}
+              disabled={pending}
+              aria-label={t('selectAllVisible')}
+              title={t('selectAllVisible')}
+            >
+              <CheckSquare className="size-3.5" />
+            </Button>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={clear}
+              disabled={pending}
+              aria-label={t('cancelSelection')}
+              title={t('cancelEsc')}
+            >
+              <X className="size-3.5" />
+            </Button>
+          </div>
         </div>
         <div className="flex flex-wrap gap-1">
           <Button

@@ -1266,7 +1266,8 @@
         "navigation": "Navigation",
         "capture": "Capture",
         "editor": "Editor",
-        "canvas": "Canvas"
+        "canvas": "Canvas",
+        "sidebar": "Sidebar"
       },
       "items": {
         "openCommandPalette": "Open command palette",
@@ -1289,7 +1290,10 @@
         "focusExit": "Exit focus mode",
         "moveLineUp": "Move bullet/todo line up",
         "moveLineDown": "Move bullet/todo line down",
-        "holdMic": "Hold the mic FAB to record voice onto canvas"
+        "holdMic": "Hold the mic FAB to record voice onto canvas",
+        "selectStart": "Start multi-select on a note",
+        "selectRange": "Extend selection to a note",
+        "selectClear": "Clear sidebar selection"
       }
     },
     "quickCapture": {
@@ -1402,6 +1406,7 @@
       "selectedCount": "{count} selected",
       "cancelSelection": "Cancel selection",
       "cancelEsc": "Cancel (Esc)",
+      "selectAllVisible": "Select all visible",
       "archive": "Archive",
       "unarchive": "Unarchive",
       "favorite": "Favorite",

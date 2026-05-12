@@ -53,6 +53,14 @@ const GROUPS: Group[] = [
       { keys: ['Hold', '🎙'], labelKey: 'holdMic' },
     ],
   },
+  {
+    titleKey: 'sidebar',
+    items: [
+      { keys: [MOD, 'Click'], labelKey: 'selectStart' },
+      { keys: ['Shift', 'Click'], labelKey: 'selectRange' },
+      { keys: ['Esc'], labelKey: 'selectClear' },
+    ],
+  },
 ];
 
 export function ShortcutsCheatsheet() {

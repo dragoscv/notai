@@ -289,6 +289,24 @@ function SidebarTreeInner({ folders, notes }: SidebarTreeProps) {
 
   const tree = useMemo(() => buildTree(folders, notes), [folders, notes]);
 
+  // Publish the visible note id list (in display order) to the selection
+  // context so shift-click and "select all visible" know what to range
+  // over. Children-folders are walked before notes within each folder,
+  // matching the JSX render order in FolderRow.
+  React.useEffect(() => {
+    const out: string[] = [];
+    const walk = (nodes: TreeNode[]) => {
+      for (const node of nodes) {
+        if (!expanded.has(node.folder.id)) continue;
+        walk(node.children);
+        for (const n of node.notes) out.push(n.id);
+      }
+    };
+    walk(tree.rootFolders);
+    for (const n of tree.rootNotes) out.push(n.id);
+    selection.setVisibleIds(out);
+  }, [tree, expanded, selection]);
+
   const handleDragStart = (e: DragStartEvent) => {
     const drag = decodeDrag(String(e.active.id));
     if (drag) setActiveDrag(drag);
@@ -1013,9 +1031,21 @@ function NoteRow({
                 // In selection mode, clicking toggles selection instead
                 // of navigating. Cmd/Ctrl-click also toggles even when
                 // selection mode is off (entering it implicitly).
+                // Shift-click extends the selection from the anchor to
+                // the clicked row (uses visible order).
+                if (selection.enabled && e.shiftKey) {
+                  e.preventDefault();
+                  selection.selectRange(note.id);
+                  return;
+                }
                 if (selection.enabled) {
                   e.preventDefault();
                   selection.toggle(note.id);
+                  return;
+                }
+                if (e.shiftKey) {
+                  e.preventDefault();
+                  selection.enable(note.id);
                   return;
                 }
                 if (e.metaKey || e.ctrlKey) {

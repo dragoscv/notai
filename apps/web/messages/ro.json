@@ -1266,7 +1266,8 @@
         "navigation": "Navigare",
         "capture": "Captură",
         "editor": "Editor",
-        "canvas": "Pânză"
+        "canvas": "Pânză",
+        "sidebar": "Bara laterală"
       },
       "items": {
         "openCommandPalette": "Deschide paleta de comenzi",
@@ -1289,7 +1290,10 @@
         "focusExit": "Ieși din modul focus",
         "moveLineUp": "Mută linia listă/sarcină în sus",
         "moveLineDown": "Mută linia listă/sarcină în jos",
-        "holdMic": "Ține butonul microfon pentru a înregistra vocea pe pânză"
+        "holdMic": "Ține butonul microfon pentru a înregistra vocea pe pânză",
+        "selectStart": "Pornește multi-selecția pe o notă",
+        "selectRange": "Extinde selecția până la o notă",
+        "selectClear": "Golește selecția din bara laterală"
       }
     },
     "quickCapture": {
@@ -1402,6 +1406,7 @@
       "selectedCount": "{count} selectate",
       "cancelSelection": "Anulează selecția",
       "cancelEsc": "Anulează (Esc)",
+      "selectAllVisible": "Selectează tot ce e vizibil",
       "archive": "Arhivează",
       "unarchive": "Dezarhivează",
       "favorite": "Favorit",
