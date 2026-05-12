@@ -13,6 +13,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { Switch } from '@notai/ui/components/switch';
 import {
@@ -37,6 +38,7 @@ export interface SerializedHook {
 }
 
 export function WebhookManager({ initial }: { initial: SerializedHook[] }) {
+  const t = useTranslations('settings.webhooks');
   const [hooks, setHooks] = React.useState(initial);
   const [url, setUrl] = React.useState('');
   const [busy, setBusy] = React.useState(false);
@@ -64,7 +66,7 @@ export function WebhookManager({ initial }: { initial: SerializedHook[] }) {
       ]);
       setUrl('');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not create');
+      toast.error(err instanceof Error ? err.message : t('couldNotCreate'));
     } finally {
       setBusy(false);
     }
@@ -74,10 +76,9 @@ export function WebhookManager({ initial }: { initial: SerializedHook[] }) {
     <div className="space-y-6">
       {freshSecret && (
         <div className="border-primary/40 bg-primary/5 rounded-2xl border p-4">
-          <p className="text-sm font-medium">Copy your signing secret now.</p>
+          <p className="text-sm font-medium">{t('secretCopyTitle')}</p>
           <p className="text-muted-foreground mt-1 text-xs">
-            Use this to verify the <code>X-Notai-Signature</code> header on incoming requests. We
-            won\u2019t show it again.
+            {t('secretCopyHelpPrefix')} <code>X-Notai-Signature</code> {t('secretCopyHelpSuffix')}
           </p>
           <div className="mt-3 flex items-center gap-2">
             <code className="bg-background flex-1 truncate rounded-md border px-2 py-1.5 text-xs">
@@ -88,13 +89,13 @@ export function WebhookManager({ initial }: { initial: SerializedHook[] }) {
               variant="outline"
               onClick={async () => {
                 await navigator.clipboard.writeText(freshSecret);
-                toast.success('Copied');
+                toast.success(t('copied'));
               }}
             >
               <Copy className="size-3.5" />
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setFreshSecret(null)}>
-              Done
+              {t('done')}
             </Button>
           </div>
         </div>
@@ -106,17 +107,17 @@ export function WebhookManager({ initial }: { initial: SerializedHook[] }) {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           maxLength={2048}
-          placeholder="https://your-server.example.com/notai-webhook"
+          placeholder={t('urlPlaceholder')}
           className="bg-background flex-1 rounded-md border px-3 py-2 text-sm"
         />
         <Button type="submit" disabled={busy || !url.trim()}>
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-          Add
+          {t('add')}
         </Button>
       </form>
 
       {hooks.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No webhooks yet.</p>
+        <p className="text-muted-foreground text-sm">{t('empty')}</p>
       ) : (
         <ul className="divide-y rounded-2xl border">
           {hooks.map((h) => (
@@ -130,32 +131,27 @@ export function WebhookManager({ initial }: { initial: SerializedHook[] }) {
                     rows.map((r) => (r.id === h.id ? { ...r, isActive: next } : r)),
                   );
                 } catch (err) {
-                  toast.error(err instanceof Error ? err.message : 'Failed');
+                  toast.error(err instanceof Error ? err.message : t('failed'));
                 }
               }}
               onDelete={async () => {
-                if (!window.confirm('Delete this webhook?')) return;
+                if (!window.confirm(t('confirmDelete'))) return;
                 try {
                   await deleteWebhook(h.id);
                   setHooks((rows) => rows.filter((r) => r.id !== h.id));
-                  toast.success('Deleted');
+                  toast.success(t('deleted'));
                 } catch (err) {
-                  toast.error(err instanceof Error ? err.message : 'Failed');
+                  toast.error(err instanceof Error ? err.message : t('failed'));
                 }
               }}
               onRotate={async () => {
-                if (
-                  !window.confirm(
-                    'Rotate the signing secret? Your receiver must accept either the old or new secret for ~24h while you roll out the change.',
-                  )
-                )
-                  return;
+                if (!window.confirm(t('confirmRotate'))) return;
                 try {
                   const r = await rotateWebhookSecret(h.id);
                   setFreshSecret(r.secret);
-                  toast.success('Secret rotated — update your receiver');
+                  toast.success(t('rotated'));
                 } catch (err) {
-                  toast.error(err instanceof Error ? err.message : 'Failed');
+                  toast.error(err instanceof Error ? err.message : t('failed'));
                 }
               }}
             />
@@ -177,6 +173,7 @@ function HookRow({
   onDelete: () => void | Promise<void>;
   onRotate: () => void | Promise<void>;
 }) {
+  const t = useTranslations('settings.webhooks');
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [rows, setRows] = React.useState<DeliveryRow[] | null>(null);
@@ -187,7 +184,7 @@ function HookRow({
       const data = await listWebhookDeliveries(hook.id);
       setRows(data);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not load');
+      toast.error(err instanceof Error ? err.message : t('couldNotLoad'));
     } finally {
       setLoading(false);
     }
@@ -207,9 +204,11 @@ function HookRow({
           <div className="text-muted-foreground text-xs">
             {hook.events}
             {hook.lastSuccessAt
-              ? ` \u00b7 ok ${new Date(hook.lastSuccessAt).toLocaleString()}`
+              ? ` \u00b7 ${t('okPrefix')} ${new Date(hook.lastSuccessAt).toLocaleString()}`
               : ''}
-            {hook.failureCount > 0 ? ` \u00b7 ${hook.failureCount} failure(s)` : ''}
+            {hook.failureCount > 0
+              ? ` \u00b7 ${hook.failureCount === 1 ? t('failuresOne', { count: hook.failureCount }) : t('failuresOther', { count: hook.failureCount })}`
+              : ''}
           </div>
         </div>
         <Button
@@ -217,17 +216,17 @@ function HookRow({
           variant="ghost"
           onClick={toggleOpen}
           aria-expanded={open}
-          title="View deliveries"
+          title={t('viewDeliveriesTitle')}
         >
           <Activity className="size-4" />
         </Button>
-        <Button size="sm" variant="ghost" asChild title="Open dashboard">
+        <Button size="sm" variant="ghost" asChild title={t('openDashboardTitle')}>
           <Link href={`/app/settings/webhooks/${hook.id}`}>
             <BarChart3 className="size-4" />
           </Link>
         </Button>
         <Switch checked={hook.isActive} onCheckedChange={onToggle} />
-        <Button size="sm" variant="ghost" onClick={onRotate} title="Rotate signing secret">
+        <Button size="sm" variant="ghost" onClick={onRotate} title={t('rotateTitle')}>
           <KeyRound className="size-4" />
         </Button>
         <Button size="sm" variant="ghost" onClick={onDelete}>
@@ -237,20 +236,22 @@ function HookRow({
       {open && (
         <div className="bg-muted/20 border-t px-4 py-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-muted-foreground text-xs font-medium">Recent deliveries</span>
+            <span className="text-muted-foreground text-xs font-medium">
+              {t('recentDeliveries')}
+            </span>
             <Button size="sm" variant="ghost" onClick={refresh} disabled={loading}>
               {loading ? (
                 <Loader2 className="size-3.5 animate-spin" />
               ) : (
                 <RefreshCw className="size-3.5" />
               )}
-              Refresh
+              {t('refresh')}
             </Button>
           </div>
           {rows === null ? (
-            <p className="text-muted-foreground text-xs">Loading\u2026</p>
+            <p className="text-muted-foreground text-xs">{t('loading')}</p>
           ) : rows.length === 0 ? (
-            <p className="text-muted-foreground text-xs">No deliveries yet.</p>
+            <p className="text-muted-foreground text-xs">{t('noDeliveries')}</p>
           ) : (
             <ul className="bg-background divide-y rounded-lg border">
               {rows.map((d) => {
@@ -281,17 +282,17 @@ function HookRow({
                           const r = await redeliverWebhook(d.id);
                           toast.success(
                             r.statusCode
-                              ? `Re-delivered (HTTP ${r.statusCode})`
-                              : 'Re-delivered (no response)',
+                              ? t('redeliveredHttp', { code: r.statusCode })
+                              : t('redeliveredNoResponse'),
                           );
                           await refresh();
                         } catch (err) {
-                          toast.error(err instanceof Error ? err.message : 'Failed');
+                          toast.error(err instanceof Error ? err.message : t('failed'));
                         }
                       }}
                     >
                       <RefreshCw className="size-3" />
-                      Resend
+                      {t('resend')}
                     </Button>
                   </li>
                 );

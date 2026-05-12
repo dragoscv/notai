@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Copy, Lock, Loader2, ShieldCheck, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui';
 import {
   decryptBytes,
@@ -56,6 +57,7 @@ type Status = 'loading' | 'not-setup' | 'configured';
  * foundation: schema + key management + setup flow.
  */
 export function EncryptionSettingsPanel() {
+  const t = useTranslations('settings.encryption');
   const [status, setStatus] = React.useState<Status>('loading');
   const [pass1, setPass1] = React.useState('');
   const [pass2, setPass2] = React.useState('');
@@ -75,25 +77,23 @@ export function EncryptionSettingsPanel() {
 
   const onSetup = async () => {
     if (pass1.length < 12) {
-      toast.error('Passphrase must be at least 12 characters');
+      toast.error(t('minLength'));
       return;
     }
     if (pass1 !== pass2) {
-      toast.error('Passphrases do not match');
+      toast.error(t('mismatch'));
       return;
     }
     const strength = assessPassphrase(pass1);
     if (strength.score < 2) {
-      toast.error(`Passphrase too weak — ${strength.tip}`);
+      toast.error(t('tooWeak', { tip: strength.tip }));
       return;
     }
     setBusy(true);
     try {
       const breached = await checkPassphraseBreached(pass1);
       if (breached && breached > 0) {
-        toast.error(
-          `This passphrase appeared in ${breached.toLocaleString()} known breaches. Pick something else.`,
-        );
+        toast.error(t('breached', { count: breached }));
         setBusy(false);
         return;
       }
@@ -116,16 +116,16 @@ export function EncryptionSettingsPanel() {
         kdfIters: KDF_ITERS,
       });
       if (!res.ok) {
-        toast.error('Encryption is already set up for this account');
+        toast.error(t('alreadySetup'));
         return;
       }
       setRecovery(rec.display);
       setStatus('configured');
       setPass1('');
       setPass2('');
-      toast.success('Encryption enabled — save your recovery key now');
+      toast.success(t('enabledToast'));
     } catch (err) {
-      toast.error((err as Error).message ?? 'Setup failed');
+      toast.error((err as Error).message ?? t('setupFailed'));
     } finally {
       setBusy(false);
     }
@@ -133,31 +133,29 @@ export function EncryptionSettingsPanel() {
 
   const onRotate = async () => {
     if (newPass1.length < 12) {
-      toast.error('New passphrase must be at least 12 characters');
+      toast.error(t('newMinLength'));
       return;
     }
     if (newPass1 !== newPass2) {
-      toast.error('New passphrases do not match');
+      toast.error(t('newMismatch'));
       return;
     }
     const strength = assessPassphrase(newPass1);
     if (strength.score < 2) {
-      toast.error(`New passphrase too weak — ${strength.tip}`);
+      toast.error(t('newTooWeak', { tip: strength.tip }));
       return;
     }
     setRotateBusy(true);
     try {
       const breached = await checkPassphraseBreached(newPass1);
       if (breached && breached > 0) {
-        toast.error(
-          `This passphrase appeared in ${breached.toLocaleString()} known breaches. Pick something else.`,
-        );
+        toast.error(t('breached', { count: breached }));
         setRotateBusy(false);
         return;
       }
       const envelope = await getMyKeyEnvelope();
       if (!envelope) {
-        toast.error('Encryption is not set up.');
+        toast.error(t('notSetUp'));
         return;
       }
       const oldSalt = fromB64(envelope.salt);
@@ -166,7 +164,7 @@ export function EncryptionSettingsPanel() {
       try {
         rawMaster = await decryptBytes(oldKEK, envelope.encryptedMasterKey);
       } catch {
-        toast.error('Current passphrase is wrong');
+        toast.error(t('wrongPass'));
         return;
       }
       // Re-wrap master key with new salt + new passphrase.
@@ -181,13 +179,13 @@ export function EncryptionSettingsPanel() {
         encryptedMasterKeyByRecovery: envelope.encryptedMasterKeyByRecovery,
         kdfIters: envelope.kdfIters,
       });
-      toast.success('Passphrase changed');
+      toast.success(t('passphraseChanged'));
       setRotateOpen(false);
       setOldPass('');
       setNewPass1('');
       setNewPass2('');
     } catch (err) {
-      toast.error((err as Error).message ?? 'Rotation failed');
+      toast.error((err as Error).message ?? t('rotationFailed'));
     } finally {
       setRotateBusy(false);
     }
@@ -196,7 +194,7 @@ export function EncryptionSettingsPanel() {
   if (status === 'loading') {
     return (
       <div className="text-muted-foreground inline-flex items-center gap-2 text-sm">
-        <Loader2 className="size-4 animate-spin" /> Checking encryption status…
+        <Loader2 className="size-4 animate-spin" /> {t('checking')}
       </div>
     );
   }
@@ -206,28 +204,22 @@ export function EncryptionSettingsPanel() {
       <div className="bg-card space-y-3 rounded-xl border p-4 text-sm">
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-4 text-emerald-600" />
-          <p className="font-medium">End-to-end encryption is enabled</p>
+          <p className="font-medium">{t('e2eEnabled')}</p>
         </div>
-        <p className="text-muted-foreground text-xs">
-          You can mark individual notes as encrypted from the note menu. Server-side AI, search,
-          sharing, and real-time collab are skipped for encrypted notes.
-        </p>
+        <p className="text-muted-foreground text-xs">{t('e2eEnabledDesc')}</p>
         {!rotateOpen ? (
           <Button variant="outline" size="sm" onClick={() => setRotateOpen(true)}>
-            <RefreshCcw className="size-4" /> Change passphrase
+            <RefreshCcw className="size-4" /> {t('changePassphrase')}
           </Button>
         ) : (
           <div className="space-y-2 border-t pt-3">
-            <p className="text-xs font-medium">Change passphrase</p>
-            <p className="text-muted-foreground text-xs">
-              Your master key stays the same — we just re-wrap it under a new passphrase. Your
-              recovery key continues to work unchanged.
-            </p>
+            <p className="text-xs font-medium">{t('changePassphrase')}</p>
+            <p className="text-muted-foreground text-xs">{t('changePassphraseDesc')}</p>
             <input
               type="password"
               value={oldPass}
               onChange={(e) => setOldPass(e.target.value)}
-              placeholder="Current passphrase"
+              placeholder={t('currentPassphrase')}
               className="border-input bg-background w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
               autoComplete="current-password"
             />
@@ -235,7 +227,7 @@ export function EncryptionSettingsPanel() {
               type="password"
               value={newPass1}
               onChange={(e) => setNewPass1(e.target.value)}
-              placeholder="New passphrase (12+ chars)"
+              placeholder={t('newPassphrase')}
               className="border-input bg-background w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
               autoComplete="new-password"
             />
@@ -244,7 +236,7 @@ export function EncryptionSettingsPanel() {
               type="password"
               value={newPass2}
               onChange={(e) => setNewPass2(e.target.value)}
-              placeholder="Confirm new passphrase"
+              placeholder={t('confirmNewPassphrase')}
               className="border-input bg-background w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
               autoComplete="new-password"
             />
@@ -258,7 +250,7 @@ export function EncryptionSettingsPanel() {
                 ) : (
                   <RefreshCcw className="size-4" />
                 )}
-                Change passphrase
+                {t('changePassphrase')}
               </Button>
               <Button
                 variant="outline"
@@ -270,7 +262,7 @@ export function EncryptionSettingsPanel() {
                 }}
                 disabled={rotateBusy}
               >
-                Cancel
+                {t('cancel')}
               </Button>
             </div>
           </div>
@@ -282,20 +274,15 @@ export function EncryptionSettingsPanel() {
   if (recovery) {
     return (
       <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-        <p className="font-medium">
-          Save this recovery key offline — it won&apos;t be shown again.
-        </p>
-        <p className="text-muted-foreground mt-1 text-xs">
-          If you forget your passphrase, this is the ONLY way to read your encrypted notes. Notai
-          cannot recover it for you.
-        </p>
+        <p className="font-medium">{t('saveRecoveryTitle')}</p>
+        <p className="text-muted-foreground mt-1 text-xs">{t('saveRecoveryDesc')}</p>
         <div className="bg-background/80 mt-3 flex items-center gap-2 rounded-md p-2">
           <code className="flex-1 break-all font-mono text-xs">{recovery}</code>
           <button
             type="button"
             onClick={() => {
               navigator.clipboard.writeText(recovery);
-              toast.success('Recovery key copied');
+              toast.success(t('keyCopied'));
             }}
             className="rounded-md border px-2 py-1 text-xs"
           >
@@ -303,7 +290,7 @@ export function EncryptionSettingsPanel() {
           </button>
         </div>
         <Button className="mt-3" onClick={() => setRecovery(null)}>
-          I&apos;ve saved it
+          {t('iSaved')}
         </Button>
       </div>
     );
@@ -313,19 +300,14 @@ export function EncryptionSettingsPanel() {
     <div className="bg-card space-y-3 rounded-xl border p-4 text-sm">
       <div className="flex items-center gap-2">
         <Lock className="size-4" />
-        <p className="font-medium">Enable end-to-end encryption</p>
+        <p className="font-medium">{t('enableE2e')}</p>
       </div>
-      <p className="text-muted-foreground text-xs">
-        Generate a master key that lives only in your browser, wrapped by your passphrase. Once
-        enabled, you can mark individual notes as encrypted; encrypted notes are excluded from
-        server-side AI, search, sharing, and collaboration. Lose both the passphrase and the
-        recovery key and the data is gone forever.
-      </p>
+      <p className="text-muted-foreground text-xs">{t('enableE2eDesc')}</p>
       <input
         type="password"
         value={pass1}
         onChange={(e) => setPass1(e.target.value)}
-        placeholder="Passphrase (12+ chars)"
+        placeholder={t('passphrasePlaceholder')}
         className="border-input bg-background w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
         autoComplete="new-password"
       />
@@ -334,13 +316,13 @@ export function EncryptionSettingsPanel() {
         type="password"
         value={pass2}
         onChange={(e) => setPass2(e.target.value)}
-        placeholder="Confirm passphrase"
+        placeholder={t('confirmPassphrasePlaceholder')}
         className="border-input bg-background w-full rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
         autoComplete="new-password"
       />
       <Button onClick={onSetup} disabled={busy || !pass1 || !pass2}>
         {busy ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
-        Enable encryption
+        {t('enableE2e')}
       </Button>
     </div>
   );

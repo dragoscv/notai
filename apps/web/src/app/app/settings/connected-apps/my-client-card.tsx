@@ -1,5 +1,6 @@
 'use client';
 import { useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { revokeMyClient } from '@/server/actions/oauth-clients';
 
@@ -18,6 +19,7 @@ interface MyClientCardProps {
 }
 
 export function MyClientCard({ client }: MyClientCardProps) {
+  const t = useTranslations('settings.pages.connectedApps');
   const [pending, start] = useTransition();
   const revoked = !!client.revokedAt;
 
@@ -27,9 +29,9 @@ export function MyClientCard({ client }: MyClientCardProps) {
         <div className="min-w-0">
           <div className="truncate font-medium">{client.name}</div>
           <div className="text-muted-foreground text-[11px] uppercase tracking-wider">
-            {client.type === 'public' ? 'Public' : 'Confidential'}
-            {client.dynamicallyRegistered ? ' · DCR' : ''}
-            {revoked ? ' · revoked' : ''}
+            {client.type === 'public' ? t('myClientPublic') : t('myClientConfidential')}
+            {client.dynamicallyRegistered ? ` · ${t('dcr')}` : ''}
+            {revoked ? ` · ${t('revoked')}` : ''}
           </div>
         </div>
         {!revoked ? (
@@ -39,11 +41,11 @@ export function MyClientCard({ client }: MyClientCardProps) {
             size="sm"
             disabled={pending}
             onClick={() => {
-              if (!confirm(`Revoke ${client.name}? All tokens will be invalidated.`)) return;
+              if (!confirm(t('confirmRevokeClient', { name: client.name }))) return;
               start(() => revokeMyClient(client.id));
             }}
           >
-            {pending ? 'Revoking…' : 'Revoke'}
+            {pending ? t('revoking') : t('revoke')}
           </Button>
         ) : null}
       </div>

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { RefreshCw, Repeat } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { listWebhookDeliveries, redeliverWebhook } from '@/server/actions/webhooks';
 
 interface DeliveryView {
@@ -21,6 +22,7 @@ export function WebhookDeliveriesPanel({
   endpointId: string;
   initial: DeliveryView[];
 }) {
+  const t = useTranslations('settings.deliveries');
   const [rows, setRows] = React.useState<DeliveryView[]>(initial);
   const [refreshing, setRefreshing] = React.useState(false);
   const [busy, setBusy] = React.useState<string | null>(null);
@@ -44,10 +46,10 @@ export function WebhookDeliveriesPanel({
     setBusy(id);
     try {
       const out = await redeliverWebhook(id);
-      toast.success(`Replayed → ${out.statusCode ?? 'no response'}`);
+      toast.success(t('replayedWithStatus', { status: out.statusCode ?? t('noResponse') }));
       await refresh();
     } catch (err) {
-      toast.error((err as Error).message ?? 'Replay failed');
+      toast.error((err as Error).message ?? t('replayFailed'));
     } finally {
       setBusy(null);
     }
@@ -72,21 +74,21 @@ export function WebhookDeliveriesPanel({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-4">
-        <Stat label="Recent deliveries" value={String(rows.length)} />
-        <Stat label="Success rate" value={successRate == null ? '—' : `${successRate}%`} />
-        <Stat label="p95 latency" value={p95 == null ? '—' : `${p95} ms`} />
+        <Stat label={t('recent')} value={String(rows.length)} />
+        <Stat label={t('successRate')} value={successRate == null ? '—' : `${successRate}%`} />
+        <Stat label={t('p95')} value={p95 == null ? '—' : `${p95} ms`} />
         <button
           type="button"
           onClick={() => void refresh()}
           disabled={refreshing}
           className="hover:bg-muted ml-auto inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs disabled:opacity-60"
         >
-          <RefreshCw className={`size-3 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
+          <RefreshCw className={`size-3 ${refreshing ? 'animate-spin' : ''}`} /> {t('refresh')}
         </button>
       </div>
       {rows.length === 0 ? (
         <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">
-          No deliveries yet. Trigger a note event via the REST API to see one here.
+          {t('empty')}
         </div>
       ) : (
         <ul className="divide-y rounded-lg border">
@@ -124,9 +126,10 @@ export function WebhookDeliveriesPanel({
                   onClick={() => void replay(d.id)}
                   disabled={busy === d.id}
                   className="hover:bg-muted inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs disabled:opacity-60"
-                  title="Re-fire this delivery"
+                  title={t('refireTitle')}
                 >
-                  <Repeat className={`size-3 ${busy === d.id ? 'animate-spin' : ''}`} /> Replay
+                  <Repeat className={`size-3 ${busy === d.id ? 'animate-spin' : ''}`} />{' '}
+                  {t('replay')}
                 </button>
               </li>
             );

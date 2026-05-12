@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Button } from '@notai/ui/components/button';
 import { Trash2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import {
   addCalendarSubscription,
   removeCalendarSubscription,
@@ -14,6 +15,7 @@ import {
 const PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
 
 export function CalendarsManager({ initial }: { initial: CalendarSubscription[] }) {
+  const t = useTranslations('settings.calendars');
   const [subs, setSubs] = React.useState(initial);
   const [name, setName] = React.useState('');
   const [url, setUrl] = React.useState('');
@@ -22,7 +24,7 @@ export function CalendarsManager({ initial }: { initial: CalendarSubscription[] 
 
   async function add() {
     if (!name.trim() || !url.trim()) {
-      toast.error('Name and URL are required.');
+      toast.error(t('nameUrlRequired'));
       return;
     }
     setBusy(true);
@@ -41,9 +43,9 @@ export function CalendarsManager({ initial }: { initial: CalendarSubscription[] 
       ]);
       setName('');
       setUrl('');
-      toast.success('Calendar added.');
+      toast.success(t('added'));
     } catch (err) {
-      toast.error((err as Error).message || 'Failed to add calendar');
+      toast.error((err as Error).message || t('failedAdd'));
     } finally {
       setBusy(false);
     }
@@ -56,7 +58,7 @@ export function CalendarsManager({ initial }: { initial: CalendarSubscription[] 
       await removeCalendarSubscription(id);
     } catch (err) {
       setSubs(prev);
-      toast.error((err as Error).message || 'Failed to remove');
+      toast.error((err as Error).message || t('failedRemove'));
     }
   }
 
@@ -65,7 +67,7 @@ export function CalendarsManager({ initial }: { initial: CalendarSubscription[] 
     try {
       await toggleCalendarSubscription(id, next);
     } catch (err) {
-      toast.error((err as Error).message || 'Failed to update');
+      toast.error((err as Error).message || t('failedUpdate'));
     }
   }
 
@@ -74,7 +76,7 @@ export function CalendarsManager({ initial }: { initial: CalendarSubscription[] 
       <ul className="space-y-2">
         {subs.length === 0 && (
           <li className="text-muted-foreground rounded-xl border border-dashed px-4 py-6 text-center text-sm">
-            No calendars yet. Add one below.
+            {t('empty')}
           </li>
         )}
         {subs.map((sub) => (
@@ -93,13 +95,13 @@ export function CalendarsManager({ initial }: { initial: CalendarSubscription[] 
                 checked={sub.enabled}
                 onChange={(e) => void toggle(sub.id, e.target.checked)}
               />
-              On
+              {t('onLabel')}
             </label>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => void remove(sub.id)}
-              aria-label="Remove"
+              aria-label={t('removeAria')}
             >
               <Trash2 className="size-4" />
             </Button>
@@ -108,28 +110,28 @@ export function CalendarsManager({ initial }: { initial: CalendarSubscription[] 
       </ul>
 
       <div className="bg-card space-y-3 rounded-xl border p-4">
-        <h3 className="text-sm font-semibold">Add a calendar</h3>
+        <h3 className="text-sm font-semibold">{t('addHeading')}</h3>
         <input
           className="border-input bg-background focus-visible:ring-ring w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
-          placeholder="Display name (e.g. Work)"
+          placeholder={t('namePlaceholder')}
           value={name}
           maxLength={80}
           onChange={(e) => setName(e.target.value)}
         />
         <input
           className="border-input bg-background focus-visible:ring-ring w-full rounded-md border px-3 py-2 font-mono text-xs focus-visible:outline-none focus-visible:ring-2"
-          placeholder="https://… or webcal://…"
+          placeholder={t('urlPlaceholder')}
           value={url}
           maxLength={2048}
           onChange={(e) => setUrl(e.target.value)}
         />
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground text-xs">Color</span>
+          <span className="text-muted-foreground text-xs">{t('colorLabel')}</span>
           {PALETTE.map((c) => (
             <button
               key={c}
               type="button"
-              aria-label={`Pick ${c}`}
+              aria-label={t('pickColorAria', { color: c })}
               onClick={() => setColor(c)}
               className={`size-5 rounded-full border-2 transition ${color === c ? 'border-foreground scale-110' : 'border-transparent'}`}
               style={{ backgroundColor: c }}
@@ -139,7 +141,7 @@ export function CalendarsManager({ initial }: { initial: CalendarSubscription[] 
         <div className="flex justify-end">
           <Button size="sm" onClick={() => void add()} disabled={busy}>
             <Plus className="size-3.5" />
-            Add calendar
+            {t('addCalendar')}
           </Button>
         </div>
       </div>

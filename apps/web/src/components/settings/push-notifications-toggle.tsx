@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Bell, BellOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import {
   registerPushSubscription,
@@ -17,6 +18,7 @@ import {
  * configured.
  */
 export function PushNotificationsToggle() {
+  const t = useTranslations('settings.push');
   const [busy, setBusy] = React.useState(false);
   const [subscribed, setSubscribed] = React.useState(false);
   const [supported, setSupported] = React.useState(true);
@@ -37,14 +39,14 @@ export function PushNotificationsToggle() {
 
   const onEnable = async () => {
     if (!vapidKey) {
-      toast.error('Push not configured on this server');
+      toast.error(t('notConfiguredToast'));
       return;
     }
     setBusy(true);
     try {
       const perm = await Notification.requestPermission();
       if (perm !== 'granted') {
-        toast.message('Notification permission declined');
+        toast.message(t('permDeclined'));
         return;
       }
       const reg = await navigator.serviceWorker.register('/sw-push.js');
@@ -60,9 +62,9 @@ export function PushNotificationsToggle() {
         userAgent: navigator.userAgent.slice(0, 400),
       });
       setSubscribed(true);
-      toast.success('Push notifications enabled');
+      toast.success(t('enabled'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to enable');
+      toast.error(err instanceof Error ? err.message : t('failedEnable'));
     } finally {
       setBusy(false);
     }
@@ -78,27 +80,19 @@ export function PushNotificationsToggle() {
         await sub.unsubscribe();
       }
       setSubscribed(false);
-      toast.message('Push disabled');
+      toast.message(t('disabled'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed');
+      toast.error(err instanceof Error ? err.message : t('failed'));
     } finally {
       setBusy(false);
     }
   };
 
   if (!supported) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        This browser doesn\u2019t support push notifications.
-      </p>
-    );
+    return <p className="text-muted-foreground text-sm">{t('unsupported')}</p>;
   }
   if (!vapidKey) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        Push notifications aren\u2019t configured on this deployment.
-      </p>
-    );
+    return <p className="text-muted-foreground text-sm">{t('notConfigured')}</p>;
   }
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -115,7 +109,7 @@ export function PushNotificationsToggle() {
         ) : (
           <Bell className="size-4" />
         )}
-        {subscribed ? 'Disable push notifications' : 'Enable push notifications'}
+        {subscribed ? t('disable') : t('enable')}
       </Button>
       {subscribed && (
         <Button
@@ -127,13 +121,15 @@ export function PushNotificationsToggle() {
               const r = await fetch('/api/push/test', { method: 'POST' });
               if (!r.ok) throw new Error(await r.text());
               const j = (await r.json()) as { sent: number };
-              toast.success(`Test sent to ${j.sent} device${j.sent === 1 ? '' : 's'}`);
+              toast.success(
+                j.sent === 1 ? t('testSentOne') : t('testSentOther', { count: j.sent }),
+              );
             } catch (err) {
-              toast.error(err instanceof Error ? err.message : 'Test failed');
+              toast.error(err instanceof Error ? err.message : t('testFailed'));
             }
           }}
         >
-          Send test
+          {t('sendTest')}
         </Button>
       )}
     </div>

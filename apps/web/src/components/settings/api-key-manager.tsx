@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Trash2, Plus, Copy, Loader2, Activity } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { createApiKey, revokeApiKey } from '@/server/actions/api-keys';
 import { getApiKeyUsage, type ApiKeyUsageStats } from '@/server/actions/api-usage';
@@ -18,6 +19,7 @@ export interface SerializedKey {
 }
 
 export function ApiKeyManager({ initial }: { initial: SerializedKey[] }) {
+  const t = useTranslations('settings.apiKeys');
   const [keys, setKeys] = React.useState(initial);
   const [name, setName] = React.useState('');
   const [busy, setBusy] = React.useState(false);
@@ -44,7 +46,7 @@ export function ApiKeyManager({ initial }: { initial: SerializedKey[] }) {
       ]);
       setName('');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not create');
+      toast.error(err instanceof Error ? err.message : t('couldNotCreate'));
     } finally {
       setBusy(false);
     }
@@ -54,10 +56,8 @@ export function ApiKeyManager({ initial }: { initial: SerializedKey[] }) {
     <div className="space-y-6">
       {freshKey && (
         <div className="border-primary/40 bg-primary/5 rounded-2xl border p-4">
-          <p className="text-sm font-medium">Copy your new key now.</p>
-          <p className="text-muted-foreground mt-1 text-xs">
-            We won\u2019t show it again. Store it in a password manager.
-          </p>
+          <p className="text-sm font-medium">{t('copyTitle')}</p>
+          <p className="text-muted-foreground mt-1 text-xs">{t('copyHelp')}</p>
           <div className="mt-3 flex items-center gap-2">
             <code className="bg-background flex-1 truncate rounded-md border px-2 py-1.5 text-xs">
               {freshKey}
@@ -67,13 +67,13 @@ export function ApiKeyManager({ initial }: { initial: SerializedKey[] }) {
               variant="outline"
               onClick={async () => {
                 await navigator.clipboard.writeText(freshKey);
-                toast.success('Copied');
+                toast.success(t('copied'));
               }}
             >
               <Copy className="size-3.5" />
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setFreshKey(null)}>
-              Done
+              {t('done')}
             </Button>
           </div>
         </div>
@@ -84,17 +84,17 @@ export function ApiKeyManager({ initial }: { initial: SerializedKey[] }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={80}
-          placeholder="Key name (e.g. \u201cZapier\u201d)"
+          placeholder={t('namePlaceholder')}
           className="bg-background flex-1 rounded-md border px-3 py-2 text-sm"
         />
         <Button type="submit" disabled={busy || !name.trim()}>
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-          Create
+          {t('create')}
         </Button>
       </form>
 
       {keys.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No keys yet.</p>
+        <p className="text-muted-foreground text-sm">{t('empty')}</p>
       ) : (
         <ul className="divide-y rounded-2xl border">
           {keys.map((k) => (
@@ -111,6 +111,7 @@ export function ApiKeyManager({ initial }: { initial: SerializedKey[] }) {
 }
 
 function KeyRow({ k, onRevoked }: { k: SerializedKey; onRevoked: () => void }) {
+  const t = useTranslations('settings.apiKeys');
   const [open, setOpen] = React.useState(false);
   const [stats, setStats] = React.useState<ApiKeyUsageStats | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -129,31 +130,26 @@ function KeyRow({ k, onRevoked }: { k: SerializedKey; onRevoked: () => void }) {
           <div className="font-medium">{k.name}</div>
           <div className="text-muted-foreground font-mono text-xs">{k.prefix}\u2026</div>
           <div className="text-muted-foreground mt-1 text-xs">
-            {k.scopes} \u00b7 created {new Date(k.createdAt).toLocaleDateString()}
+            {k.scopes} \u00b7 {t('createdOn', { date: new Date(k.createdAt).toLocaleDateString() })}
             {k.lastUsedAt
-              ? ` \u00b7 last used ${new Date(k.lastUsedAt).toLocaleDateString()}`
-              : ' \u00b7 unused'}
+              ? ` \u00b7 ${t('lastUsedOn', { date: new Date(k.lastUsedAt).toLocaleDateString() })}`
+              : ` \u00b7 ${t('unused')}`}
           </div>
         </div>
-        <Button size="sm" variant="ghost" onClick={() => setOpen((v) => !v)} title="Usage">
+        <Button size="sm" variant="ghost" onClick={() => setOpen((v) => !v)} title={t('usage')}>
           <Activity className="size-4" />
         </Button>
         <Button
           size="sm"
           variant="ghost"
           onClick={async () => {
-            if (
-              !window.confirm(
-                `Revoke \u201c${k.name}\u201d? Calls using it will start failing immediately.`,
-              )
-            )
-              return;
+            if (!window.confirm(t('confirmRevoke', { name: k.name }))) return;
             try {
               await revokeApiKey(k.id);
               onRevoked();
-              toast.success('Revoked');
+              toast.success(t('revoked'));
             } catch (err) {
-              toast.error(err instanceof Error ? err.message : 'Failed');
+              toast.error(err instanceof Error ? err.message : t('failed'));
             }
           }}
         >
@@ -162,21 +158,22 @@ function KeyRow({ k, onRevoked }: { k: SerializedKey; onRevoked: () => void }) {
       </div>
       {open && (
         <div className="bg-muted/40 mt-3 rounded-lg p-3 text-xs">
-          {loading && <p className="text-muted-foreground">Loading\u2026</p>}
+          {loading && <p className="text-muted-foreground">{t('loading')}</p>}
           {!loading && stats && (
             <>
               <div className="mb-2">
-                <span className="font-medium">{stats.totalLast30Days}</span> request
-                {stats.totalLast30Days === 1 ? '' : 's'} in last 30 days
+                <span className="font-medium">{stats.totalLast30Days}</span>{' '}
+                {stats.totalLast30Days === 1 ? t('requestsOne') : t('requestsOther')}{' '}
+                {t('requestsLine')}
                 {stats.errorsLast30Days > 0 && (
                   <span className="text-destructive">
                     {' '}
-                    \u00b7 {stats.errorsLast30Days} error(s)
+                    \u00b7 {t('errorsCount', { count: stats.errorsLast30Days })}
                   </span>
                 )}
               </div>
               {stats.recent.length === 0 ? (
-                <p className="text-muted-foreground">No calls yet.</p>
+                <p className="text-muted-foreground">{t('noCalls')}</p>
               ) : (
                 <ul className="space-y-0.5 font-mono">
                   {stats.recent.map((r, i) => (

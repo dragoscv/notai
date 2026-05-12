@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { Spinner } from '@notai/ui/components/spinner';
 import { requestAccountDeletion, cancelAccountDeletion } from '@/server/actions/account-deletion';
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function DangerZone({ deletion, userEmail }: Props) {
+  const t = useTranslations('settings.danger');
   const [confirmText, setConfirmText] = useState('');
   const [stepUpCode, setStepUpCode] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -20,9 +22,8 @@ export function DangerZone({ deletion, userEmail }: Props) {
     return (
       <div className="space-y-3">
         <p className="text-sm">
-          Your account is scheduled for deletion on{' '}
-          <strong>{new Date(deletion.purgesAt).toLocaleString()}</strong>. Sign in any time before
-          then and click <em>Cancel</em> to keep your account.
+          {t('scheduledPrefix')} <strong>{new Date(deletion.purgesAt).toLocaleString()}</strong>
+          {t('scheduledMiddle')} <em>{t('scheduledCancel')}</em> {t('scheduledSuffix')}
         </p>
         <Button
           variant="outline"
@@ -30,13 +31,13 @@ export function DangerZone({ deletion, userEmail }: Props) {
           onClick={() =>
             startTransition(async () => {
               const r = await cancelAccountDeletion();
-              if (r.ok) toast.success('Account deletion cancelled');
-              else toast.error('Could not cancel');
+              if (r.ok) toast.success(t('cancelled'));
+              else toast.error(t('couldNotCancel'));
             })
           }
         >
           {pending ? <Spinner className="size-4" /> : null}
-          Cancel deletion
+          {t('cancelDeletion')}
         </Button>
       </div>
     );
@@ -46,14 +47,12 @@ export function DangerZone({ deletion, userEmail }: Props) {
 
   return (
     <div className="space-y-3 text-sm">
-      <p>
-        Your notes, drawings, comments, sessions, API keys, and passkeys will be permanently deleted
-        after a {deletion.graceDays}-day grace period. Within that window you can sign in and
-        cancel.
-      </p>
+      <p>{t('body', { days: deletion.graceDays })}</p>
       <label className="block">
         <span className="text-muted-foreground text-xs">
-          Type your email (<code>{userEmail || 'unknown'}</code>) to confirm:
+          {t('typeEmailPrefix')}
+          <code>{userEmail || t('unknown')}</code>
+          {t('typeEmailSuffix')}
         </span>
         <input
           type="email"
@@ -65,9 +64,7 @@ export function DangerZone({ deletion, userEmail }: Props) {
       </label>
       {stepUpCode !== null ? (
         <label className="block">
-          <span className="text-muted-foreground text-xs">
-            Enter your authenticator code to confirm:
-          </span>
+          <span className="text-muted-foreground text-xs">{t('authCodeLabel')}</span>
           <input
             inputMode="numeric"
             autoComplete="one-time-code"
@@ -83,22 +80,22 @@ export function DangerZone({ deletion, userEmail }: Props) {
         disabled={!matches || pending}
         onClick={() => {
           if (!matches) return;
-          if (!confirm('Schedule account deletion?')) return;
+          if (!confirm(t('confirmSchedule'))) return;
           startTransition(async () => {
             const r = await requestAccountDeletion(stepUpCode ?? undefined);
             if (r.stepUpRequired) {
               setStepUpCode((c) => c ?? '');
               if (r.error) toast.error(r.error);
-              else toast.message('Enter your authenticator code to confirm');
+              else toast.message(t('authCodeToast'));
               return;
             }
-            if (!r.ok) toast.error(r.error ?? 'Could not schedule deletion');
+            if (!r.ok) toast.error(r.error ?? t('couldNotSchedule'));
             // On success the action signs you out and redirects to '/'.
           });
         }}
       >
         {pending ? <Spinner className="size-4" /> : null}
-        Schedule deletion
+        {t('scheduleDeletion')}
       </Button>
     </div>
   );

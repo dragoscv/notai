@@ -2,6 +2,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Copy, Plus, Trash2, Bot, Chrome, Webhook } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Button } from '@notai/ui';
 import { createPersonalAccessToken, revokePersonalAccessToken } from '@/server/actions/pat';
@@ -16,6 +17,7 @@ interface TokenRow {
 }
 
 export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[] }) {
+  const t = useTranslations('settings.pages.integrations');
   const [tokens, setTokens] = React.useState(initialTokens);
   const [draftName, setDraftName] = React.useState('Web clipper');
   const [draftScopes, setDraftScopes] = React.useState<string[]>(['clipper']);
@@ -52,7 +54,7 @@ export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[
         setDraftName('Web clipper');
         setDraftScopes(['clipper']);
       } catch (err) {
-        toast.error((err as Error).message ?? 'Failed to create token');
+        toast.error((err as Error).message ?? t('failedCreateToken'));
       }
     });
   };
@@ -74,48 +76,39 @@ export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[
   return (
     <div className="mx-auto w-full max-w-2xl space-y-10 px-6 py-10">
       <header>
-        <h1 className="font-serif text-3xl font-semibold tracking-tight">Integrations</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Connect Notai to Claude, ChatGPT, the browser clipper, and other tools.
-        </p>
+        <h1 className="font-serif text-3xl font-semibold tracking-tight">{t('heading')}</h1>
+        <p className="text-muted-foreground mt-1 text-sm">{t('intro')}</p>
       </header>
 
       <section className="space-y-3">
         <h2 className="flex items-center gap-2 text-base font-semibold">
-          <Bot className="size-4" /> Claude / ChatGPT (MCP)
+          <Bot className="size-4" /> {t('mcpHeading')}
         </h2>
-        <p className="text-muted-foreground text-sm">
-          Notai exposes a Model Context Protocol server so AI assistants can read and create your
-          notes with your permission. Both Claude Desktop and the ChatGPT custom-tools beta speak
-          MCP natively.
-        </p>
+        <p className="text-muted-foreground text-sm">{t('mcpDesc')}</p>
         <div className="bg-card space-y-2 rounded-xl border p-4 text-sm">
-          <Field label="MCP endpoint" value={mcpUrl} />
-          <Field label="OAuth issuer" value={oauthIssuer} />
-          <Field label="Authorization URL" value={`${oauthIssuer}/authorize`} />
-          <Field label="Token URL" value={`${oauthIssuer}/token`} />
-          <Field label="Dynamic registration" value={`${oauthIssuer}/register`} />
+          <Field label={t('fMcpEndpoint')} value={mcpUrl} />
+          <Field label={t('fOauthIssuer')} value={oauthIssuer} />
+          <Field label={t('fAuthUrl')} value={`${oauthIssuer}/authorize`} />
+          <Field label={t('fTokenUrl')} value={`${oauthIssuer}/token`} />
+          <Field label={t('fDcr')} value={`${oauthIssuer}/register`} />
         </div>
         <details className="bg-muted/30 rounded-lg border p-3 text-sm">
-          <summary className="cursor-pointer font-medium">Claude Desktop setup</summary>
+          <summary className="cursor-pointer font-medium">{t('claudeSetup')}</summary>
           <ol className="text-muted-foreground mt-2 list-decimal space-y-1 pl-5">
-            <li>Open Claude → Settings → Developer → Edit config.</li>
+            <li>{t('claudeStep1')}</li>
             <li>
-              Add an entry under <code>mcpServers</code> with the URL above and OAuth.
+              {t('claudeStep2Prefix')} <code>mcpServers</code> {t('claudeStep2Suffix')}
             </li>
-            <li>Restart Claude. You&apos;ll be redirected to Notai to authorize.</li>
+            <li>{t('claudeStep3')}</li>
           </ol>
         </details>
       </section>
 
       <section className="space-y-3">
         <h2 className="flex items-center gap-2 text-base font-semibold">
-          <Chrome className="size-4" /> Web clipper
+          <Chrome className="size-4" /> {t('clipperHeading')}
         </h2>
-        <p className="text-muted-foreground text-sm">
-          The browser extension uses a Personal Access Token (PAT) that you can create here and
-          revoke any time.
-        </p>
+        <p className="text-muted-foreground text-sm">{t('clipperDesc')}</p>
 
         <div className="bg-card rounded-xl border p-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -123,10 +116,10 @@ export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[
               value={draftName}
               onChange={(e) => setDraftName(e.target.value)}
               className="border-input bg-background flex-1 rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/40"
-              placeholder="Token name"
+              placeholder={t('tokenNamePh')}
             />
             <Button onClick={create} disabled={pending || draftScopes.length === 0}>
-              <Plus className="mr-1 size-4" /> Create token
+              <Plus className="mr-1 size-4" /> {t('createToken')}
             </Button>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -150,7 +143,7 @@ export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[
 
           {revealed && (
             <div className="mt-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-              <p className="font-medium">Copy this now — it won&apos;t be shown again.</p>
+              <p className="font-medium">{t('copyTokenWarn')}</p>
               <div className="mt-2 flex items-center gap-2">
                 <code className="bg-background/80 flex-1 truncate rounded px-2 py-1 font-mono text-xs">
                   {revealed.token}
@@ -159,7 +152,7 @@ export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[
                   type="button"
                   onClick={() => {
                     navigator.clipboard.writeText(revealed.token);
-                    toast.success('Token copied');
+                    toast.success(t('tokenCopied'));
                   }}
                   className="rounded-md border px-2 py-1 text-xs"
                 >
@@ -171,29 +164,30 @@ export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[
         </div>
 
         <ul className="bg-card divide-y rounded-xl border text-sm">
-          {tokens.length === 0 && <li className="text-muted-foreground p-4">No tokens yet.</li>}
-          {tokens.map((t) => (
-            <li key={t.id} className="flex items-center justify-between gap-2 px-4 py-3">
+          {tokens.length === 0 && <li className="text-muted-foreground p-4">{t('noTokens')}</li>}
+          {tokens.map((tok) => (
+            <li key={tok.id} className="flex items-center justify-between gap-2 px-4 py-3">
               <div className="min-w-0">
-                <p className="truncate font-medium">{t.name}</p>
+                <p className="truncate font-medium">{tok.name}</p>
                 <p className="text-muted-foreground text-xs">
-                  Scopes: <span className="font-mono">{t.scope || 'clipper'}</span>
+                  {t('scopesLabel')} <span className="font-mono">{tok.scope || 'clipper'}</span>
                 </p>
                 <p className="text-muted-foreground text-xs">
-                  {t.revokedAt
-                    ? 'Revoked'
-                    : t.lastUsedAt
-                      ? `Used ${formatRel(t.lastUsedAt)}`
-                      : 'Never used'}
-                  {' · '}created {formatRel(t.createdAt)}
+                  {tok.revokedAt
+                    ? t('revokedLabel')
+                    : tok.lastUsedAt
+                      ? t('usedAgo', { when: formatRel(tok.lastUsedAt, t) })
+                      : t('neverUsed')}
+                  {' · '}
+                  {t('createdAgo', { when: formatRel(tok.createdAt, t) })}
                 </p>
               </div>
-              {!t.revokedAt && (
+              {!tok.revokedAt && (
                 <button
                   type="button"
-                  onClick={() => revoke(t.id)}
+                  onClick={() => revoke(tok.id)}
                   className="text-muted-foreground hover:text-destructive rounded-md p-1.5"
-                  aria-label="Revoke"
+                  aria-label={t('revokeAria')}
                 >
                   <Trash2 className="size-4" />
                 </button>
@@ -207,17 +201,14 @@ export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[
 
       <section className="space-y-3">
         <h2 className="flex items-center gap-2 text-base font-semibold">
-          <Webhook className="size-4" /> Webhooks
+          <Webhook className="size-4" /> {t('webhooksHeading')}
         </h2>
-        <p className="text-muted-foreground text-sm">
-          POST signed JSON to your own endpoints when notes are created, updated, or archived.
-          Payloads are HMAC-SHA256 signed with a per-endpoint secret.
-        </p>
+        <p className="text-muted-foreground text-sm">{t('webhooksDesc')}</p>
         <Link
           href="/app/settings/webhooks"
           className="bg-card hover:bg-accent inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors"
         >
-          <Webhook className="size-4" /> Manage webhooks
+          <Webhook className="size-4" /> {t('manageWebhooks')}
         </Link>
       </section>
     </div>
@@ -225,9 +216,7 @@ export function IntegrationsPanel({ tokens: initialTokens }: { tokens: TokenRow[
 }
 
 function BookmarkletSection({ baseUrl }: { baseUrl: string }) {
-  // The bookmarklet is a self-contained snippet a user drags onto
-  // their bookmarks bar. It opens a /clip page with the current
-  // page\u2019s url, title, and any selected text \u2014 no extension required.
+  const t = useTranslations('settings.pages.integrations');
   const code = React.useMemo(() => {
     const inner = `(function(){var u=encodeURIComponent(location.href);var t=encodeURIComponent(document.title||'');var s=encodeURIComponent((window.getSelection&&window.getSelection().toString())||'');window.open('${baseUrl}/clip?url='+u+'&title='+t+'&selection='+s,'_blank','noopener');})()`;
     return `javascript:${inner}`;
@@ -235,30 +224,26 @@ function BookmarkletSection({ baseUrl }: { baseUrl: string }) {
   return (
     <section className="space-y-3">
       <h2 className="flex items-center gap-2 text-base font-semibold">
-        <Chrome className="size-4" /> Bookmarklet (one-click clip)
+        <Chrome className="size-4" /> {t('bookmarkletHeading')}
       </h2>
-      <p className="text-muted-foreground text-sm">
-        Drag the button below onto your browser\u2019s bookmarks bar. Clicking it on any page
-        captures the URL, title, and any selected text into a fresh Notai note.
-      </p>
+      <p className="text-muted-foreground text-sm">{t('bookmarkletDesc')}</p>
       <div className="bg-card flex items-center justify-between gap-3 rounded-xl border p-4">
-        {/* Drag this anchor onto the bookmarks bar. */}
         <a
           href={code}
-          // Prevent Next from intercepting the javascript: href.
           onClick={(e) => e.preventDefault()}
           className="bg-primary text-primary-foreground inline-flex cursor-grab items-center gap-2 rounded-md px-3 py-2 text-sm font-medium shadow-sm active:cursor-grabbing"
         >
           <Chrome className="size-4" />
-          Clip to Notai
+          {t('clipToNotai')}
         </a>
-        <span className="text-muted-foreground text-xs">Drag me \u2192 bookmarks bar</span>
+        <span className="text-muted-foreground text-xs">{t('dragMe')}</span>
       </div>
     </section>
   );
 }
 
 function Field({ label, value }: { label: string; value: string }) {
+  const t = useTranslations('settings.pages.integrations');
   return (
     <div className="flex items-center gap-2">
       <span className="text-muted-foreground w-40 shrink-0 text-xs">{label}</span>
@@ -269,10 +254,10 @@ function Field({ label, value }: { label: string; value: string }) {
         type="button"
         onClick={() => {
           navigator.clipboard.writeText(value);
-          toast.success('Copied');
+          toast.success(t('copied'));
         }}
         className="rounded-md border px-1.5 py-1 text-xs"
-        aria-label="Copy"
+        aria-label={t('copyAria')}
       >
         <Copy className="size-3.5" />
       </button>
@@ -280,12 +265,15 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatRel(date: Date) {
+function formatRel(
+  date: Date,
+  t: (key: string, vals?: Record<string, string | number | Date>) => string,
+) {
   const d = new Date(date).getTime();
   const diff = Date.now() - d;
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  if (days < 1) return 'today';
-  if (days < 30) return `${days}d ago`;
-  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
-  return `${Math.floor(days / 365)}y ago`;
+  if (days < 1) return t('today');
+  if (days < 30) return t('daysAgo', { n: days });
+  if (days < 365) return t('monthsAgo', { n: Math.floor(days / 30) });
+  return t('yearsAgo', { n: Math.floor(days / 365) });
 }

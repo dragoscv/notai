@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Switch } from '@notai/ui/components/switch';
 import { Label } from '@notai/ui/components/label';
 import { Separator } from '@notai/ui/components/separator';
@@ -27,6 +28,7 @@ async function loadStore(): Promise<StoreHandle | null> {
 }
 
 export function SettingsForm() {
+  const t = useTranslations('settings.form');
   const [runAtStartup, setRunAtStartup] = useState(false);
   const [startMinimized, setStartMinimized] = useState(false);
   const [restoreStickies, setRestoreStickies] = useState(true);
@@ -35,7 +37,7 @@ export function SettingsForm() {
 
   useEffect(() => {
     if (!isTauri()) {
-      setError('Settings are only available in the desktop app.');
+      setError(t('desktopOnly'));
       setLoading(false);
       return;
     }
@@ -88,7 +90,7 @@ export function SettingsForm() {
   };
 
   if (loading) {
-    return <p className="text-muted-foreground text-sm">Loading…</p>;
+    return <p className="text-muted-foreground text-sm">{t('loading')}</p>;
   }
   if (error && !isTauri()) {
     return <p className="text-destructive text-sm">{error}</p>;
@@ -97,18 +99,18 @@ export function SettingsForm() {
   return (
     <div className="space-y-6">
       <section className="space-y-4">
-        <h2 className="text-muted-foreground text-sm font-medium">Startup</h2>
+        <h2 className="text-muted-foreground text-sm font-medium">{t('startup')}</h2>
         <Row
           id="run-at-startup"
-          label="Run Notai when Windows starts"
-          description="Launches the app in the background so your sticky notes and tray icon are ready immediately."
+          label={t('runAtStartup')}
+          description={t('runAtStartupDesc')}
           checked={runAtStartup}
           onCheckedChange={updateAutostart}
         />
         <Row
           id="start-minimized"
-          label="Start minimized to tray on Windows startup"
-          description="Only applies when Notai launches automatically at login. Manual launches and updates always open the main window."
+          label={t('startMinimized')}
+          description={t('startMinimizedDesc')}
           checked={startMinimized}
           onCheckedChange={(v) => {
             setStartMinimized(v);
@@ -117,8 +119,8 @@ export function SettingsForm() {
         />
         <Row
           id="restore-stickies"
-          label="Restore open sticky notes on startup"
-          description="Reopens the sticky-note windows that were visible the last time the app closed."
+          label={t('restoreStickies')}
+          description={t('restoreStickiesDesc')}
           checked={restoreStickies}
           onCheckedChange={(v) => {
             setRestoreStickies(v);

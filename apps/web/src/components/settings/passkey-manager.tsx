@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { startRegistration } from '@simplewebauthn/browser';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { Spinner } from '@notai/ui/components/spinner';
 import { Plus, Trash2, KeyRound, Cloud, HardDrive } from 'lucide-react';
@@ -19,6 +20,7 @@ export interface PasskeyRow {
 }
 
 export function PasskeyManager({ initial }: { initial: PasskeyRow[] }) {
+  const t = useTranslations('settings.passkeys');
   const [rows, setRows] = useState(initial);
   const [pending, setPending] = useState(false);
   const [, startDel] = useTransition();
@@ -27,9 +29,9 @@ export function PasskeyManager({ initial }: { initial: PasskeyRow[] }) {
     setPending(true);
     try {
       const optsRes = await fetch('/api/auth/webauthn/register/options', { method: 'POST' });
-      if (!optsRes.ok) throw new Error('Could not start passkey registration');
+      if (!optsRes.ok) throw new Error(t('couldNotStart'));
       const opts = await optsRes.json();
-      const label = window.prompt('Name this passkey (e.g. "MacBook Touch ID")', '');
+      const label = window.prompt(t('promptLabel'), '');
       const att = await startRegistration({ optionsJSON: opts });
       const verifyRes = await fetch('/api/auth/webauthn/register/verify', {
         method: 'POST',
@@ -38,13 +40,13 @@ export function PasskeyManager({ initial }: { initial: PasskeyRow[] }) {
       });
       if (!verifyRes.ok) {
         const j = (await verifyRes.json().catch(() => ({}))) as { error?: string };
-        throw new Error(j.error ?? 'Registration failed');
+        throw new Error(j.error ?? t('registrationFailed'));
       }
-      toast.success('Passkey added');
+      toast.success(t('added'));
       // Reload page-server data via a soft refresh; cheaper than refetching.
       window.location.reload();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Registration failed';
+      const msg = err instanceof Error ? err.message : t('registrationFailed');
       // User-cancelled WebAuthn surfaces as a NotAllowedError or similar.
       if (/NotAllowed|cancel/i.test(msg)) return;
       toast.error(msg);
@@ -54,14 +56,14 @@ export function PasskeyManager({ initial }: { initial: PasskeyRow[] }) {
   }
 
   function remove(id: string) {
-    if (!window.confirm('Remove this passkey?')) return;
+    if (!window.confirm(t('confirmRemove'))) return;
     startDel(async () => {
       const res = await deletePasskey(id);
       if (res.ok) {
         setRows((rs) => rs.filter((r) => r.id !== id));
-        toast.success('Passkey removed');
+        toast.success(t('removed'));
       } else {
-        toast.error('Could not remove passkey');
+        toast.error(t('couldNotRemove'));
       }
     });
   }
@@ -69,28 +71,26 @@ export function PasskeyManager({ initial }: { initial: PasskeyRow[] }) {
   return (
     <div className="space-y-4">
       {rows.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          No passkeys yet. Add one to sign in faster on this device.
-        </p>
+        <p className="text-muted-foreground text-sm">{t('empty')}</p>
       ) : (
         <ul className="divide-y rounded-lg border">
           {rows.map((r) => (
             <li key={r.id} className="flex items-center gap-3 px-3 py-2.5">
               <span className="bg-muted grid size-8 place-items-center rounded-md">
                 {r.backedUp ? (
-                  <Cloud className="size-4" aria-label="Synced passkey" />
+                  <Cloud className="size-4" aria-label={t('syncedAria')} />
                 ) : (
-                  <HardDrive className="size-4" aria-label="Device-bound passkey" />
+                  <HardDrive className="size-4" aria-label={t('deviceBoundAria')} />
                 )}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{r.label ?? 'Unnamed passkey'}</p>
+                <p className="truncate text-sm font-medium">{r.label ?? t('unnamed')}</p>
                 <p className="text-muted-foreground truncate text-xs">
-                  {r.backedUp ? 'Synced' : 'This device'}
-                  {r.transports ? ` · ${r.transports.replace(/,/g, ', ')}` : ''} · added{' '}
-                  {new Date(r.createdAt).toLocaleDateString()}
+                  {r.backedUp ? t('synced') : t('thisDevice')}
+                  {r.transports ? ` · ${r.transports.replace(/,/g, ', ')}` : ''} ·{' '}
+                  {t('addedOn', { date: new Date(r.createdAt).toLocaleDateString() })}
                   {r.lastUsedAt
-                    ? ` · last used ${new Date(r.lastUsedAt).toLocaleDateString()}`
+                    ? ` · ${t('lastUsedOn', { date: new Date(r.lastUsedAt).toLocaleDateString() })}`
                     : ''}
                 </p>
               </div>
@@ -98,7 +98,7 @@ export function PasskeyManager({ initial }: { initial: PasskeyRow[] }) {
                 type="button"
                 onClick={() => remove(r.id)}
                 className="text-muted-foreground hover:text-destructive rounded p-1.5"
-                aria-label="Remove passkey"
+                aria-label={t('removeAria')}
               >
                 <Trash2 className="size-4" />
               </button>
@@ -109,18 +109,17 @@ export function PasskeyManager({ initial }: { initial: PasskeyRow[] }) {
       <Button onClick={enroll} disabled={pending} variant="default">
         {pending ? (
           <>
-            <Spinner className="size-4" /> Adding…
+            <Spinner className="size-4" /> {t('adding')}
           </>
         ) : (
           <>
-            <Plus className="size-4" /> Add a passkey
+            <Plus className="size-4" /> {t('addPasskey')}
           </>
         )}
       </Button>
       <p className="text-muted-foreground flex items-start gap-2 text-xs">
         <KeyRound className="mt-0.5 size-3.5 shrink-0" />
-        Passkeys are stored on your device or password manager — Notai only sees the public key. You
-        can sign in with any passkey from the sign-in page.
+        {t('footer')}
       </p>
     </div>
   );

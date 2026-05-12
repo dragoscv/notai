@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
   Button,
@@ -38,25 +39,14 @@ interface Props {
 }
 
 type FeatureKey = 'chat' | 'embed' | 'transcribe';
-const FEATURES: { key: FeatureKey; label: string; help: string }[] = [
-  {
-    key: 'chat',
-    label: 'Chat & summarization',
-    help: 'Used for "Ask my notes", per-note summaries, action items, rewrites.',
-  },
-  {
-    key: 'embed',
-    label: 'Embeddings',
-    help: 'Used to vectorize notes for semantic search ("Ask my notes").',
-  },
-  {
-    key: 'transcribe',
-    label: 'Voice transcription',
-    help: 'Whisper-style speech-to-text for voice notes. OpenAI only today.',
-  },
-];
 
 export function AiProvidersPanel({ initialStatus }: Props) {
+  const t = useTranslations('settings.pages.aiProviders');
+  const FEATURES: { key: FeatureKey; label: string; help: string }[] = [
+    { key: 'chat', label: t('featureChat'), help: t('featureChatHelp') },
+    { key: 'embed', label: t('featureEmbed'), help: t('featureEmbedHelp') },
+    { key: 'transcribe', label: t('featureTranscribe'), help: t('featureTranscribeHelp') },
+  ];
   const [status, setStatus] = useState<ProviderStatus>(initialStatus);
   const isOpenAi = status.connected.some((c) => c.provider === 'openai');
   const isCopilot = status.connected.some((c) => c.provider === 'copilot');
@@ -70,14 +60,10 @@ export function AiProvidersPanel({ initialStatus }: Props) {
     <div className="mx-auto max-w-3xl space-y-8 p-6">
       <header className="space-y-2">
         <p className="text-muted-foreground text-xs font-semibold uppercase tracking-[0.14em]">
-          Settings · AI providers
+          {t('crumb')}
         </p>
-        <h1 className="font-serif text-3xl">Bring your own keys</h1>
-        <p className="text-muted-foreground max-w-prose text-sm">
-          Notai never bills you for AI. Connect your own OpenAI account or your existing GitHub
-          Copilot subscription, then pick which model should power each feature. Credentials are
-          encrypted at rest with AES-256-GCM and only ever decrypted server-side at request time.
-        </p>
+        <h1 className="font-serif text-3xl">{t('headline')}</h1>
+        <p className="text-muted-foreground max-w-prose text-sm">{t('intro')}</p>
       </header>
 
       <OpenAiCard
@@ -96,6 +82,7 @@ export function AiProvidersPanel({ initialStatus }: Props) {
         prefs={status.prefs}
         availableProviders={{ openai: isOpenAi, copilot: isCopilot }}
         onChanged={refresh}
+        features={FEATURES}
       />
     </div>
   );
@@ -112,6 +99,7 @@ function OpenAiCard({
   meta: Record<string, unknown>;
   onChanged: () => void | Promise<void>;
 }) {
+  const t = useTranslations('settings.pages.aiProviders');
   const [apiKey, setApiKey] = useState('');
   const [pending, startTransition] = useTransition();
   const keyMask = (meta as { keyMask?: string }).keyMask;
@@ -122,15 +110,15 @@ function OpenAiCard({
         <div className="flex items-start justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2">
-              OpenAI
+              {t('openaiTitle')}
               {connected && (
                 <Badge variant="secondary" className="font-mono">
-                  Connected
+                  {t('connected')}
                 </Badge>
               )}
             </CardTitle>
             <CardDescription>
-              Paste a secret key from{' '}
+              {t('openaiDescPrefix')}{' '}
               <a
                 href="https://platform.openai.com/api-keys"
                 target="_blank"
@@ -139,7 +127,7 @@ function OpenAiCard({
               >
                 platform.openai.com/api-keys
               </a>
-              . We validate it before saving.
+              {t('openaiDescSuffix')}
             </CardDescription>
           </div>
         </div>
@@ -155,12 +143,12 @@ function OpenAiCard({
               onClick={() =>
                 startTransition(async () => {
                   await disconnectProvider({ provider: 'openai' });
-                  toast.success('OpenAI key removed.');
+                  toast.success(t('openaiRemoved'));
                   await onChanged();
                 })
               }
             >
-              Disconnect
+              {t('disconnect')}
             </Button>
           </div>
         ) : (
@@ -174,14 +162,14 @@ function OpenAiCard({
                   return;
                 }
                 setApiKey('');
-                toast.success('OpenAI key saved.');
+                toast.success(t('openaiSaved'));
                 await onChanged();
               });
             }}
             className="flex flex-col gap-2 sm:flex-row sm:items-end"
           >
             <div className="flex-1 space-y-1">
-              <Label htmlFor="openai-key">API key</Label>
+              <Label htmlFor="openai-key">{t('apiKeyLabel')}</Label>
               <Input
                 id="openai-key"
                 type="password"
@@ -194,7 +182,7 @@ function OpenAiCard({
               />
             </div>
             <Button type="submit" disabled={pending || apiKey.length < 20}>
-              {pending ? <Spinner className="size-4" /> : 'Save key'}
+              {pending ? <Spinner className="size-4" /> : t('saveKey')}
             </Button>
           </form>
         )}
@@ -214,6 +202,7 @@ function CopilotCard({
   meta: Record<string, unknown>;
   onChanged: () => void | Promise<void>;
 }) {
+  const t = useTranslations('settings.pages.aiProviders');
   const [pending, startTransition] = useTransition();
   const [device, setDevice] = useState<{
     deviceCode: string;
@@ -237,13 +226,13 @@ function CopilotCard({
         });
         if (cancelled) return;
         if (result.status === 'connected') {
-          toast.success(`Connected as ${result.githubLogin}.`);
+          toast.success(t('connectedAs', { login: result.githubLogin }));
           setDevice(null);
           await onChanged();
           return;
         }
         if (result.status === 'expired' || result.status === 'denied') {
-          toast.error(`Connection ${result.status}.`);
+          toast.error(t('connectionStatus', { status: result.status }));
           setDevice(null);
           return;
         }
@@ -267,24 +256,23 @@ function CopilotCard({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            GitHub Copilot
+            {t('copilotTitle')}
             {connected && (
               <Badge variant="secondary" className="font-mono">
-                Connected
+                {t('connected')}
               </Badge>
             )}
           </CardTitle>
           <CardDescription>
-            Use your existing GitHub Copilot subscription as the LLM provider. We open{' '}
-            <span className="font-mono">github.com/login/device</span> in your browser — no client
-            secret required.
+            {t('copilotDescPrefix')} <span className="font-mono">github.com/login/device</span>{' '}
+            {t('copilotDescSuffix')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {connected ? (
             <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
               <span>
-                Signed in as <span className="font-mono">@{login ?? 'github-user'}</span>
+                {t('signedInAs')} <span className="font-mono">@{login ?? 'github-user'}</span>
               </span>
               <Button
                 variant="outline"
@@ -293,12 +281,12 @@ function CopilotCard({
                 onClick={() =>
                   startTransition(async () => {
                     await disconnectProvider({ provider: 'copilot' });
-                    toast.success('GitHub Copilot disconnected.');
+                    toast.success(t('copilotDisconnected'));
                     await onChanged();
                   })
                 }
               >
-                Disconnect
+                {t('disconnect')}
               </Button>
             </div>
           ) : (
@@ -323,7 +311,7 @@ function CopilotCard({
                 })
               }
             >
-              {pending ? <Spinner className="size-4" /> : 'Connect GitHub Copilot'}
+              {pending ? <Spinner className="size-4" /> : t('connectCopilot')}
             </Button>
           )}
         </CardContent>
@@ -332,11 +320,8 @@ function CopilotCard({
       <Dialog open={device !== null} onOpenChange={(o) => !o && setDevice(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Authorize Notai on GitHub</DialogTitle>
-            <DialogDescription>
-              We opened the GitHub authorization page in a new tab. Paste this code there to finish
-              connecting.
-            </DialogDescription>
+            <DialogTitle>{t('authorizeTitle')}</DialogTitle>
+            <DialogDescription>{t('authorizeDesc')}</DialogDescription>
           </DialogHeader>
           {device && (
             <div className="space-y-4">
@@ -344,26 +329,26 @@ function CopilotCard({
                 <p className="font-mono text-3xl tracking-[0.4em]">{device.userCode}</p>
               </div>
               <p className="text-muted-foreground text-xs">
-                If the tab didn&apos;t open,{' '}
+                {t('tabClosed')}{' '}
                 <a
                   href={device.verificationUri}
                   target="_blank"
                   rel="noreferrer"
                   className="underline"
                 >
-                  click here
+                  {t('clickHere')}
                 </a>{' '}
-                to open it manually.
+                {t('toOpenManually')}
               </p>
               <div className="text-muted-foreground flex items-center gap-2 text-xs">
                 {polling && <Spinner className="size-3" />}
-                <span>Waiting for you to authorize…</span>
+                <span>{t('waiting')}</span>
               </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDevice(null)}>
-              Cancel
+              {t('cancel')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -378,18 +363,21 @@ function ModelPreferences({
   prefs,
   availableProviders,
   onChanged,
+  features,
 }: {
   prefs: ProviderStatus['prefs'];
   availableProviders: { openai: boolean; copilot: boolean };
   onChanged: () => void | Promise<void>;
+  features: { key: FeatureKey; label: string; help: string }[];
 }) {
+  const t = useTranslations('settings.pages.aiProviders');
   const anyConnected = availableProviders.openai || availableProviders.copilot;
   if (!anyConnected) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Model preferences</CardTitle>
-          <CardDescription>Connect at least one provider above to choose models.</CardDescription>
+          <CardTitle>{t('modelPrefsTitle')}</CardTitle>
+          <CardDescription>{t('modelPrefsConnect')}</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -398,14 +386,11 @@ function ModelPreferences({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Model preferences</CardTitle>
-        <CardDescription>
-          Choose which provider + model handles each feature. Leave on Auto to use whatever&apos;s
-          connected.
-        </CardDescription>
+        <CardTitle>{t('modelPrefsTitle')}</CardTitle>
+        <CardDescription>{t('modelPrefsDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {FEATURES.map((f) => (
+        {features.map((f) => (
           <FeatureRow
             key={f.key}
             feature={f.key}
@@ -439,6 +424,7 @@ function FeatureRow({
   transcribeOpenAiOnly: boolean;
   onChanged: () => void | Promise<void>;
 }) {
+  const t = useTranslations('settings.pages.aiProviders');
   const [provider, setProvider] = useState<'auto' | 'openai' | 'copilot'>(
     current.provider ?? 'auto',
   );
@@ -467,14 +453,14 @@ function FeatureRow({
 
   const providerOptions = useMemo(() => {
     const opts: { value: 'auto' | 'openai' | 'copilot'; label: string }[] = [
-      { value: 'auto', label: 'Auto (use any connected)' },
+      { value: 'auto', label: t('providerAuto') },
     ];
-    if (availableProviders.openai) opts.push({ value: 'openai', label: 'OpenAI' });
+    if (availableProviders.openai) opts.push({ value: 'openai', label: t('providerOpenAi') });
     if (availableProviders.copilot && !transcribeOpenAiOnly) {
-      opts.push({ value: 'copilot', label: 'GitHub Copilot' });
+      opts.push({ value: 'copilot', label: t('providerCopilot') });
     }
     return opts;
-  }, [availableProviders, transcribeOpenAiOnly]);
+  }, [availableProviders, transcribeOpenAiOnly, t]);
 
   return (
     <div className="space-y-2">
@@ -484,7 +470,7 @@ function FeatureRow({
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
         <select
-          aria-label="Provider"
+          aria-label={t('providerAria')}
           value={provider}
           onChange={(e) => {
             setProvider(e.target.value as typeof provider);
@@ -501,7 +487,7 @@ function FeatureRow({
           ))}
         </select>
         <select
-          aria-label="Model"
+          aria-label={t('modelAria')}
           value={model}
           disabled={provider === 'auto' || loadingModels}
           onChange={(e) => setModel(e.target.value)}
@@ -511,12 +497,12 @@ function FeatureRow({
         >
           <option value="">
             {provider === 'auto'
-              ? 'Default for provider'
+              ? t('defaultForProvider')
               : loadingModels
-                ? 'Loading…'
+                ? t('loadingModels')
                 : filteredModels.length
-                  ? 'Default for provider'
-                  : 'No matching models found'}
+                  ? t('defaultForProvider')
+                  : t('noModels')}
           </option>
           {filteredModels.map((m) => (
             <option key={m.id} value={m.id}>
@@ -534,12 +520,12 @@ function FeatureRow({
                 provider: provider === 'auto' ? null : provider,
                 model: model.trim() ? model : null,
               });
-              toast.success('Saved.');
+              toast.success(t('saved'));
               await onChanged();
             })
           }
         >
-          Save
+          {t('save')}
         </Button>
       </div>
     </div>

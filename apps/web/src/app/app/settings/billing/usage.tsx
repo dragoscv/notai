@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { motion } from 'framer-motion';
 import { FileText, HardDrive, Smartphone, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@notai/lib/utils';
 
 interface UsageQuota {
@@ -34,6 +35,7 @@ interface BarProps {
 }
 
 function UsageBar({ icon: Icon, label, used, limit, formatValue, index = 0 }: BarProps) {
+  const t = useTranslations('settings.pages.billing');
   const fmt = formatValue ?? ((n: number) => n.toLocaleString());
   const isUnlimited = limit === null;
   const pct = isUnlimited ? 0 : Math.min(100, limit === 0 ? 0 : (used / limit) * 100);
@@ -55,7 +57,7 @@ function UsageBar({ icon: Icon, label, used, limit, formatValue, index = 0 }: Ba
         <span className="text-muted-foreground text-xs tabular-nums">
           {fmt(used)}
           {isUnlimited ? (
-            <span className="text-primary ml-1 font-medium">· unlimited</span>
+            <span className="text-primary ml-1 font-medium">· {t('unlimited')}</span>
           ) : (
             <span> / {fmt(limit)}</span>
           )}
@@ -96,6 +98,7 @@ export function UsageSection({
   usage: UsageData;
   tier: 'free' | 'pro' | 'teams';
 }) {
+  const t = useTranslations('settings.pages.billing');
   const periodLabel = new Date(usage.ai.periodStart).toLocaleDateString(undefined, {
     month: 'long',
     year: 'numeric',
@@ -104,11 +107,9 @@ export function UsageSection({
     <section className="space-y-3">
       <header className="flex items-end justify-between">
         <div>
-          <h2 className="text-sm font-semibold tracking-tight">Usage</h2>
+          <h2 className="text-sm font-semibold tracking-tight">{t('usageHeading')}</h2>
           <p className="text-muted-foreground text-xs">
-            {tier === 'free'
-              ? 'Free plan limits. Upgrade for unlimited.'
-              : 'Your plan limits and current usage.'}
+            {tier === 'free' ? t('usageFree') : t('usagePlan')}
           </p>
         </div>
         <span className="text-muted-foreground text-[10px] uppercase tracking-wider">
@@ -118,14 +119,14 @@ export function UsageSection({
       <div className="grid gap-2.5 sm:grid-cols-2">
         <UsageBar
           icon={FileText}
-          label="Cloud notes"
+          label={t('cloudNotes')}
           used={usage.notes.used}
           limit={usage.notes.limit}
           index={0}
         />
         <UsageBar
           icon={HardDrive}
-          label="Attachments"
+          label={t('attachments')}
           used={usage.attachments.used}
           limit={usage.attachments.limit}
           formatValue={fmtBytes}
@@ -133,14 +134,14 @@ export function UsageSection({
         />
         <UsageBar
           icon={Smartphone}
-          label="Devices"
+          label={t('devices')}
           used={usage.devices.used}
           limit={usage.devices.limit}
           index={2}
         />
         <UsageBar
           icon={Sparkles}
-          label="AI actions (this month)"
+          label={t('aiActions')}
           used={usage.ai.used}
           limit={usage.ai.limit}
           index={3}
@@ -148,12 +149,12 @@ export function UsageSection({
       </div>
       {usage.history.days !== null ? (
         <p className="text-muted-foreground text-xs">
-          Version history retained for{' '}
-          <strong className="text-foreground">{usage.history.days} days</strong>.
+          {t('historyDays', { days: usage.history.days })}
         </p>
       ) : (
         <p className="text-muted-foreground text-xs">
-          Version history is <strong className="text-primary">unlimited</strong> on your plan.
+          {t('historyUnlimitedPrefix')} <strong className="text-primary">{t('unlimited')}</strong>{' '}
+          {t('historyUnlimitedSuffix')}
         </p>
       )}
     </section>

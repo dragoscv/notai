@@ -1,9 +1,13 @@
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { auth } from '@/auth';
 import { listPersonalAccessTokens } from '@/server/actions/pat';
 import { IntegrationsPanel } from './panel';
 
-export const metadata = { title: 'Integrations — Notai' };
+export async function generateMetadata() {
+  const t = await getTranslations('settings.pages.integrations');
+  return { title: t('title') };
+}
 
 export default async function IntegrationsPage() {
   const session = await auth();

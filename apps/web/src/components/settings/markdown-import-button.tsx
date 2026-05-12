@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { importMarkdown, type ImportResult } from '@/server/actions/import-markdown';
 
@@ -15,6 +16,7 @@ const MAX_FILES_PER_BATCH = 200;
  * server action; `webkitdirectory` lets the user pick a whole folder.
  */
 export function MarkdownImportButton() {
+  const t = useTranslations('settings.markdownImport');
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [busy, setBusy] = React.useState(false);
 
@@ -43,14 +45,14 @@ export function MarkdownImportButton() {
         skipped += res.skipped;
         errors.push(...res.errors);
       }
-      toast.success(`Imported ${imported} note${imported === 1 ? '' : 's'}`, {
+      toast.success(imported === 1 ? t('importedOne') : t('importedOther', { count: imported }), {
         description:
           skipped > 0 || errors.length > 0
-            ? `${skipped} skipped, ${errors.length} error${errors.length === 1 ? '' : 's'}`
+            ? t('summary', { skipped, errors: errors.length })
             : undefined,
       });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Import failed');
+      toast.error(err instanceof Error ? err.message : t('failed'));
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = '';
@@ -77,7 +79,7 @@ export function MarkdownImportButton() {
         onClick={() => inputRef.current?.click()}
       >
         {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-        Import markdown\u2026
+        {t('button')}
       </Button>
     </>
   );

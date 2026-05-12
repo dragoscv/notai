@@ -1,5 +1,6 @@
 'use client';
 import { useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { revokeConnectedApp } from '@/server/actions/oauth-clients';
 
@@ -21,6 +22,7 @@ interface ConnectedAppCardProps {
 }
 
 export function ConnectedAppCard({ app }: ConnectedAppCardProps) {
+  const t = useTranslations('settings.pages.connectedApps');
   const [pending, start] = useTransition();
   const scopes = app.scopes.split(/\s+/).filter(Boolean);
 
@@ -38,8 +40,8 @@ export function ConnectedAppCard({ app }: ConnectedAppCardProps) {
         <div className="flex flex-wrap items-baseline gap-x-2">
           <span className="truncate font-medium">{app.name}</span>
           <span className="text-muted-foreground text-xs">
-            {app.type === 'public' ? 'Public client' : 'Confidential'}
-            {app.dynamicallyRegistered ? ' · auto-registered' : ''}
+            {app.type === 'public' ? t('publicClient') : t('confidentialClient')}
+            {app.dynamicallyRegistered ? ` · ${t('autoRegistered')}` : ''}
           </span>
         </div>
         {app.description ? (
@@ -56,8 +58,10 @@ export function ConnectedAppCard({ app }: ConnectedAppCardProps) {
           ))}
         </div>
         <p className="text-muted-foreground mt-2 text-[11px]">
-          Granted {new Date(app.grantedAt).toLocaleDateString()} · Last updated{' '}
-          {new Date(app.updatedAt).toLocaleDateString()}
+          {t('grantedOn', {
+            grantedAt: new Date(app.grantedAt).toLocaleDateString(),
+            updatedAt: new Date(app.updatedAt).toLocaleDateString(),
+          })}
         </p>
       </div>
       <Button
@@ -66,11 +70,11 @@ export function ConnectedAppCard({ app }: ConnectedAppCardProps) {
         size="sm"
         disabled={pending}
         onClick={() => {
-          if (!confirm(`Revoke ${app.name}? It will lose access immediately.`)) return;
+          if (!confirm(t('confirmRevoke', { name: app.name }))) return;
           start(() => revokeConnectedApp(app.clientId));
         }}
       >
-        {pending ? 'Revoking…' : 'Revoke'}
+        {pending ? t('revoking') : t('revoke')}
       </Button>
     </div>
   );

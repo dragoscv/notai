@@ -4,35 +4,32 @@ import * as React from 'react';
 import { Button } from '@notai/ui/components/button';
 import { Copy, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { rotateEmailAlias, type EmailAliasInfo } from '@/server/actions/email-alias';
 
 export function EmailAliasManager({ initial }: { initial: EmailAliasInfo }) {
+  const t = useTranslations('settings.emailAlias');
   const [alias, setAlias] = React.useState(initial);
   const [busy, setBusy] = React.useState(false);
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(alias.address);
-      toast.success('Address copied.');
+      toast.success(t('copied'));
     } catch {
-      toast.error('Could not copy. Select and copy manually.');
+      toast.error(t('copyFail'));
     }
   }
 
   async function rotate() {
-    if (
-      !window.confirm(
-        'Rotate the address? The old one will stop working immediately. Update any saved contacts or shortcuts.',
-      )
-    )
-      return;
+    if (!window.confirm(t('confirmRotate'))) return;
     setBusy(true);
     try {
       const next = await rotateEmailAlias();
       setAlias(next);
-      toast.success('Address rotated.');
+      toast.success(t('rotated'));
     } catch (err) {
-      toast.error((err as Error).message || 'Failed to rotate');
+      toast.error((err as Error).message || t('failedRotate'));
     } finally {
       setBusy(false);
     }
@@ -41,13 +38,13 @@ export function EmailAliasManager({ initial }: { initial: EmailAliasInfo }) {
   return (
     <div className="bg-card space-y-3 rounded-xl border p-4">
       <label className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-        Your address
+        {t('yourAddress')}
       </label>
       <div className="flex items-center gap-2">
         <code className="bg-muted flex-1 truncate rounded-md px-3 py-2 font-mono text-sm">
           {alias.address}
         </code>
-        <Button size="sm" variant="ghost" onClick={() => void copy()} aria-label="Copy">
+        <Button size="sm" variant="ghost" onClick={() => void copy()} aria-label={t('copyAria')}>
           <Copy className="size-4" />
         </Button>
         <Button
@@ -55,14 +52,12 @@ export function EmailAliasManager({ initial }: { initial: EmailAliasInfo }) {
           variant="ghost"
           onClick={() => void rotate()}
           disabled={busy}
-          aria-label="Rotate"
+          aria-label={t('rotateAria')}
         >
           <RefreshCw className={`size-4 ${busy ? 'animate-spin' : ''}`} />
         </Button>
       </div>
-      <p className="text-muted-foreground text-xs">
-        Subject → note title. Body → note content. Only mail from your account email is accepted.
-      </p>
+      <p className="text-muted-foreground text-xs">{t('footer')}</p>
     </div>
   );
 }

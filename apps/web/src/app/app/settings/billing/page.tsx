@@ -1,11 +1,15 @@
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { auth } from '@/auth';
 import { getMyPlan } from '@/server/actions/billing';
 import { getQuotaState } from '@/server/plans';
 import { BillingPanel } from './panel';
 import { UsageSection } from './usage';
 
-export const metadata = { title: 'Billing — Notai' };
+export async function generateMetadata() {
+  const t = await getTranslations('settings.pages.billing');
+  return { title: t('title') };
+}
 
 export default async function BillingPage() {
   const session = await auth();

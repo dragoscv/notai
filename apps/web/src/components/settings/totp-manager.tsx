@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Smartphone, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { Button } from '@notai/ui/components/button';
 import { Spinner } from '@notai/ui/components/spinner';
@@ -20,6 +21,7 @@ export interface TotpStatus {
 }
 
 export function TotpManager({ initial }: { initial: TotpStatus }) {
+  const t = useTranslations('settings.totp');
   const [status, setStatus] = useState(initial);
   const [phase, setPhase] = useState<'idle' | 'enrolling' | 'codes' | 'disabling'>('idle');
   const [draft, setDraft] = useState<{ otpauthUrl: string; qrDataUrl: string } | null>(null);
@@ -65,7 +67,7 @@ export function TotpManager({ initial }: { initial: TotpStatus }) {
         toast.error(r.error);
         return;
       }
-      toast.success('Two-factor disabled');
+      toast.success(t('disabled'));
       setStatus({ enrolled: false, enabledAt: null, remainingRecoveryCodes: 0, lastUsedAt: null });
       setCode('');
       setPhase('idle');
@@ -78,8 +80,7 @@ export function TotpManager({ initial }: { initial: TotpStatus }) {
         <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
           <AlertTriangle className="size-4 shrink-0 text-amber-500" />
           <div>
-            <strong>Save these recovery codes now.</strong> Each one can be used once if you lose
-            your authenticator. They will not be shown again.
+            <strong>{t('saveRecoveryWarn')}</strong> {t('saveRecoveryHelp')}
           </div>
         </div>
         <ul className="grid grid-cols-2 gap-2 font-mono text-sm">
@@ -93,12 +94,12 @@ export function TotpManager({ initial }: { initial: TotpStatus }) {
           variant="outline"
           onClick={() => {
             navigator.clipboard.writeText(recovery.join('\n'));
-            toast.success('Copied');
+            toast.success(t('copied'));
           }}
         >
-          Copy all
+          {t('copyAll')}
         </Button>
-        <Button onClick={() => setPhase('idle')}>I&rsquo;ve saved them</Button>
+        <Button onClick={() => setPhase('idle')}>{t('iSaved')}</Button>
       </div>
     );
   }
@@ -106,34 +107,34 @@ export function TotpManager({ initial }: { initial: TotpStatus }) {
   if (phase === 'enrolling' && draft) {
     return (
       <div className="space-y-3 text-sm">
-        <p>Scan with Google Authenticator, 1Password, Bitwarden, or any TOTP app:</p>
+        <p>{t('scanHint')}</p>
         <div className="bg-background inline-block rounded-lg border p-2">
-          <Image src={draft.qrDataUrl} alt="TOTP QR code" width={240} height={240} unoptimized />
+          <Image src={draft.qrDataUrl} alt={t('qrAlt')} width={240} height={240} unoptimized />
         </div>
         <p className="text-muted-foreground text-xs">
-          Or enter the secret manually:{' '}
+          {t('secretManual')}{' '}
           <code className="bg-muted rounded px-1">
             {draft.otpauthUrl.split('secret=')[1]?.split('&')[0]}
           </code>
         </p>
         <label className="block">
-          <span className="text-xs">Enter the 6-digit code from your app:</span>
+          <span className="text-xs">{t('enterCode')}</span>
           <input
             inputMode="numeric"
             autoComplete="one-time-code"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             className="bg-background mt-1 w-40 rounded-md border px-2.5 py-1.5 font-mono"
-            placeholder="123456"
+            placeholder={t('codePlaceholder')}
           />
         </label>
         <div className="flex gap-2">
           <Button onClick={confirm} disabled={pending || code.length < 6}>
             {pending ? <Spinner className="size-4" /> : null}
-            Confirm
+            {t('confirm')}
           </Button>
           <Button variant="outline" onClick={() => setPhase('idle')}>
-            Cancel
+            {t('cancel')}
           </Button>
         </div>
       </div>
@@ -143,21 +144,21 @@ export function TotpManager({ initial }: { initial: TotpStatus }) {
   if (phase === 'disabling') {
     return (
       <div className="space-y-3 text-sm">
-        <p>Enter your current 6-digit code (or a recovery code) to disable TOTP:</p>
+        <p>{t('disableHint')}</p>
         <input
           inputMode="text"
           value={code}
           onChange={(e) => setCode(e.target.value)}
           className="bg-background w-44 rounded-md border px-2.5 py-1.5 font-mono"
-          placeholder="123456"
+          placeholder={t('codePlaceholder')}
         />
         <div className="flex gap-2">
           <Button variant="destructive" onClick={disable} disabled={pending || !code}>
             {pending ? <Spinner className="size-4" /> : null}
-            Disable
+            {t('disable')}
           </Button>
           <Button variant="outline" onClick={() => setPhase('idle')}>
-            Cancel
+            {t('cancel')}
           </Button>
         </div>
       </div>
@@ -168,19 +169,20 @@ export function TotpManager({ initial }: { initial: TotpStatus }) {
     return (
       <div className="space-y-3 text-sm">
         <p className="flex items-center gap-2">
-          <ShieldCheck className="size-4 text-emerald-500" /> Enabled
+          <ShieldCheck className="size-4 text-emerald-500" /> {t('enabled')}
           {status.enabledAt ? (
             <span className="text-muted-foreground text-xs">
-              · since {new Date(status.enabledAt).toLocaleDateString()}
+              · {t('sinceDate', { date: new Date(status.enabledAt).toLocaleDateString() })}
             </span>
           ) : null}
         </p>
         <p className="text-muted-foreground text-xs">
-          {status.remainingRecoveryCodes} recovery code
-          {status.remainingRecoveryCodes === 1 ? '' : 's'} remaining
+          {status.remainingRecoveryCodes === 1
+            ? t('remainingOne')
+            : t('remainingOther', { count: status.remainingRecoveryCodes })}
         </p>
         <Button variant="outline" onClick={() => setPhase('disabling')}>
-          Disable two-factor
+          {t('disableTwoFactor')}
         </Button>
       </div>
     );
@@ -188,13 +190,10 @@ export function TotpManager({ initial }: { initial: TotpStatus }) {
 
   return (
     <div className="space-y-3 text-sm">
-      <p>
-        Add a TOTP authenticator app as a second factor. We&rsquo;ll require it for sensitive
-        actions (account deletion, removing passkeys, billing changes).
-      </p>
+      <p>{t('explain')}</p>
       <Button onClick={start} disabled={pending}>
         {pending ? <Spinner className="size-4" /> : <Smartphone className="size-4" />}
-        Set up authenticator app
+        {t('setUp')}
       </Button>
     </div>
   );

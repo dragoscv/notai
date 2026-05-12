@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { RotateCcw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   CUSTOMIZABLE_SHORTCUTS,
   effectiveCombo,
@@ -18,11 +19,13 @@ import { Button } from '@notai/ui/components/button';
  * callers re-bind without a page reload.
  */
 export function ShortcutsEditor() {
+  const t = useTranslations('settings.shortcutsEditor');
   return (
     <div className="space-y-3">
       <p className="text-muted-foreground text-xs">
-        Override any shortcut below. Use <code>mod</code> for Cmd/Ctrl, e.g.{' '}
-        <code>mod+shift+k</code>. Leave blank to reset.
+        {t('hintPrefix')} <code>{t('hintMod')}</code> {t('hintMiddle')}{' '}
+        <code>{t('hintExample')}</code>
+        {t('hintSuffix')}
       </p>
       <div className="space-y-2">
         {CUSTOMIZABLE_SHORTCUTS.map((def) => (
@@ -34,6 +37,7 @@ export function ShortcutsEditor() {
 }
 
 function ShortcutRow({ def }: { def: ShortcutDefinition }) {
+  const t = useTranslations('settings.shortcutsEditor');
   const [value, setValue] = React.useState(() => effectiveCombo(def));
   const isDefault = value === def.defaultCombo;
 
@@ -70,7 +74,7 @@ function ShortcutRow({ def }: { def: ShortcutDefinition }) {
           }
         }}
         className="h-7 w-36 font-mono text-xs"
-        aria-label={`${def.label} shortcut`}
+        aria-label={t('shortcutAria', { label: def.label })}
       />
       <Button
         type="button"
@@ -78,7 +82,7 @@ function ShortcutRow({ def }: { def: ShortcutDefinition }) {
         size="sm"
         disabled={isDefault}
         onClick={() => commit('')}
-        title="Reset to default"
+        title={t('resetTitle')}
       >
         <RotateCcw className="size-3.5" />
       </Button>

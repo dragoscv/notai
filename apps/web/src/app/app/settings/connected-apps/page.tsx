@@ -1,15 +1,20 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { auth } from '@/auth';
 import { listConnectedApps, listMyClients } from '@/server/actions/oauth-clients';
 import { ConnectedAppCard } from './connected-app-card';
 import { MyClientCard } from './my-client-card';
 import { CreateClientForm } from './create-client-form';
 
-export const metadata = { title: 'Connected apps' };
+export async function generateMetadata() {
+  const t = await getTranslations('settings.pages.connectedApps');
+  return { title: t('title') };
+}
 export const dynamic = 'force-dynamic';
 
 export default async function ConnectedAppsPage() {
+  const t = await getTranslations('settings.pages.connectedApps');
   const session = await auth();
   if (!session?.user?.id) redirect('/signin');
 
@@ -18,26 +23,20 @@ export default async function ConnectedAppsPage() {
   return (
     <main className="mx-auto max-w-3xl space-y-12 px-6 py-10">
       <header>
-        <h1 className="font-serif text-3xl font-semibold tracking-tight">Connected apps</h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          Apps and AI agents you have allowed to access your notai. Revoke any time — revocation
-          invalidates all access and refresh tokens for the app.
-        </p>
+        <h1 className="font-serif text-3xl font-semibold tracking-tight">{t('heading')}</h1>
+        <p className="text-muted-foreground mt-2 text-sm">{t('intro')}</p>
       </header>
 
       <section>
-        <h2 className="font-serif text-lg font-semibold">Authorized</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          These apps can access your data with the scopes you granted.
-        </p>
+        <h2 className="font-serif text-lg font-semibold">{t('authorizedHeading')}</h2>
+        <p className="text-muted-foreground mt-1 text-sm">{t('authorizedDesc')}</p>
 
         <div className="mt-4 space-y-3">
           {connected.length === 0 ? (
             <div className="bg-muted/30 text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm">
-              No apps connected yet. Use the OAuth endpoints to integrate another tool — or jump to
-              the{' '}
+              {t('emptyAuthorizedPrefix')}{' '}
               <Link href="/docs/oauth" className="underline underline-offset-2">
-                docs
+                {t('docs')}
               </Link>
               .
             </div>
@@ -48,11 +47,11 @@ export default async function ConnectedAppsPage() {
       </section>
 
       <section>
-        <h2 className="font-serif text-lg font-semibold">Developer · OAuth clients</h2>
+        <h2 className="font-serif text-lg font-semibold">{t('developerHeading')}</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Register an OAuth client for your own integration (e.g.{' '}
-          <code className="bg-muted rounded px-1.5 py-0.5 text-xs">metu</code> pointing at this
-          notai). The client secret is shown once at creation — store it somewhere safe.
+          {t('developerDescPrefix')}{' '}
+          <code className="bg-muted rounded px-1.5 py-0.5 text-xs">metu</code>{' '}
+          {t('developerDescSuffix')}
         </p>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -60,7 +59,7 @@ export default async function ConnectedAppsPage() {
           <div className="space-y-3">
             {myClients.length === 0 ? (
               <div className="bg-muted/30 text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
-                No clients yet.
+                {t('noClients')}
               </div>
             ) : (
               myClients.map((c) => <MyClientCard key={c.id} client={c} />)
@@ -70,17 +69,15 @@ export default async function ConnectedAppsPage() {
       </section>
 
       <section className="bg-card rounded-2xl border p-6">
-        <h2 className="font-serif text-lg font-semibold">Endpoints</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Discovery URLs for any OAuth/MCP client.
-        </p>
+        <h2 className="font-serif text-lg font-semibold">{t('endpointsHeading')}</h2>
+        <p className="text-muted-foreground mt-1 text-sm">{t('endpointsDesc')}</p>
         <dl className="mt-4 grid grid-cols-1 gap-3 text-xs sm:grid-cols-[max-content_1fr]">
           {[
-            ['Authorization Server', '/.well-known/oauth-authorization-server'],
-            ['OpenID Configuration', '/.well-known/openid-configuration'],
-            ['Protected Resource (MCP)', '/.well-known/oauth-protected-resource'],
-            ['Dynamic Client Registration', '/api/oauth/register'],
-            ['MCP endpoint', '/api/mcp'],
+            [t('epAuth'), '/.well-known/oauth-authorization-server'],
+            [t('epOidc'), '/.well-known/openid-configuration'],
+            [t('epProtected'), '/.well-known/oauth-protected-resource'],
+            [t('epDcr'), '/api/oauth/register'],
+            [t('epMcp'), '/api/mcp'],
           ].map(([label, href]) => (
             <Endpoint key={href} label={label!} href={href!} />
           ))}

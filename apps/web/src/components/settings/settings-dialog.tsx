@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 import { useTheme } from 'next-themes';
+import { useTranslations } from 'next-intl';
 import {
   User as UserIcon,
   Palette,
@@ -67,13 +68,13 @@ interface SettingsDialogProps {
   onOpenChange: (next: boolean) => void;
 }
 
-const NAV: Array<{ id: Section; label: string; icon: ReactNode }> = [
-  { id: 'profile', label: 'Profile', icon: <UserIcon className="size-4" /> },
-  { id: 'appearance', label: 'Appearance', icon: <Palette className="size-4" /> },
-  { id: 'notes', label: 'Notes', icon: <NotebookPen className="size-4" /> },
-  { id: 'snippets', label: 'Snippets', icon: <Wand2 className="size-4" /> },
-  { id: 'shortcuts', label: 'Shortcuts', icon: <KeyRound className="size-4" /> },
-  { id: 'account', label: 'Account', icon: <ShieldAlert className="size-4" /> },
+const NAV: Array<{ id: Section; labelKey: string; icon: ReactNode }> = [
+  { id: 'profile', labelKey: 'navProfile', icon: <UserIcon className="size-4" /> },
+  { id: 'appearance', labelKey: 'navAppearance', icon: <Palette className="size-4" /> },
+  { id: 'notes', labelKey: 'navNotes', icon: <NotebookPen className="size-4" /> },
+  { id: 'snippets', labelKey: 'navSnippets', icon: <Wand2 className="size-4" /> },
+  { id: 'shortcuts', labelKey: 'navShortcuts', icon: <KeyRound className="size-4" /> },
+  { id: 'account', labelKey: 'navAccount', icon: <ShieldAlert className="size-4" /> },
 ];
 
 /**
@@ -85,6 +86,7 @@ const NAV: Array<{ id: Section; label: string; icon: ReactNode }> = [
  *  - Account: export notes, sign out, delete account
  */
 export function SettingsDialog({ user, open, onOpenChange }: SettingsDialogProps) {
+  const t = useTranslations('settings.dialog');
   const [section, setSection] = useState<Section>('profile');
 
   return (
@@ -109,16 +111,14 @@ export function SettingsDialog({ user, open, onOpenChange }: SettingsDialogProps
             </span>
             <div>
               <DialogTitle className="font-serif text-xl font-semibold tracking-tight">
-                Settings
+                {t('title')}
               </DialogTitle>
-              <DialogDescription>
-                Customize your Notai experience. Changes save automatically.
-              </DialogDescription>
+              <DialogDescription>{t('description')}</DialogDescription>
             </div>
           </div>
         </DialogHeader>
         <div className="grid grid-cols-[180px_1fr] gap-0">
-          <nav className="bg-background/40 border-r p-2" aria-label="Settings sections">
+          <nav className="bg-background/40 border-r p-2" aria-label={t('sectionsAria')}>
             <ul className="space-y-0.5">
               {NAV.map((item) => (
                 <li key={item.id}>
@@ -133,7 +133,7 @@ export function SettingsDialog({ user, open, onOpenChange }: SettingsDialogProps
                     )}
                   >
                     {item.icon}
-                    {item.label}
+                    {t(item.labelKey)}
                   </button>
                 </li>
               ))}
@@ -158,6 +158,8 @@ export function SettingsDialog({ user, open, onOpenChange }: SettingsDialogProps
 /* ------------------------------ Profile ---------------------------------- */
 
 function ProfileSection({ user }: { user: SettingsUser }) {
+  const t = useTranslations('settings.profile');
+  const td = useTranslations('settings.dialog');
   const [name, setName] = useState(user.name ?? '');
   const [pending, startTransition] = useTransition();
 
@@ -166,35 +168,33 @@ function ProfileSection({ user }: { user: SettingsUser }) {
   const save = () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      toast.error('Name cannot be empty');
+      toast.error(t('nameEmpty'));
       return;
     }
     startTransition(async () => {
       try {
         await updateProfile({ name: trimmed });
-        toast.success('Profile updated');
+        toast.success(t('updated'));
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to update profile');
+        toast.error(err instanceof Error ? err.message : t('updateFailed'));
       }
     });
   };
 
   return (
     <div className="space-y-6">
-      <SectionHeading title="Profile" description="How you appear in Notai." />
+      <SectionHeading title={t('title')} description={t('description')} />
 
       <div className="flex items-center gap-4">
         <Avatar className="size-16">
-          {user.image ? <AvatarImage src={user.image} alt={user.name ?? 'User'} /> : null}
+          {user.image ? <AvatarImage src={user.image} alt={user.name ?? t('userAlt')} /> : null}
           <AvatarFallback>{getInitials(user.name, user.email)}</AvatarFallback>
         </Avatar>
-        <div className="text-muted-foreground text-sm">
-          Your avatar is provided by your Google account.
-        </div>
+        <div className="text-muted-foreground text-sm">{t('avatarHint')}</div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="settings-name">Display name</Label>
+        <Label htmlFor="settings-name">{t('displayName')}</Label>
         <Input
           id="settings-name"
           value={name}
@@ -211,17 +211,15 @@ function ProfileSection({ user }: { user: SettingsUser }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="settings-email">Email</Label>
+        <Label htmlFor="settings-email">{t('email')}</Label>
         <Input id="settings-email" value={user.email ?? ''} readOnly disabled />
-        <p className="text-muted-foreground text-xs">
-          Email is tied to your Google account and cannot be changed here.
-        </p>
+        <p className="text-muted-foreground text-xs">{t('emailHint')}</p>
       </div>
 
       <div className="flex justify-end">
         <Button type="button" onClick={save} disabled={!dirty || pending}>
           {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-          Save changes
+          {td('saveChanges')}
         </Button>
       </div>
     </div>
@@ -231,6 +229,7 @@ function ProfileSection({ user }: { user: SettingsUser }) {
 /* ----------------------------- Appearance -------------------------------- */
 
 function AppearanceSection() {
+  const t = useTranslations('settings.appearance');
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [prefs, setPrefs] = useAppPreferences();
   const [mounted, setMounted] = useState(false);
@@ -240,29 +239,29 @@ function AppearanceSection() {
 
   return (
     <div className="space-y-6">
-      <SectionHeading title="Appearance" description="Theme and editor layout." />
+      <SectionHeading title={t('title')} description={t('description')} />
 
       <div className="space-y-3">
-        <Label>Theme</Label>
+        <Label>{t('theme')}</Label>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <ThemeCard
             active={current === 'system'}
             onClick={() => setTheme('system')}
-            label="System"
+            label={t('themeSystem')}
             mode="auto"
             swatch={['var(--background)', 'var(--primary)']}
             icon={<Monitor className="size-3.5" />}
           />
-          {APP_THEMES.map((t) => {
-            const isActive = current === t.id || (current === 'system' && resolvedTheme === t.id);
+          {APP_THEMES.map((tt) => {
+            const isActive = current === tt.id || (current === 'system' && resolvedTheme === tt.id);
             return (
               <ThemeCard
-                key={t.id}
+                key={tt.id}
                 active={isActive}
-                onClick={() => setTheme(t.id)}
-                label={t.label}
-                mode={t.mode}
-                swatch={t.swatch}
+                onClick={() => setTheme(tt.id)}
+                label={tt.label}
+                mode={tt.mode}
+                swatch={tt.swatch}
               />
             );
           })}
@@ -270,60 +269,52 @@ function AppearanceSection() {
       </div>
 
       <div className="space-y-2">
-        <Label>Editor width</Label>
+        <Label>{t('editorWidth')}</Label>
         <SegmentedControl<AppPreferences['editorWidth']>
           value={prefs.editorWidth}
           onChange={(v) => setPrefs({ editorWidth: v })}
           options={[
-            { value: 'narrow', label: 'Narrow' },
-            { value: 'comfortable', label: 'Comfortable' },
-            { value: 'wide', label: 'Wide' },
+            { value: 'narrow', label: t('narrow') },
+            { value: 'comfortable', label: t('comfortable') },
+            { value: 'wide', label: t('wide') },
           ]}
         />
-        <p className="text-muted-foreground text-xs">
-          Controls the maximum width of the note content column.
-        </p>
+        <p className="text-muted-foreground text-xs">{t('editorWidthHint')}</p>
       </div>
 
       <div className="space-y-2">
-        <Label>Typography</Label>
+        <Label>{t('typography')}</Label>
         <SegmentedControl<AppPreferences['editorTypography']>
           value={prefs.editorTypography}
           onChange={(v) => setPrefs({ editorTypography: v })}
           options={[
-            { value: 'serif', label: 'Serif' },
-            { value: 'sans', label: 'Sans' },
-            { value: 'rounded', label: 'Rounded' },
-            { value: 'mono', label: 'Mono' },
+            { value: 'serif', label: t('serif') },
+            { value: 'sans', label: t('sans') },
+            { value: 'rounded', label: t('rounded') },
+            { value: 'mono', label: t('mono') },
           ]}
         />
-        <p className="text-muted-foreground text-xs">
-          Sets the font for note titles and the editor surface.
-        </p>
+        <p className="text-muted-foreground text-xs">{t('typographyHint')}</p>
       </div>
 
       <div className="space-y-2">
-        <Label>Sidebar density</Label>
+        <Label>{t('sidebarDensity')}</Label>
         <SegmentedControl<AppPreferences['sidebarDensity']>
           value={prefs.sidebarDensity}
           onChange={(v) => setPrefs({ sidebarDensity: v })}
           options={[
-            { value: 'compact', label: 'Compact' },
-            { value: 'cozy', label: 'Cozy' },
-            { value: 'spacious', label: 'Spacious' },
+            { value: 'compact', label: t('compact') },
+            { value: 'cozy', label: t('cozy') },
+            { value: 'spacious', label: t('spacious') },
           ]}
         />
-        <p className="text-muted-foreground text-xs">
-          Tightens or relaxes the spacing of rows in the sidebar.
-        </p>
+        <p className="text-muted-foreground text-xs">{t('sidebarDensityHint')}</p>
       </div>
 
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-0.5">
-          <Label htmlFor="dyslexia-font">Dyslexia-friendly font</Label>
-          <p className="text-muted-foreground text-xs">
-            Switches the UI to a hyper-legible serif/sans stack with looser letter-spacing.
-          </p>
+          <Label htmlFor="dyslexia-font">{t('dyslexiaFont')}</Label>
+          <p className="text-muted-foreground text-xs">{t('dyslexiaFontDesc')}</p>
         </div>
         <Switch
           id="dyslexia-font"
@@ -334,10 +325,8 @@ function AppearanceSection() {
 
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-0.5">
-          <Label htmlFor="high-contrast">High contrast</Label>
-          <p className="text-muted-foreground text-xs">
-            Strengthens borders and focus rings against the current theme.
-          </p>
+          <Label htmlFor="high-contrast">{t('highContrast')}</Label>
+          <p className="text-muted-foreground text-xs">{t('highContrastDesc')}</p>
         </div>
         <Switch
           id="high-contrast"
@@ -402,32 +391,31 @@ function ThemeCard({
 /* -------------------------------- Notes ---------------------------------- */
 
 function NotesSection() {
+  const t = useTranslations('settings.notes');
   const [prefs, setPrefs] = useAppPreferences();
 
   return (
     <div className="space-y-6">
-      <SectionHeading title="Notes" description="Defaults for your notes." />
+      <SectionHeading title={t('title')} description={t('description')} />
 
       <div className="space-y-2">
-        <Label>Sort order</Label>
+        <Label>{t('sortOrder')}</Label>
         <SegmentedControl<AppPreferences['noteSort']>
           value={prefs.noteSort}
           onChange={(v) => setPrefs({ noteSort: v })}
           options={[
-            { value: 'updated', label: 'Last updated' },
-            { value: 'created', label: 'Created date' },
-            { value: 'alphabetical', label: 'Alphabetical' },
+            { value: 'updated', label: t('sortUpdated') },
+            { value: 'created', label: t('sortCreated') },
+            { value: 'alphabetical', label: t('sortAlphabetical') },
           ]}
         />
-        <p className="text-muted-foreground text-xs">
-          Applied to the notes list in the sidebar and home view.
-        </p>
+        <p className="text-muted-foreground text-xs">{t('sortHint')}</p>
       </div>
 
       <Row
         id="settings-spellcheck"
-        label="Spellcheck"
-        description="Enable the browser's spellchecker inside the editor."
+        label={t('spellcheck')}
+        description={t('spellcheckDesc')}
         checked={prefs.spellcheck}
         onCheckedChange={(v) => setPrefs({ spellcheck: v })}
       />
@@ -438,6 +426,7 @@ function NotesSection() {
 /* -------------------------------- Snippets ------------------------------- */
 
 function SnippetsSection() {
+  const t = useTranslations('settings.snippets');
   const snippets = useSnippets();
   const [draft, setDraft] = useState<Array<{ name: string; body: string }>>(() => snippets);
   useEffect(() => {
@@ -451,16 +440,15 @@ function SnippetsSection() {
 
   return (
     <div className="space-y-6">
-      <SectionHeading
-        title="Snippets"
-        description="Type ::name on the canvas and Notai expands it. Use __TODAY__ or __NOW__ inside a body for live values."
-      />
+      <SectionHeading title={t('title')} description={t('description')} />
 
       <div className="space-y-2">
         {draft.map((s, i) => (
           <div key={i} className="bg-card/50 flex items-start gap-2 rounded-md border p-2">
             <div className="flex w-32 shrink-0 flex-col gap-1">
-              <Label className="text-[10px] uppercase tracking-wider opacity-70">Name</Label>
+              <Label className="text-[10px] uppercase tracking-wider opacity-70">
+                {t('nameLabel')}
+              </Label>
               <Input
                 value={s.name}
                 onChange={(e) => {
@@ -469,12 +457,14 @@ function SnippetsSection() {
                   setDraft(copy);
                 }}
                 onBlur={() => persist(draft)}
-                placeholder="todo"
+                placeholder={t('namePlaceholder')}
                 className="h-8 font-mono text-xs"
               />
             </div>
             <div className="flex flex-1 flex-col gap-1">
-              <Label className="text-[10px] uppercase tracking-wider opacity-70">Expands to</Label>
+              <Label className="text-[10px] uppercase tracking-wider opacity-70">
+                {t('expandsTo')}
+              </Label>
               <textarea
                 value={s.body}
                 onChange={(e) => {
@@ -492,7 +482,7 @@ function SnippetsSection() {
               size="icon"
               className="mt-5"
               onClick={() => persist(draft.filter((_, j) => j !== i))}
-              aria-label={`Delete snippet ${s.name}`}
+              aria-label={t('deleteAria', { name: s.name })}
             >
               <Trash2 className="size-3.5" />
             </Button>
@@ -504,7 +494,7 @@ function SnippetsSection() {
           size="sm"
           onClick={() => persist([...draft, { name: '', body: '' }])}
         >
-          <Plus className="size-3.5" /> Add snippet
+          <Plus className="size-3.5" /> {t('addSnippet')}
         </Button>
       </div>
     </div>
@@ -514,9 +504,10 @@ function SnippetsSection() {
 /* -------------------------------- Shortcuts ------------------------------ */
 
 function ShortcutsSection() {
+  const t = useTranslations('settings.shortcutsSection');
   return (
     <div className="space-y-4">
-      <SectionHeading title="Shortcuts" description="Customize Notai's keyboard shortcuts." />
+      <SectionHeading title={t('title')} description={t('description')} />
       <ShortcutsEditor />
     </div>
   );
@@ -525,6 +516,7 @@ function ShortcutsSection() {
 /* -------------------------------- Account -------------------------------- */
 
 function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => void }) {
+  const t = useTranslations('settings.account');
   const [exporting, startExport] = useTransition();
   const [exportingZip, startExportZip] = useTransition();
   const [exportingGdpr, startExportGdpr] = useTransition();
@@ -553,9 +545,13 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        toast.success(`Exported ${data.notes.length} note${data.notes.length === 1 ? '' : 's'}`);
+        toast.success(
+          data.notes.length === 1
+            ? t('exportedNotesOne')
+            : t('exportedNotesOther', { count: data.notes.length }),
+        );
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Export failed');
+        toast.error(err instanceof Error ? err.message : t('exportFailed'));
       }
     });
   };
@@ -574,9 +570,11 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        toast.success(`Exported ${noteCount} note${noteCount === 1 ? '' : 's'} as Markdown.`);
+        toast.success(
+          noteCount === 1 ? t('exportedZipOne') : t('exportedZipOther', { count: noteCount }),
+        );
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Export failed');
+        toast.error(err instanceof Error ? err.message : t('exportFailed'));
       }
     });
   };
@@ -595,9 +593,9 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        toast.success('Personal data export downloaded');
+        toast.success(t('personalDataDownloaded'));
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Export failed');
+        toast.error(err instanceof Error ? err.message : t('exportFailed'));
       }
     });
   };
@@ -614,9 +612,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
         const origin = typeof window !== 'undefined' ? window.location.origin : '';
         const { filename, content, eventCount } = await exportCalendarIcs(origin);
         if (eventCount === 0) {
-          toast.info(
-            'No dates found in your notes yet. Add `2025-12-05` style dates to your notes.',
-          );
+          toast.info(t('icsNoEvents'));
           return;
         }
         const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
@@ -628,9 +624,11 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        toast.success(`Exported ${eventCount} event${eventCount === 1 ? '' : 's'} as .ics`);
+        toast.success(
+          eventCount === 1 ? t('icsExportedOne') : t('icsExportedOther', { count: eventCount }),
+        );
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Calendar export failed');
+        toast.error(err instanceof Error ? err.message : t('icsFailed'));
       }
     });
   };
@@ -640,11 +638,11 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
     e.target.value = '';
     if (!file) return;
     if (file.size > 20 * 1024 * 1024) {
-      toast.error('Zip is too large (max 20 MB).');
+      toast.error(t('zipTooLarge'));
       return;
     }
     startImport(async () => {
-      const t = toast.loading('Importing notes…');
+      const tid = toast.loading(t('importingNotes'));
       try {
         const buf = await file.arrayBuffer();
         const bytes = new Uint8Array(buf);
@@ -657,16 +655,29 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
         const summary = await importWorkspaceZip({ filename: file.name, base64 });
         const parts: string[] = [];
         if (summary.notesCreated > 0)
-          parts.push(`${summary.notesCreated} note${summary.notesCreated === 1 ? '' : 's'}`);
+          parts.push(
+            summary.notesCreated === 1
+              ? t('notesCountOne')
+              : t('notesCountOther', { count: summary.notesCreated }),
+          );
         if (summary.foldersCreated > 0)
-          parts.push(`${summary.foldersCreated} folder${summary.foldersCreated === 1 ? '' : 's'}`);
-        const message = parts.length > 0 ? `Imported ${parts.join(', ')}.` : 'Nothing imported.';
-        toast.success(message, { id: t });
+          parts.push(
+            summary.foldersCreated === 1
+              ? t('foldersCountOne')
+              : t('foldersCountOther', { count: summary.foldersCreated }),
+          );
+        const message =
+          parts.length > 0
+            ? t('importedSummary', { summary: parts.join(', ') })
+            : t('importedNothing');
+        toast.success(message, { id: tid });
         if (summary.errors.length > 0) {
-          toast.warning(`${summary.errors.length} issue(s): ${summary.errors[0]}`);
+          toast.warning(
+            t('importIssues', { count: summary.errors.length, first: summary.errors[0]! }),
+          );
         }
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Import failed', { id: t });
+        toast.error(err instanceof Error ? err.message : t('importFailed'), { id: tid });
       }
     });
   };
@@ -676,11 +687,11 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
     e.target.value = '';
     if (!file) return;
     if (file.size > 50 * 1024 * 1024) {
-      toast.error('Enex file is too large (max 50 MB).');
+      toast.error(t('enexTooLarge'));
       return;
     }
     startImportEnex(async () => {
-      const t = toast.loading('Importing from Evernote…');
+      const tid = toast.loading(t('importingEnex'));
       try {
         const buf = await file.arrayBuffer();
         const bytes = new Uint8Array(buf);
@@ -693,21 +704,36 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
         const summary = await importEvernoteEnex({ filename: file.name, base64 });
         const parts: string[] = [];
         if (summary.notesCreated > 0)
-          parts.push(`${summary.notesCreated} note${summary.notesCreated === 1 ? '' : 's'}`);
+          parts.push(
+            summary.notesCreated === 1
+              ? t('notesCountOne')
+              : t('notesCountOther', { count: summary.notesCreated }),
+          );
         if (summary.tagsAttached > 0)
-          parts.push(`${summary.tagsAttached} tag${summary.tagsAttached === 1 ? '' : 's'}`);
-        const message = parts.length > 0 ? `Imported ${parts.join(', ')}.` : 'Nothing imported.';
-        toast.success(message, { id: t });
+          parts.push(
+            summary.tagsAttached === 1
+              ? t('tagsCountOne')
+              : t('tagsCountOther', { count: summary.tagsAttached }),
+          );
+        const message =
+          parts.length > 0
+            ? t('importedSummary', { summary: parts.join(', ') })
+            : t('importedNothing');
+        toast.success(message, { id: tid });
         if (summary.resourcesSkipped > 0) {
           toast.info(
-            `Skipped ${summary.resourcesSkipped} attachment${summary.resourcesSkipped === 1 ? '' : 's'} — re-attach manually if needed.`,
+            summary.resourcesSkipped === 1
+              ? t('skippedAttachmentsOne')
+              : t('skippedAttachmentsOther', { count: summary.resourcesSkipped }),
           );
         }
         if (summary.errors.length > 0) {
-          toast.warning(`${summary.errors.length} issue(s): ${summary.errors[0]}`);
+          toast.warning(
+            t('importIssues', { count: summary.errors.length, first: summary.errors[0]! }),
+          );
         }
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Import failed', { id: t });
+        toast.error(err instanceof Error ? err.message : t('importFailed'), { id: tid });
       }
     });
   };
@@ -725,7 +751,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
         // Only surface real errors here.
         const message = err instanceof Error ? err.message : '';
         if (!message.includes('NEXT_REDIRECT')) {
-          toast.error(message || 'Failed to delete account');
+          toast.error(message || t('deleteFailed'));
         }
       }
     });
@@ -733,7 +759,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
 
   return (
     <div className="space-y-6">
-      <SectionHeading title="Account" description="Your data and session." />
+      <SectionHeading title={t('title')} description={t('description')} />
 
       <EncryptionSettingsPanel />
 
@@ -742,10 +768,8 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
       <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-0.5">
-            <p className="text-sm font-medium">Export your notes</p>
-            <p className="text-muted-foreground text-xs">
-              Download every note as a JSON file. Includes titles, bodies and metadata.
-            </p>
+            <p className="text-sm font-medium">{t('exportTitle')}</p>
+            <p className="text-muted-foreground text-xs">{t('exportDesc')}</p>
           </div>
           <Button type="button" variant="outline" onClick={exportNotes} disabled={exporting}>
             {exporting ? (
@@ -753,7 +777,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
             ) : (
               <Download className="size-4" />
             )}
-            Export
+            {t('export')}
           </Button>
         </div>
       </div>
@@ -761,11 +785,8 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
       <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-0.5">
-            <p className="text-sm font-medium">Download all my data (GDPR)</p>
-            <p className="text-muted-foreground text-xs">
-              Article 15 / 20 export: profile, notes, folders, tags, comments, devices, API key &
-              webhook metadata, audit log. Secrets are never included.
-            </p>
+            <p className="text-sm font-medium">{t('gdprTitle')}</p>
+            <p className="text-muted-foreground text-xs">{t('gdprDesc')}</p>
           </div>
           <Button type="button" variant="outline" onClick={exportGdpr} disabled={exportingGdpr}>
             {exportingGdpr ? (
@@ -773,7 +794,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
             ) : (
               <Download className="size-4" />
             )}
-            Download
+            {t('download')}
           </Button>
         </div>
       </div>
@@ -781,11 +802,8 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
       <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-0.5">
-            <p className="text-sm font-medium">Export as Markdown (.zip)</p>
-            <p className="text-muted-foreground text-xs">
-              One markdown file per note, mirroring your folder structure. Best for moving to
-              another tool.
-            </p>
+            <p className="text-sm font-medium">{t('zipTitle')}</p>
+            <p className="text-muted-foreground text-xs">{t('zipDesc')}</p>
           </div>
           <Button type="button" variant="outline" onClick={exportZip} disabled={exportingZip}>
             {exportingZip ? (
@@ -793,7 +811,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
             ) : (
               <Download className="size-4" />
             )}
-            Download .zip
+            {t('downloadZip')}
           </Button>
         </div>
       </div>
@@ -801,11 +819,8 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
       <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-0.5">
-            <p className="text-sm font-medium">Import workspace from .zip</p>
-            <p className="text-muted-foreground text-xs">
-              Drop a zip of `.md` files (folders preserved). Notion exports work — UUID suffixes are
-              stripped automatically. Max 500 files / 5 MB total.
-            </p>
+            <p className="text-sm font-medium">{t('importZipTitle')}</p>
+            <p className="text-muted-foreground text-xs">{t('importZipDesc')}</p>
           </div>
           <input
             ref={importInputRef}
@@ -825,7 +840,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
             ) : (
               <Download className="size-4 rotate-180" />
             )}
-            Import .zip
+            {t('importZip')}
           </Button>
         </div>
       </div>
@@ -833,11 +848,8 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
       <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-0.5">
-            <p className="text-sm font-medium">Import from Evernote (.enex)</p>
-            <p className="text-muted-foreground text-xs">
-              Drop the .enex file Evernote produced (File → Export Notes…). Tags carry over.
-              Attachments aren&apos;t imported — re-attach manually if you need them.
-            </p>
+            <p className="text-sm font-medium">{t('enexTitle')}</p>
+            <p className="text-muted-foreground text-xs">{t('enexDesc')}</p>
           </div>
           <input
             ref={enexInputRef}
@@ -857,7 +869,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
             ) : (
               <Download className="size-4 rotate-180" />
             )}
-            Import .enex
+            {t('enexImport')}
           </Button>
         </div>
       </div>
@@ -865,11 +877,8 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
       <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-0.5">
-            <p className="text-sm font-medium">Calendar export (.ics)</p>
-            <p className="text-muted-foreground text-xs">
-              Find every `YYYY-MM-DD` date in your notes and export them as a calendar file.
-              Subscribe to it in Apple/Google/Outlook calendar to see your notes\u2019 dates inline.
-            </p>
+            <p className="text-sm font-medium">{t('icsTitle')}</p>
+            <p className="text-muted-foreground text-xs">{t('icsDesc')}</p>
           </div>
           <Button type="button" variant="outline" onClick={exportIcs} disabled={exportingIcs}>
             {exportingIcs ? (
@@ -877,7 +886,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
             ) : (
               <Download className="size-4" />
             )}
-            Download .ics
+            {t('icsDownload')}
           </Button>
         </div>
       </div>
@@ -885,8 +894,8 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
       <div className="bg-card/60 rounded-xl border p-4 backdrop-blur">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-0.5">
-            <p className="text-sm font-medium">Sign out</p>
-            <p className="text-muted-foreground text-xs">End your session on this device.</p>
+            <p className="text-sm font-medium">{t('signOutTitle')}</p>
+            <p className="text-muted-foreground text-xs">{t('signOutDesc')}</p>
           </div>
           <Button type="button" variant="outline" onClick={doSignOut} disabled={signingOut}>
             {signingOut ? (
@@ -894,7 +903,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
             ) : (
               <LogOut className="size-4" />
             )}
-            Sign out
+            {t('signOut')}
           </Button>
         </div>
       </div>
@@ -903,10 +912,10 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
 
       <div className="border-destructive/40 bg-destructive/5 rounded-xl border p-4 backdrop-blur">
         <div className="space-y-2">
-          <p className="text-destructive text-sm font-medium">Delete account</p>
+          <p className="text-destructive text-sm font-medium">{t('deleteTitle')}</p>
           <p className="text-muted-foreground text-xs">
-            Permanently deletes your account and every note you own. This cannot be undone. Type{' '}
-            <span className="font-medium">{user.email}</span> to confirm.
+            {t('deleteDescPrefix')} <span className="font-medium">{user.email}</span>{' '}
+            {t('deleteDescSuffix')}
           </p>
           <Input
             value={confirmEmail}
@@ -924,7 +933,7 @@ function AccountSection({ user, onClose }: { user: SettingsUser; onClose: () => 
             disabled={!canDelete || deleting}
           >
             {deleting ? <Loader2 className="size-4 animate-spin" /> : null}
-            Delete account
+            {t('deleteAccount')}
           </Button>
         </DialogFooter>
       </div>
