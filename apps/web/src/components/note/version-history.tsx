@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { History, RefreshCcw, Loader2, Trash2, GitCompare, Tag } from 'lucide-react';
+import { History, RefreshCcw, Loader2, Trash2, GitCompare, Tag, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@notai/ui';
@@ -119,6 +119,9 @@ export function VersionHistory({ noteId }: { noteId: string }) {
   const [pending, startTransition] = React.useTransition();
   const [showDiff, setShowDiff] = React.useState(false);
   const [currentText, setCurrentText] = React.useState<string>('');
+  // When set, the diff compares `selected` against this snapshot
+  // instead of against the current note. Null = compare vs current.
+  const [compareTo, setCompareTo] = React.useState<Version | null>(null);
 
   const refresh = React.useCallback(async () => {
     setLoading(true);
@@ -134,6 +137,7 @@ export function VersionHistory({ noteId }: { noteId: string }) {
       const v = await listVersions(noteId);
       setVersions(v);
       if (v.length > 0) setSelected(v[0] ?? null);
+      setCompareTo(null);
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -168,6 +172,7 @@ export function VersionHistory({ noteId }: { noteId: string }) {
       await deleteVersion({ noteId, versionId: v.id });
       setVersions((arr) => arr?.filter((x) => x.id !== v.id) ?? null);
       if (selected?.id === v.id) setSelected(null);
+      if (compareTo?.id === v.id) setCompareTo(null);
     });
 
   return (
@@ -200,7 +205,11 @@ export function VersionHistory({ noteId }: { noteId: string }) {
                 <li
                   key={v.id}
                   className={`flex items-center gap-1 px-3 py-2 ${
-                    selected?.id === v.id ? 'bg-muted' : ''
+                    selected?.id === v.id
+                      ? 'bg-muted'
+                      : compareTo?.id === v.id
+                        ? 'bg-amber-500/10'
+                        : ''
                   }`}
                 >
                   <button
@@ -208,11 +217,37 @@ export function VersionHistory({ noteId }: { noteId: string }) {
                     onClick={() => setSelected(v)}
                     className="min-w-0 flex-1 text-left"
                   >
-                    <p className="font-medium">{new Date(v.createdAt).toLocaleString()}</p>
+                    <p className="font-medium">
+                      {selected?.id === v.id ? (
+                        <span className="bg-muted-foreground/15 text-foreground mr-1 rounded px-1 text-[9px] uppercase">
+                          A
+                        </span>
+                      ) : null}
+                      {compareTo?.id === v.id ? (
+                        <span className="mr-1 rounded bg-amber-500/30 px-1 text-[9px] uppercase text-amber-900 dark:text-amber-200">
+                          B
+                        </span>
+                      ) : null}
+                      {new Date(v.createdAt).toLocaleString()}
+                    </p>
                     <p className="text-muted-foreground">
                       {(v.sizeBytes / 1024).toFixed(1)} KB
                       {v.label ? ` · ${v.label}` : ''}
                     </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCompareTo((cur) => (cur?.id === v.id ? null : v))}
+                    className={`p-1 ${
+                      compareTo?.id === v.id
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    aria-label={t('compareAria')}
+                    title={t('compareAria')}
+                    disabled={selected?.id === v.id}
+                  >
+                    <ArrowRight className="size-3.5" />
                   </button>
                   <button
                     type="button"
@@ -258,17 +293,35 @@ export function VersionHistory({ noteId }: { noteId: string }) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-muted-foreground text-[11px] uppercase tracking-wide">
-                  {showDiff ? t('diffHeading') : t('previewHeading')}
+                  {showDiff
+                    ? compareTo
+                      ? t('diffHeadingAB', {
+                          a: new Date(selected?.createdAt ?? Date.now()).toLocaleString(),
+                          b: new Date(compareTo.createdAt).toLocaleString(),
+                        })
+                      : t('diffHeading')
+                    : t('previewHeading')}
                 </p>
                 {selected && (
-                  <button
-                    type="button"
-                    onClick={() => setShowDiff((v) => !v)}
-                    className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px]"
-                  >
-                    <GitCompare className="size-3" />
-                    {showDiff ? t('plainPreview') : t('compare')}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {compareTo && showDiff ? (
+                      <button
+                        type="button"
+                        onClick={() => setCompareTo(null)}
+                        className="text-muted-foreground hover:text-foreground rounded border px-2 py-1 text-[11px]"
+                      >
+                        {t('clearCompareTo')}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setShowDiff((v) => !v)}
+                      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px]"
+                    >
+                      <GitCompare className="size-3" />
+                      {showDiff ? t('plainPreview') : t('compare')}
+                    </button>
+                  </div>
                 )}
               </div>
               <div className="bg-card max-h-[60vh] overflow-y-auto rounded-lg border p-4 text-sm">
@@ -277,7 +330,8 @@ export function VersionHistory({ noteId }: { noteId: string }) {
                 ) : showDiff ? (
                   <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
                     {(() => {
-                      const lines = diffLines(selected.preview, currentText);
+                      const rightSide = compareTo?.preview ?? currentText;
+                      const lines = diffLines(selected.preview, rightSide);
                       const out: React.ReactNode[] = [];
                       for (let i = 0; i < lines.length; i++) {
                         const l = lines[i]!;
