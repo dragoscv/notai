@@ -281,6 +281,13 @@
       "when": 1782200000000,
       "tag": "0039_e2e_audit_log",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1782300000000,
+      "tag": "0040_email_lifecycle",
+      "breakpoints": true
     }
   ]
 }

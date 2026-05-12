@@ -21,6 +21,7 @@ export * from './webhooks';
 export * from './webauthn';
 export * from './email-suppressions';
 export * from './email-messages';
+export * from './email-lifecycle';
 export * from './user-totp';
 export * from './flashcards';
 export * from './user-snippets';

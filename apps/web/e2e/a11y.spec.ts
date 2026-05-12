@@ -9,7 +9,25 @@ import AxeBuilder from '@axe-core/playwright';
  * Run locally:  pnpm --filter @notai/web e2e
  * Run focused:  pnpm --filter @notai/web exec playwright test a11y
  */
-const PUBLIC_PAGES = ['/', '/pricing', '/faq', '/privacy-policy', '/terms', '/signin'];
+const PUBLIC_PAGES = [
+  '/',
+  '/features',
+  '/pricing',
+  '/about',
+  '/docs',
+  '/docs/getting-started',
+  '/changelog',
+  '/roadmap',
+  '/status',
+  '/faq',
+  '/privacy-policy',
+  '/terms',
+  '/refund',
+  '/aup',
+  '/cookies',
+  '/accessibility',
+  '/signin',
+];
 
 for (const path of PUBLIC_PAGES) {
   test(`a11y: ${path}`, async ({ page }) => {
