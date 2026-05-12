@@ -1633,7 +1633,16 @@
       "tooShort": "Parolă prea scurtă",
       "passwordSet": "Parolă setată",
       "passwordCleared": "Parolă ștearsă",
-      "passwordFailed": "A eșuat"
+      "passwordFailed": "A eșuat",
+      "previewTitle": "Previzualizare link",
+      "previewHint": "Folosită ca imagine când acest link e distribuit pe social media.",
+      "previewNone": "Fără previzualizare",
+      "previewRefresh": "Reîmprospătează",
+      "previewRefreshing": "Capturez previzualizarea…",
+      "previewUpdated": "Previzualizare actualizată.",
+      "previewFailed": "Nu am putut actualiza previzualizarea: {error}",
+      "previewEmptyScene": "Adaugă mai întâi ceva pe canvas, apoi reîmprospătează.",
+      "previewCanvasNotReady": "Canvas-ul nu e gata încă — încearcă într-o clipă."
     },
     "versions": {
       "trigger": "Istoric",

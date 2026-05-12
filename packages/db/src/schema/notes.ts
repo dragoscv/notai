@@ -161,6 +161,11 @@ export const notes = pgTable(
      *  opaque token. Unique per owner via the partial index defined in
      *  migration 0016. */
     publicShareSlug: text('public_share_slug'),
+    /** Cached PNG snapshot of the note's Excalidraw scene used as the
+     *  OpenGraph image at /p/<token-or-slug>. Captured client-side at
+     *  publish time and on demand via the Refresh button. Falls back to
+     *  the CSS card when null. */
+    publicShareImageUrl: text('public_share_image_url'),
     /** When true AND the owner has a `blogHandle`, this note is listed
      *  on the owner's public blog at `/u/{handle}` and in its RSS
      *  feed. Independent of `publicShareToken` so the user explicitly

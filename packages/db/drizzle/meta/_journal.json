@@ -288,6 +288,13 @@
       "when": 1782300000000,
       "tag": "0040_email_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1782400000000,
+      "tag": "0041_public_share_image",
+      "breakpoints": true
     }
   ]
 }

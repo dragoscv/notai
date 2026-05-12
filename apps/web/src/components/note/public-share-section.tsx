@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Globe, Copy, Loader2 } from 'lucide-react';
+import { Globe, Copy, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
@@ -27,6 +27,8 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
   const [slug, setSlug] = React.useState<string>('');
   const [savingSlug, setSavingSlug] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  const [refreshing, setRefreshing] = React.useState(false);
 
   React.useEffect(() => {
     void getPublicShareStatus(noteId).then((r) => {
@@ -34,10 +36,78 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
       setEnabled(Boolean(r.token));
       setToken(r.token);
       setExpiresAt(r.expiresAt);
+      setPreviewUrl(r.imageUrl);
       // status doesn't currently return slug; we leave field empty so
       // the user can type one. (Server is the source of truth on save.)
     });
   }, [noteId]);
+
+  // Round-trip with note-workspace's capture bridge. Resolves the
+  // pending refresh promise when a ready/error event lands for this note.
+  const pendingRef = React.useRef<{
+    resolve: (url: string) => void;
+    reject: (err: Error) => void;
+  } | null>(null);
+  React.useEffect(() => {
+    const onReady = (e: Event) => {
+      const detail = (e as CustomEvent<{ noteId: string; url?: string; error?: string }>).detail;
+      if (!detail || detail.noteId !== noteId) return;
+      const handler = pendingRef.current;
+      pendingRef.current = null;
+      if (!handler) return;
+      if (detail.error) handler.reject(new Error(detail.error));
+      else if (detail.url) handler.resolve(detail.url);
+    };
+    window.addEventListener('notai:share-preview-ready', onReady as EventListener);
+    return () => window.removeEventListener('notai:share-preview-ready', onReady as EventListener);
+  }, [noteId]);
+
+  const capturePreview = React.useCallback(async (): Promise<string> => {
+    if (pendingRef.current) {
+      throw new Error('Capture already in progress');
+    }
+    return new Promise<string>((resolve, reject) => {
+      pendingRef.current = { resolve, reject };
+      const timer = window.setTimeout(() => {
+        if (pendingRef.current) {
+          pendingRef.current = null;
+          reject(new Error('timeout'));
+        }
+      }, 20000);
+      const wrapResolve = resolve;
+      pendingRef.current.resolve = (url: string) => {
+        window.clearTimeout(timer);
+        wrapResolve(url);
+      };
+      const wrapReject = reject;
+      pendingRef.current.reject = (err: Error) => {
+        window.clearTimeout(timer);
+        wrapReject(err);
+      };
+      window.dispatchEvent(new CustomEvent('notai:capture-share-preview', { detail: { noteId } }));
+    });
+  }, [noteId]);
+
+  const refreshPreview = async () => {
+    setRefreshing(true);
+    const tid = toast.loading(t('previewRefreshing'));
+    try {
+      const url = await capturePreview();
+      setPreviewUrl(url);
+      toast.success(t('previewUpdated'), { id: tid });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'unknown';
+      if (msg === 'empty-scene') {
+        toast.message(t('previewEmptyScene'), { id: tid });
+      } else if (msg === 'canvas-not-ready') {
+        toast.error(t('previewCanvasNotReady'), { id: tid });
+      } else {
+        toast.error(t('previewFailed', { error: msg }), { id: tid });
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const url = React.useMemo(() => {
     if (typeof window === 'undefined') return '';
@@ -55,11 +125,20 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
         setToken(res.token);
         setExpiresAt(res.expiresAt);
         toast.success(t('linkCreated'));
+        // Fire-and-forget initial preview capture so the OG card looks
+        // right from the first share. Failures are non-fatal (the link
+        // still works; the OG just falls back to the CSS card).
+        void capturePreview()
+          .then((capturedUrl) => setPreviewUrl(capturedUrl))
+          .catch(() => {
+            /* user can click Refresh later */
+          });
       } else {
         await disablePublicShare(noteId);
         setEnabled(false);
         setToken(null);
         setExpiresAt(null);
+        setPreviewUrl(null);
         toast.message(t('linkDisabled'));
       }
     } catch (err) {
@@ -170,6 +249,40 @@ export function PublicShareSection({ noteId }: { noteId: string }) {
         <p className="text-muted-foreground text-[11px]">
           {t('expires', { date: expiresAt.toLocaleDateString() })}
         </p>
+      )}
+      {enabled && (
+        <div className="bg-muted/30 flex items-center gap-2 rounded-md border p-2">
+          {previewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={previewUrl}
+              alt=""
+              className="bg-background h-12 w-20 rounded border object-cover"
+            />
+          ) : (
+            <div className="bg-background text-muted-foreground flex h-12 w-20 items-center justify-center rounded border text-[10px]">
+              {t('previewNone')}
+            </div>
+          )}
+          <div className="flex-1 text-[11px] leading-tight">
+            <div className="font-medium">{t('previewTitle')}</div>
+            <div className="text-muted-foreground">{t('previewHint')}</div>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={refreshing}
+            onClick={refreshPreview}
+          >
+            {refreshing ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="size-3.5" />
+            )}
+            <span className="ml-1.5">{t('previewRefresh')}</span>
+          </Button>
+        </div>
       )}
       <div className="border-t pt-2">
         <details className="text-xs">

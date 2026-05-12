@@ -39,6 +39,8 @@ import { OpenStickiesButton } from './open-stickies-button';
 import { isTauri, invoke } from '@/lib/tauri';
 import { ShareDialog } from './share-dialog';
 import { AssetUploader } from './asset-uploader';
+import { startAssetUpload, finishAssetUpload } from '@/server/actions/assets';
+import { setPublicShareImage } from '@/server/actions/public-share';
 import { BacklinksPanel } from './backlinks-panel';
 import { NoteMiniGraph } from './note-mini-graph';
 import { NoteLinkPreviews } from './note-link-previews';
@@ -495,6 +497,93 @@ function NoteWorkspaceInner({ note, token, realtimeUrl, user }: NoteWorkspacePro
   React.useEffect(() => {
     document.title = `${title || t('untitled')} - Notai`;
   }, [title, t]);
+
+  // Bridge: capture the current Excalidraw scene as a PNG and persist
+  // its URL as the public-share OG image. Triggered by a window event
+  // dispatched from the share dialog ("Refresh preview" button or
+  // initial publish). Done here because canvasRef + the editor API
+  // live on this surface.
+  React.useEffect(() => {
+    const onRequest = async (e: Event) => {
+      const detail = (e as CustomEvent<{ noteId: string }>).detail;
+      if (!detail || detail.noteId !== note.id) return;
+      const fail = (msg: string) => {
+        window.dispatchEvent(
+          new CustomEvent('notai:share-preview-ready', {
+            detail: { noteId: note.id, error: msg },
+          }),
+        );
+      };
+      const api = canvasRef.current?.getExcalidrawApi();
+      if (!api) {
+        fail('canvas-not-ready');
+        return;
+      }
+      const elements = api
+        .getSceneElements()
+        .filter((el) => !(el as { isDeleted?: boolean }).isDeleted);
+      if (elements.length === 0) {
+        fail('empty-scene');
+        return;
+      }
+      try {
+        const mod = (await import('@excalidraw/excalidraw' as never)) as unknown as {
+          exportToBlob: (opts: {
+            elements: unknown;
+            appState: unknown;
+            files: unknown;
+            mimeType: string;
+            getDimensions: (
+              w: number,
+              h: number,
+            ) => { width: number; height: number; scale: number };
+          }) => Promise<Blob>;
+        };
+        const appState = api.getAppState();
+        const files = api.getFiles();
+        const blob = await mod.exportToBlob({
+          elements: elements as never,
+          appState: { ...appState, exportBackground: true, exportWithDarkMode: false },
+          files,
+          mimeType: 'image/png',
+          // Fit a 1200x630 OG canvas; Excalidraw scales to fit while
+          // preserving aspect, so the natural scene fills the frame.
+          getDimensions: () => ({ width: 1200, height: 630, scale: 1 }),
+        });
+        const file = new File([blob], `share-${note.id}.png`, { type: 'image/png' });
+        const { uploadUrl, key, publicUrl } = await startAssetUpload({
+          noteId: note.id,
+          filename: file.name,
+          mime: 'image/png',
+          sizeBytes: file.size,
+        });
+        const put = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: { 'Content-Type': 'image/png' },
+        });
+        if (!put.ok) throw new Error(`Upload failed (${put.status})`);
+        await finishAssetUpload({
+          noteId: note.id,
+          key,
+          mime: 'image/png',
+          sizeBytes: file.size,
+          url: publicUrl,
+        });
+        await setPublicShareImage({ noteId: note.id, url: publicUrl });
+        window.dispatchEvent(
+          new CustomEvent('notai:share-preview-ready', {
+            detail: { noteId: note.id, url: publicUrl },
+          }),
+        );
+      } catch (err) {
+        fail(err instanceof Error ? err.message : 'unknown');
+      }
+    };
+    window.addEventListener('notai:capture-share-preview', onRequest as EventListener);
+    return () =>
+      window.removeEventListener('notai:capture-share-preview', onRequest as EventListener);
+  }, [note.id]);
 
   // Surface is applied either to the full page background or only to the
   // inner editor column, depending on the coverage setting.

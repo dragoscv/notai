@@ -86,6 +86,7 @@ export async function getPublicShareStatus(noteId: string): Promise<{
   token: string | null;
   expiresAt: Date | null;
   hasPassword: boolean;
+  imageUrl: string | null;
 } | null> {
   const session = await auth();
   if (!session?.user?.id) return null;
@@ -95,12 +96,44 @@ export async function getPublicShareStatus(noteId: string): Promise<{
       token: notes.publicShareToken,
       expiresAt: notes.publicShareExpiresAt,
       passwordHash: notes.passwordHash,
+      imageUrl: notes.publicShareImageUrl,
     })
     .from(notes)
     .where(and(eq(notes.id, noteId), eq(notes.ownerId, userId)))
     .limit(1);
   if (!row) return null;
-  return { token: row.token, expiresAt: row.expiresAt, hasPassword: Boolean(row.passwordHash) };
+  return {
+    token: row.token,
+    expiresAt: row.expiresAt,
+    hasPassword: Boolean(row.passwordHash),
+    imageUrl: row.imageUrl,
+  };
+}
+
+/**
+ * Persist a PNG snapshot URL captured client-side from the Excalidraw
+ * scene, used as the OpenGraph image at /p/<token-or-slug>. Pass null
+ * to clear. Caller must own the note and the share must be enabled
+ * (so we don't accumulate orphan previews on unshared notes).
+ */
+export async function setPublicShareImage(input: {
+  noteId: string;
+  url: string | null;
+}): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Not signed in');
+  const userId = session.user.id;
+  const url = input.url?.trim() || null;
+  if (url) {
+    if (url.length > 2000) throw new Error('URL too long');
+    if (!/^https:\/\//i.test(url)) throw new Error('Invalid preview URL');
+  }
+  const updated = await db
+    .update(notes)
+    .set({ publicShareImageUrl: url, updatedAt: new Date() })
+    .where(and(eq(notes.id, input.noteId), eq(notes.ownerId, userId), isNull(notes.deletedAt)))
+    .returning({ id: notes.id });
+  if (updated.length === 0) throw new Error('Note not found');
 }
 
 /** Set or rotate the password gate. Use `setNotePassword` from note-password.ts instead — kept as a thin alias for share-side callers. */
@@ -141,6 +174,7 @@ export async function getPublicShare(token: string): Promise<{
   icon: string | null;
   plaintext: string;
   updatedAt: Date;
+  imageUrl: string | null;
 } | null> {
   if (!token || token.length < 3) return null;
   const [row] = await db
@@ -152,6 +186,7 @@ export async function getPublicShare(token: string): Promise<{
       updatedAt: notes.updatedAt,
       expiresAt: notes.publicShareExpiresAt,
       passwordHash: notes.passwordHash,
+      imageUrl: notes.publicShareImageUrl,
     })
     .from(notes)
     .where(
@@ -174,6 +209,7 @@ export async function getPublicShare(token: string): Promise<{
     icon: row.icon,
     plaintext: row.plaintext,
     updatedAt: row.updatedAt,
+    imageUrl: row.imageUrl,
   };
 }
 

@@ -1633,7 +1633,16 @@
       "tooShort": "Password too short",
       "passwordSet": "Password set",
       "passwordCleared": "Password cleared",
-      "passwordFailed": "Failed"
+      "passwordFailed": "Failed",
+      "previewTitle": "Link preview",
+      "previewHint": "Used as the image when this link is shared on social.",
+      "previewNone": "No preview yet",
+      "previewRefresh": "Refresh",
+      "previewRefreshing": "Capturing preview…",
+      "previewUpdated": "Preview updated.",
+      "previewFailed": "Couldn't update preview: {error}",
+      "previewEmptyScene": "Add something to the canvas first, then refresh.",
+      "previewCanvasNotReady": "Canvas isn't ready yet — try again in a moment."
     },
     "versions": {
       "trigger": "History",
