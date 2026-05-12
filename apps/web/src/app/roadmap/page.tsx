@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Check, Hammer, Lightbulb } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { Button } from '@notai/ui/components/button';
 import { auth } from '@/auth';
 import {
@@ -9,106 +10,62 @@ import {
   MarketingHeader,
 } from '@/components/marketing/site-shell';
 
-export const metadata: Metadata = {
-  title: 'Roadmap',
-  description: 'What is shipping next in Notai. A small, opinionated plan — not a backlog dump.',
-  alternates: { canonical: '/roadmap' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('roadmap');
+  return {
+    title: t('metaTitle'),
+    description: t('metaDescription'),
+    alternates: { canonical: '/roadmap' },
+  };
+}
 
 export const dynamic = 'force-static';
 
-interface RoadmapItem {
-  title: string;
-  body: string;
-}
+type ItemKey =
+  | 'localFirst'
+  | 'e2ee'
+  | 'aiSearch'
+  | 'billing'
+  | 'clipper'
+  | 'voice'
+  | 'publicProfile'
+  | 'webhooksShipped'
+  | 'mobile'
+  | 'stores'
+  | 'daily'
+  | 'i18n'
+  | 'teams'
+  | 'email'
+  | 'calendar'
+  | 'offlineAi'
+  | 'sdk';
+
 interface RoadmapColumn {
   status: 'shipped' | 'now' | 'next';
-  label: string;
-  items: RoadmapItem[];
+  items: ItemKey[];
 }
 
-/**
- * Hand-curated. Bias toward fewer, higher-confidence promises over a
- * giant wishlist. "Next" is genuinely planned for the next ~quarter,
- * not a backlog dump. Update this file when priorities change.
- */
 const COLUMNS: RoadmapColumn[] = [
   {
     status: 'shipped',
-    label: 'Shipped',
     items: [
-      {
-        title: 'Local-first notes + Excalidraw canvas',
-        body: 'IndexedDB + Y.Doc + sticky windows on desktop.',
-      },
-      {
-        title: 'Cloud sync (opt-in) with end-to-end encryption',
-        body: 'PBKDF2-derived KEK, recovery key, encrypted titles.',
-      },
-      {
-        title: 'AI search ("Ask my notes")',
-        body: 'Vector embeddings over your notes, with RAG citations.',
-      },
-      { title: 'Stripe billing + dunning', body: 'Self-serve upgrade, downgrade, refund window.' },
-      {
-        title: 'Web clipper extension (Chrome / Edge / Firefox)',
-        body: 'One-click save into Notai.',
-      },
-      {
-        title: 'Voice-to-note quick capture',
-        body: 'Whisper-on-the-server transcription with retry.',
-      },
-      {
-        title: 'Public profile pages + RSS',
-        body: '/u/[handle] surfaces published notes with a feed.',
-      },
-      {
-        title: 'Webhooks (with signed delivery + replay)',
-        body: 'note.created, note.updated, with HMAC + UI replay.',
-      },
+      'localFirst',
+      'e2ee',
+      'aiSearch',
+      'billing',
+      'clipper',
+      'voice',
+      'publicProfile',
+      'webhooksShipped',
     ],
   },
   {
     status: 'now',
-    label: 'In flight',
-    items: [
-      {
-        title: 'Mobile (iOS + Android via Capacitor)',
-        body: 'Beta build live; finishing share-sheet handlers and push parity.',
-      },
-      {
-        title: 'Microsoft Store + Mac App Store',
-        body: 'Signed installers ready; submitting after first paid customer.',
-      },
-      {
-        title: 'Better daily flow ("Today" + journal)',
-        body: 'Tightening the daily-note loop and review pages.',
-      },
-      { title: 'Romanian (RO) marketing translation', body: 'EN/RO toggle on the marketing site.' },
-    ],
+    items: ['mobile', 'stores', 'daily', 'i18n'],
   },
   {
     status: 'next',
-    label: 'Next up',
-    items: [
-      { title: 'Team workspaces', body: 'Shared notebooks with per-note access. Pricing addon.' },
-      {
-        title: 'Email-to-note (per-user inbox address)',
-        body: 'Forward to a secret address; arrives as a new note.',
-      },
-      {
-        title: 'Calendar capture',
-        body: 'Pull today\u2019s events into the daily note automatically.',
-      },
-      {
-        title: 'Offline AI fallback',
-        body: 'Run search ranking on-device when the cloud is unreachable.',
-      },
-      {
-        title: 'Public API + first-party SDK polish',
-        body: '@notai/sdk goes 1.0 with typed actions and OAuth.',
-      },
-    ],
+    items: ['teams', 'email', 'calendar', 'offlineAi', 'sdk'],
   },
 ];
 
@@ -120,6 +77,8 @@ function StatusIcon({ status }: { status: RoadmapColumn['status'] }) {
 
 export default async function RoadmapPage() {
   const session = await auth();
+  const t = await getTranslations('roadmap');
+  const tHome = await getTranslations('home');
   const ctaHref = session?.user ? '/app' : '/signin';
 
   return (
@@ -129,29 +88,28 @@ export default async function RoadmapPage() {
 
       <main className="relative">
         <section className="mx-auto max-w-3xl px-6 pb-8 pt-16 sm:pt-20">
-          <p className="text-primary text-xs font-semibold uppercase tracking-wider">Roadmap</p>
-          <h1 className="mt-2 text-balance font-serif text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-            Small plan, kept honest.
-          </h1>
-          <p className="text-muted-foreground mt-5 text-pretty text-lg">
-            What&rsquo;s shipped, what&rsquo;s in flight, and what&rsquo;s next. No giant backlog
-            dumps &mdash; just the things we have real conviction about.
+          <p className="text-primary text-xs font-semibold uppercase tracking-wider">
+            {t('kicker')}
           </p>
+          <h1 className="mt-2 text-balance font-serif text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
+            {t('title')}
+          </h1>
+          <p className="text-muted-foreground mt-5 text-pretty text-lg">{t('subtitle')}</p>
           <p className="text-muted-foreground mt-3 text-sm">
-            Want something that&rsquo;s not here?{' '}
+            {t('askPrefix')}
             <a
               className="text-foreground underline underline-offset-4"
               href="https://github.com/dragoscv/notai/discussions/categories/ideas"
               target="_blank"
               rel="noopener"
             >
-              Open a discussion on GitHub
-            </a>{' '}
-            or{' '}
+              {t('askGithub')}
+            </a>
+            {t('askMid')}
             <Link className="text-foreground underline underline-offset-4" href="/support/new">
-              file a ticket
+              {t('askTicket')}
             </Link>
-            .
+            {t('askSuffix')}
           </p>
         </section>
 
@@ -165,17 +123,17 @@ export default async function RoadmapPage() {
                 <div className="flex items-center gap-2">
                   <StatusIcon status={col.status} />
                   <h2 className="text-foreground text-sm font-semibold uppercase tracking-wider">
-                    {col.label}
+                    {t(`columns.${col.status}`)}
                   </h2>
                 </div>
                 <ul className="mt-5 space-y-5">
-                  {col.items.map((item) => (
-                    <li key={item.title}>
+                  {col.items.map((key) => (
+                    <li key={key}>
                       <p className="text-foreground text-sm font-medium leading-snug">
-                        {item.title}
+                        {t(`items.${key}.title`)}
                       </p>
                       <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-                        {item.body}
+                        {t(`items.${key}.body`)}
                       </p>
                     </li>
                   ))}
@@ -186,20 +144,18 @@ export default async function RoadmapPage() {
         </section>
 
         <section className="relative mx-auto max-w-3xl px-6 py-16 text-center">
-          <h2 className="font-serif text-3xl font-semibold tracking-tight">
-            Want to follow along?
-          </h2>
+          <h2 className="font-serif text-3xl font-semibold tracking-tight">{t('followTitle')}</h2>
           <p className="text-muted-foreground mt-4">
-            The{' '}
+            {t('followPrefix')}
             <Link className="underline underline-offset-4" href="/changelog">
-              changelog
-            </Link>{' '}
-            is updated on every release.
+              {t('followLink')}
+            </Link>
+            {t('followSuffix')}
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="shadow-primary/20 shadow-lg">
               <Link href={ctaHref}>
-                {session?.user ? 'Open your notes' : 'Get started — free'} <ArrowRight />
+                {session?.user ? tHome('ctaSignedIn') : tHome('ctaSignedOut')} <ArrowRight />
               </Link>
             </Button>
             <Button asChild size="lg" variant="ghost">
@@ -208,7 +164,7 @@ export default async function RoadmapPage() {
                 target="_blank"
                 rel="noopener"
               >
-                GitHub Discussions
+                {t('ghDiscussions')}
               </a>
             </Button>
           </div>

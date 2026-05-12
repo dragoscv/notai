@@ -339,5 +339,103 @@
     "startTrial": "Începe perioada gratuită",
     "upgradeTo": "Treci la {plan}",
     "footer": "Tarifele includ TVA acolo unde se aplică. Anulezi oricând din aplicație. Plățile sunt gestionate de Stripe — nu vedem niciodată detaliile cardului tău."
+  },
+  "roadmap": {
+    "metaTitle": "Roadmap",
+    "metaDescription": "Ce urmează în Notai. Un plan mic, asumat — nu un backlog uriaș.",
+    "kicker": "Roadmap",
+    "title": "Plan mic, ținut cinstit.",
+    "subtitle": "Ce a fost livrat, ce e în lucru și ce urmează. Fără backlog-uri uriașe — doar lucrurile pentru care avem convingere reală.",
+    "askPrefix": "Vrei ceva ce nu e aici? ",
+    "askGithub": "Deschide o discuție pe GitHub",
+    "askMid": " sau ",
+    "askTicket": "deschide un tichet",
+    "askSuffix": ".",
+    "columns": {
+      "shipped": "Livrat",
+      "now": "În lucru",
+      "next": "Urmează"
+    },
+    "items": {
+      "localFirst": {
+        "title": "Notițe local-first + canvas Excalidraw",
+        "body": "IndexedDB + Y.Doc + ferestre lipicioase pe desktop."
+      },
+      "e2ee": {
+        "title": "Sincronizare cloud (opt-in) cu criptare end-to-end",
+        "body": "KEK derivat PBKDF2, cheie de recuperare, titluri criptate."
+      },
+      "aiSearch": {
+        "title": "Căutare AI („Întreabă-mi notițele”)",
+        "body": "Embedding-uri vectoriale peste notițele tale, cu citări RAG."
+      },
+      "billing": {
+        "title": "Facturare Stripe + dunning",
+        "body": "Upgrade, downgrade, fereastră de rambursare — self-service."
+      },
+      "clipper": {
+        "title": "Extensie web-clipper (Chrome / Edge / Firefox)",
+        "body": "Salvezi în Notai cu un click."
+      },
+      "voice": {
+        "title": "Captură rapidă voce-în-notă",
+        "body": "Transcripție Whisper pe server cu reîncercare."
+      },
+      "publicProfile": {
+        "title": "Pagini publice de profil + RSS",
+        "body": "/u/[handle] expune notițele publicate cu feed RSS."
+      },
+      "webhooksShipped": {
+        "title": "Webhook-uri (livrare semnată + replay)",
+        "body": "note.created, note.updated, cu HMAC + replay din UI."
+      },
+      "mobile": {
+        "title": "Mobil (iOS + Android prin Capacitor)",
+        "body": "Build beta activ; finalizăm share-sheet-urile și paritatea push."
+      },
+      "stores": {
+        "title": "Microsoft Store + Mac App Store",
+        "body": "Installer-e semnate gata; trimitem după primul client plătit."
+      },
+      "daily": {
+        "title": "Flux zilnic mai bun („Astăzi” + jurnal)",
+        "body": "Strângem bucla notei zilnice și paginile de review."
+      },
+      "i18n": {
+        "title": "Traducere română (RO) a site-ului",
+        "body": "Toggle EN/RO pe site-ul de marketing."
+      },
+      "teams": {
+        "title": "Workspace-uri de echipă",
+        "body": "Caiete partajate cu acces per-notă. Addon de pricing."
+      },
+      "email": {
+        "title": "Email-în-notă (adresă inbox per utilizator)",
+        "body": "Redirectezi pe o adresă secretă; ajunge ca notă nouă."
+      },
+      "calendar": {
+        "title": "Captură din calendar",
+        "body": "Aducem evenimentele de azi automat în nota zilnică."
+      },
+      "offlineAi": {
+        "title": "Fallback AI offline",
+        "body": "Ranking de căutare pe dispozitiv când cloud-ul nu e accesibil."
+      },
+      "sdk": {
+        "title": "API public + șlefuire SDK first-party",
+        "body": "@notai/sdk ajunge 1.0 cu acțiuni tipate și OAuth."
+      }
+    },
+    "followTitle": "Vrei să urmărești?",
+    "followPrefix": "Pagina de ",
+    "followLink": "changelog",
+    "followSuffix": " e actualizată la fiecare release.",
+    "ghDiscussions": "GitHub Discussions"
+  },
+  "status": {
+    "metaTitle": "Status",
+    "metaDescription": "Status în timp real pentru Notai — web, realtime, bază de date și worker-i.",
+    "title": "Status Notai",
+    "subtitle": "Stare în timp real pentru fiecare serviciu care îți susține notițele."
   }
 }

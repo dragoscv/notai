@@ -339,5 +339,103 @@
     "startTrial": "Start free trial",
     "upgradeTo": "Upgrade to {plan}",
     "footer": "Prices include VAT where applicable. Cancel anytime from the app. Payments handled by Stripe — we never see your card details."
+  },
+  "roadmap": {
+    "metaTitle": "Roadmap",
+    "metaDescription": "What is shipping next in Notai. A small, opinionated plan — not a backlog dump.",
+    "kicker": "Roadmap",
+    "title": "Small plan, kept honest.",
+    "subtitle": "What's shipped, what's in flight, and what's next. No giant backlog dumps — just the things we have real conviction about.",
+    "askPrefix": "Want something that's not here? ",
+    "askGithub": "Open a discussion on GitHub",
+    "askMid": " or ",
+    "askTicket": "file a ticket",
+    "askSuffix": ".",
+    "columns": {
+      "shipped": "Shipped",
+      "now": "In flight",
+      "next": "Next up"
+    },
+    "items": {
+      "localFirst": {
+        "title": "Local-first notes + Excalidraw canvas",
+        "body": "IndexedDB + Y.Doc + sticky windows on desktop."
+      },
+      "e2ee": {
+        "title": "Cloud sync (opt-in) with end-to-end encryption",
+        "body": "PBKDF2-derived KEK, recovery key, encrypted titles."
+      },
+      "aiSearch": {
+        "title": "AI search (\"Ask my notes\")",
+        "body": "Vector embeddings over your notes, with RAG citations."
+      },
+      "billing": {
+        "title": "Stripe billing + dunning",
+        "body": "Self-serve upgrade, downgrade, refund window."
+      },
+      "clipper": {
+        "title": "Web clipper extension (Chrome / Edge / Firefox)",
+        "body": "One-click save into Notai."
+      },
+      "voice": {
+        "title": "Voice-to-note quick capture",
+        "body": "Whisper-on-the-server transcription with retry."
+      },
+      "publicProfile": {
+        "title": "Public profile pages + RSS",
+        "body": "/u/[handle] surfaces published notes with a feed."
+      },
+      "webhooksShipped": {
+        "title": "Webhooks (with signed delivery + replay)",
+        "body": "note.created, note.updated, with HMAC + UI replay."
+      },
+      "mobile": {
+        "title": "Mobile (iOS + Android via Capacitor)",
+        "body": "Beta build live; finishing share-sheet handlers and push parity."
+      },
+      "stores": {
+        "title": "Microsoft Store + Mac App Store",
+        "body": "Signed installers ready; submitting after first paid customer."
+      },
+      "daily": {
+        "title": "Better daily flow (\"Today\" + journal)",
+        "body": "Tightening the daily-note loop and review pages."
+      },
+      "i18n": {
+        "title": "Romanian (RO) marketing translation",
+        "body": "EN/RO toggle on the marketing site."
+      },
+      "teams": {
+        "title": "Team workspaces",
+        "body": "Shared notebooks with per-note access. Pricing addon."
+      },
+      "email": {
+        "title": "Email-to-note (per-user inbox address)",
+        "body": "Forward to a secret address; arrives as a new note."
+      },
+      "calendar": {
+        "title": "Calendar capture",
+        "body": "Pull today's events into the daily note automatically."
+      },
+      "offlineAi": {
+        "title": "Offline AI fallback",
+        "body": "Run search ranking on-device when the cloud is unreachable."
+      },
+      "sdk": {
+        "title": "Public API + first-party SDK polish",
+        "body": "@notai/sdk goes 1.0 with typed actions and OAuth."
+      }
+    },
+    "followTitle": "Want to follow along?",
+    "followPrefix": "The ",
+    "followLink": "changelog",
+    "followSuffix": " is updated on every release.",
+    "ghDiscussions": "GitHub Discussions"
+  },
+  "status": {
+    "metaTitle": "Status",
+    "metaDescription": "Live status of Notai — web, realtime, database, and background workers.",
+    "title": "Notai status",
+    "subtitle": "Real-time health for every service that powers your notes."
   }
 }

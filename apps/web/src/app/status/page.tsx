@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { auth } from '@/auth';
 import {
   AuroraBackground,
@@ -10,15 +11,19 @@ import { StatusBoard } from './status-board';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export const metadata: Metadata = {
-  title: 'Status',
-  description: 'Live operational status of the Notai service.',
-  alternates: { canonical: '/status' },
-  robots: { index: true, follow: true },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('status');
+  return {
+    title: t('metaTitle'),
+    description: t('metaDescription'),
+    alternates: { canonical: '/status' },
+    robots: { index: true, follow: true },
+  };
+}
 
 export default async function StatusPage() {
   const session = await auth();
+  const t = await getTranslations('status');
   return (
     <div className="bg-background text-foreground relative min-h-dvh overflow-hidden">
       <AuroraBackground />
@@ -26,13 +31,13 @@ export default async function StatusPage() {
 
       <main className="relative">
         <section className="mx-auto max-w-2xl px-6 pt-16 sm:pt-20">
-          <p className="text-primary text-xs font-semibold uppercase tracking-wider">Status</p>
-          <h1 className="mt-2 text-balance font-serif text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-            Notai status
-          </h1>
-          <p className="text-muted-foreground mt-5 text-pretty text-lg">
-            Live health of the services powering notai.ro. Auto-refreshes every 30 seconds.
+          <p className="text-primary text-xs font-semibold uppercase tracking-wider">
+            {t('metaTitle')}
           </p>
+          <h1 className="mt-2 text-balance font-serif text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
+            {t('title')}
+          </h1>
+          <p className="text-muted-foreground mt-5 text-pretty text-lg">{t('subtitle')}</p>
         </section>
 
         <section className="mx-auto max-w-2xl px-6 pb-16 pt-10">
