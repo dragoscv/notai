@@ -2,7 +2,16 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Plus, Trash2, Copy, Loader2, Activity, RefreshCw, BarChart3 } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Copy,
+  Loader2,
+  Activity,
+  RefreshCw,
+  BarChart3,
+  KeyRound,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@notai/ui/components/button';
 import { Switch } from '@notai/ui/components/switch';
@@ -12,6 +21,7 @@ import {
   setWebhookActive,
   listWebhookDeliveries,
   redeliverWebhook,
+  rotateWebhookSecret,
   type DeliveryRow,
 } from '@/server/actions/webhooks';
 
@@ -133,6 +143,21 @@ export function WebhookManager({ initial }: { initial: SerializedHook[] }) {
                   toast.error(err instanceof Error ? err.message : 'Failed');
                 }
               }}
+              onRotate={async () => {
+                if (
+                  !window.confirm(
+                    'Rotate the signing secret? Your receiver must accept either the old or new secret for ~24h while you roll out the change.',
+                  )
+                )
+                  return;
+                try {
+                  const r = await rotateWebhookSecret(h.id);
+                  setFreshSecret(r.secret);
+                  toast.success('Secret rotated — update your receiver');
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Failed');
+                }
+              }}
             />
           ))}
         </ul>
@@ -145,10 +170,12 @@ function HookRow({
   hook,
   onToggle,
   onDelete,
+  onRotate,
 }: {
   hook: SerializedHook;
   onToggle: (next: boolean) => void | Promise<void>;
   onDelete: () => void | Promise<void>;
+  onRotate: () => void | Promise<void>;
 }) {
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -200,6 +227,9 @@ function HookRow({
           </Link>
         </Button>
         <Switch checked={hook.isActive} onCheckedChange={onToggle} />
+        <Button size="sm" variant="ghost" onClick={onRotate} title="Rotate signing secret">
+          <KeyRound className="size-4" />
+        </Button>
         <Button size="sm" variant="ghost" onClick={onDelete}>
           <Trash2 className="size-4" />
         </Button>

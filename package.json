@@ -37,6 +37,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^15.3.0",
     "postgres": "catalog:",
+    "yjs": "catalog:",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.9",
     "rimraf": "^6.0.1",

@@ -50,3 +50,38 @@ jobs:
           # `next build` can collect page data for routes that import db.
           DATABASE_URL: 'postgres://ci:ci@localhost:5432/ci'
         run: pnpm build
+
+  migration-drift:
+    name: migration drift (production)
+    runs-on: ubuntu-latest
+    # Only on push to main — PRs don't carry the prod secret and we don't
+    # want fork PRs to fail this gate. The job alerts a maintainer when
+    # code referencing unmigrated columns has landed on main; CODEOWNERS
+    # / branch protection should make this status required for merge.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install (root only)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Check pending migrations against production
+        env:
+          MIGRATION_CHECK_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$MIGRATION_CHECK_DATABASE_URL" ]; then
+            echo "::warning::PROD_DATABASE_URL secret not set — skipping migration drift check. Add it under Repo Settings → Secrets to enable this gate."
+            exit 0
+          fi
+          node scripts/check-migrations-pending.mjs --env=production

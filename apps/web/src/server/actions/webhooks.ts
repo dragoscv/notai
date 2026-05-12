@@ -84,6 +84,28 @@ export async function deleteWebhook(id: string) {
   revalidatePath('/app/settings/webhooks');
 }
 
+/**
+ * Rotate the HMAC signing secret for an endpoint. Returns the new
+ * secret to the caller exactly once — we never expose it again
+ * through `listMyWebhooks`. Best practice: receivers should accept
+ * either the previous OR the new secret for ~24h while their
+ * deployment rolls out, then drop the old one. We don't keep a
+ * grace-period column server-side; the receiver owns that window.
+ */
+export async function rotateWebhookSecret(id: string): Promise<{ secret: string }> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Not signed in');
+  const secret = `whsec_${randomBytes(24).toString('base64url')}`;
+  const result = await db
+    .update(webhookEndpoints)
+    .set({ secret })
+    .where(and(eq(webhookEndpoints.id, id), eq(webhookEndpoints.userId, session.user.id)))
+    .returning({ id: webhookEndpoints.id });
+  if (result.length === 0) throw new Error('Webhook not found');
+  revalidatePath('/app/settings/webhooks');
+  return { secret };
+}
+
 export interface DeliveryRow {
   id: string;
   event: string;

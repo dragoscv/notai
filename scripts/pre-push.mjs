@@ -36,6 +36,18 @@ const STEPS = [
     args: ['scripts/secret-scan.mjs'],
     hint: 'Remove the secret from the file and rotate it. False positives can be silenced via `// notai-secret-scan-ignore`.',
   },
+  {
+    name: 'Migration drift (production)',
+    cmd: 'node',
+    args: ['scripts/check-migrations-pending.mjs', '--env=production', '--soft'],
+    hint: 'Pending migrations would silently break SSR after deploy. Run `node scripts/migrate.mjs --env=production --backup` before pushing, or pull `.env.production` via `vercel env pull` first if this step is being skipped.',
+  },
+  {
+    name: 'Lockfile drift',
+    cmd: 'node',
+    args: ['scripts/check-lockfile-drift.mjs'],
+    hint: 'pnpm-lock.yaml is out of sync. Run `pnpm install` to regenerate, then commit the lockfile alongside the package.json change.',
+  },
 ];
 
 const VERBOSE = process.env.PREPUSH_VERBOSE === '1' || process.argv.includes('--verbose');
