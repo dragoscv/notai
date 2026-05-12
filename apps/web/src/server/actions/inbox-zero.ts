@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@/auth';
-import { db, notes, folders, eq, and, isNull, sql, desc } from '@notai/db';
+import { db, notes, folders, eq, and, isNull, sql } from '@notai/db';
 
 export interface UnfiledSuggestion {
   noteId: string;
@@ -120,7 +120,6 @@ export async function countUnfiled(): Promise<number> {
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(notes)
-    .where(and(eq(notes.ownerId, userId), isNull(notes.folderId), isNull(notes.deletedAt)))
-    .orderBy(desc(notes.updatedAt));
+    .where(and(eq(notes.ownerId, userId), isNull(notes.folderId), isNull(notes.deletedAt)));
   return row?.count ?? 0;
 }
