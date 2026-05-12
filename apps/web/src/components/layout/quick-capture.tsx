@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Loader2, Sparkles, X, ArrowRight, Save, Send, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@notai/ui/components/dialog';
@@ -49,6 +50,7 @@ function splitIntoThoughts(text: string): string[] {
  *   - "Save & open"   → creates the note and navigates to it.
  */
 export function QuickCapture() {
+  const t = useTranslations('commandPalette.quickCapture');
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [text, setText] = React.useState('');
@@ -152,7 +154,11 @@ export function QuickCapture() {
     const items = splitIntoThoughts(text);
     if (items.length < 2 || busy) return;
     setBusy('batch');
-    const t = toast.loading(`Routing ${items.length} thoughts\u2026`);
+    const tt = toast.loading(
+      items.length === 1
+        ? t('routingLoadingOne')
+        : t('routingLoadingOther', { count: items.length }),
+    );
     try {
       const res = await quickCaptureBatch({ items });
       // Stash the per-note appends so each note picks up its slice on
@@ -185,12 +191,14 @@ export function QuickCapture() {
       const summaryParts: string[] = [];
       if (res.appends.length > 0) {
         summaryParts.push(
-          `${res.appends.length} routed to existing note${res.appends.length > 1 ? 's' : ''}`,
+          res.appends.length === 1
+            ? t('batchAppendsOne')
+            : t('batchAppendsOther', { count: res.appends.length }),
         );
       }
-      if (res.newNote) summaryParts.push(`${res.newNote.count} captured fresh`);
-      toast.success('Batch sent', {
-        id: t,
+      if (res.newNote) summaryParts.push(t('batchFresh', { count: res.newNote.count }));
+      toast.success(t('batchSent'), {
+        id: tt,
         description: summaryParts.join(' \u00b7 '),
       });
 
@@ -200,11 +208,11 @@ export function QuickCapture() {
       setOpen(false);
       if (target) router.push(`/app/n/${target}`);
     } catch (err) {
-      toast.error((err as Error).message, { id: t });
+      toast.error((err as Error).message, { id: tt });
     } finally {
       setBusy(null);
     }
-  }, [text, busy, router]);
+  }, [text, busy, router, t]);
 
   const save = async (mode: 'save' | 'open') => {
     const body = text.trim();
@@ -222,7 +230,7 @@ export function QuickCapture() {
         setOpen(false);
         router.push(`/app/n/${note.id}`);
       } else {
-        toast.success('Captured', { description: note.title });
+        toast.success(t('captured'), { description: note.title });
         // Stay open for rapid-fire captures.
         setTimeout(() => taRef.current?.focus(), 30);
       }
@@ -239,13 +247,13 @@ export function QuickCapture() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Quick capture"
-        title="Quick capture (⌘.)"
+        aria-label={t('fabAria')}
+        title={t('fabTitle')}
         data-focus-hide
         className="from-primary to-primary/80 text-primary-foreground hover:shadow-primary/40 fixed bottom-5 right-5 z-30 grid size-12 place-items-center rounded-full bg-gradient-to-br shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
       >
         <Sparkles className="size-5" />
-        <span className="sr-only">Quick capture</span>
+        <span className="sr-only">{t('fabAria')}</span>
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -258,14 +266,14 @@ export function QuickCapture() {
         >
           <div className="flex items-center gap-2 border-b px-4 py-2">
             <Sparkles className="text-primary size-4" />
-            <DialogTitle className="text-sm font-semibold">Quick capture</DialogTitle>
+            <DialogTitle className="text-sm font-semibold">{t('title')}</DialogTitle>
             <DialogDescription className="text-muted-foreground ml-1 text-[11px]">
-              Drop a thought — title is the first line.
+              {t('description')}
             </DialogDescription>
             <button
               type="button"
               className="hover:bg-accent ml-auto rounded p-1"
-              aria-label="Close"
+              aria-label={t('closeAria')}
               onClick={() => setOpen(false)}
             >
               <X className="size-3.5" />
@@ -285,14 +293,14 @@ export function QuickCapture() {
                 }
               }}
               rows={6}
-              placeholder="Capture a quick thought…"
+              placeholder={t('placeholder')}
               className="bg-card resize-none border text-sm leading-relaxed"
             />
           </div>
           {(matches.length > 0 || matchesPending) && (
             <div className="text-muted-foreground flex flex-wrap items-center gap-1.5 px-4 pb-1 text-[11px]">
               <span className="opacity-70">
-                {matchesPending ? 'Looking for related notes…' : 'Looks like:'}
+                {matchesPending ? t('lookingForRelated') : t('looksLike')}
               </span>
               {matches.map((m) => (
                 <button
@@ -304,7 +312,9 @@ export function QuickCapture() {
                   className="bg-card hover:border-primary hover:text-foreground inline-flex max-w-[18rem] items-center gap-1 truncate rounded-full border px-2 py-0.5 disabled:opacity-50"
                 >
                   <Send className="size-3" />
-                  <span className="truncate">Append to {m.title || 'Untitled'}</span>
+                  <span className="truncate">
+                    {t('appendTo', { title: m.title || t('untitled') })}
+                  </span>
                 </button>
               ))}
             </div>
@@ -312,13 +322,13 @@ export function QuickCapture() {
           <div className="text-muted-foreground flex items-center justify-between gap-2 border-t px-4 py-2 text-[11px]">
             <span>
               <kbd className="bg-card mr-1 rounded border px-1 font-mono text-[10px]">⌘↵</kbd>
-              save
+              {t('hintSave')}
               <kbd className="bg-card mx-1 rounded border px-1 font-mono text-[10px]">⇧⌘↵</kbd>
-              save &amp; open
+              {t('hintSaveOpen')}
             </span>
             <div className="flex items-center gap-1.5">
               <Button variant="ghost" size="sm" onClick={() => setOpen(false)} disabled={!!busy}>
-                Cancel
+                {t('cancel')}
               </Button>
               {splitIntoThoughts(text).length >= 2 && (
                 <Button
@@ -326,14 +336,14 @@ export function QuickCapture() {
                   size="sm"
                   onClick={() => void sendBatch()}
                   disabled={!!busy}
-                  title="Split each line/paragraph and route to its best home"
+                  title={t('sendBatchTitle')}
                 >
                   {busy === 'batch' ? (
                     <Loader2 className="size-3.5 animate-spin" />
                   ) : (
                     <Layers className="size-3.5" />
                   )}
-                  Send batch
+                  {t('sendBatch')}
                 </Button>
               )}
               <Button
@@ -347,7 +357,7 @@ export function QuickCapture() {
                 ) : (
                   <Save className="size-3.5" />
                 )}
-                Save
+                {t('save')}
               </Button>
               <Button
                 size="sm"
@@ -359,7 +369,7 @@ export function QuickCapture() {
                 ) : (
                   <ArrowRight className="size-3.5" />
                 )}
-                Save &amp; open
+                {t('saveOpen')}
               </Button>
             </div>
           </div>

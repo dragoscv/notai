@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   CornerDownLeft,
   FileText,
@@ -119,6 +120,7 @@ function pushRecentSearch(q: string): string[] {
  * the server's ranking wins.
  */
 export function CommandPalette({ notes }: { notes: Note[] }) {
+  const t = useTranslations('commandPalette');
   const [open, setOpen] = React.useState(false);
   const [askOpen, setAskOpen] = React.useState(false);
   const [query, setQuery] = React.useState('');
@@ -234,7 +236,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
         shouldFilter={!showServerHits}
       >
         <CommandInput
-          placeholder="Search notes or type a command…"
+          placeholder={t('dialog.placeholder')}
           value={query}
           onValueChange={setQuery}
         />{' '}
@@ -251,7 +253,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               }
               aria-pressed={pinnedOnly}
             >
-              \ud83d\udccc Pinned
+              {t('dialog.filters.pinned')}
             </button>
             <button
               type="button"
@@ -264,7 +266,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               }
               aria-pressed={favoritesOnly}
             >
-              \u2b50 Favorites
+              {t('dialog.filters.favorites')}
             </button>
             <button
               type="button"
@@ -277,7 +279,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               }
               aria-pressed={stickiesOnly}
             >
-              \ud83d\uddc2\ufe0f Stickies
+              {t('dialog.filters.stickies')}
             </button>
             <button
               type="button"
@@ -289,14 +291,17 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
                   : 'text-muted-foreground hover:bg-accent')
               }
               aria-pressed={semanticOn}
-              title="Hybrid search: trigram + pgvector. Slower, but finds notes by meaning."
+              title={t('dialog.filters.semanticTitle')}
             >
-              \u2728 Semantic
+              {t('dialog.filters.semantic')}
             </button>
             <button
               type="button"
               onClick={async () => {
-                const name = window.prompt('Name this saved search:', query.trim().slice(0, 40));
+                const name = window.prompt(
+                  t('dialog.filters.savePrompt'),
+                  query.trim().slice(0, 40),
+                );
                 if (!name?.trim()) return;
                 try {
                   await saveSavedSearch({
@@ -309,32 +314,30 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
                       stickiesOnly,
                     },
                   });
-                  toast.success(`Saved "${name.trim()}"`);
+                  toast.success(t('dialog.filters.saveSuccess', { name: name.trim() }));
                   const rows = await listSavedSearches();
                   setSavedSearches(rows);
                 } catch (e) {
-                  toast.error(e instanceof Error ? e.message : 'Could not save search');
+                  toast.error(e instanceof Error ? e.message : t('dialog.filters.saveError'));
                 }
               }}
               className="text-muted-foreground hover:bg-accent ml-auto rounded-full border px-2 py-0.5 text-[11px] font-medium transition"
-              title="Save this query + filters as a reusable search"
+              title={t('dialog.filters.saveTitle')}
             >
-              \ud83d\udcbe Save
+              {t('dialog.filters.save')}
             </button>
           </div>
         )}{' '}
         <CommandList className="max-h-[420px] px-1 pb-2">
           <CommandEmpty>
             <div className="px-4 py-8 text-center">
-              <p className="font-serif text-base">Nothing matches that yet.</p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                Try a different word, or start a new note.
-              </p>
+              <p className="font-serif text-base">{t('dialog.emptyTitle')}</p>
+              <p className="text-muted-foreground mt-1 text-xs">{t('dialog.emptyHint')}</p>
             </div>
           </CommandEmpty>
 
           {!showServerHits && recentSearches.length > 0 && (
-            <CommandGroup heading="Recent searches" className={groupHeadingClass}>
+            <CommandGroup heading={t('groups.recentSearches')} className={groupHeadingClass}>
               {recentSearches.map((q) => (
                 <CommandItem key={`recent-${q}`} onSelect={() => setQuery(q)}>
                   <span className="bg-muted text-muted-foreground grid size-7 place-items-center rounded-md">
@@ -347,7 +350,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
           )}
 
           {!showServerHits && savedSearches.length > 0 && (
-            <CommandGroup heading="Saved searches" className={groupHeadingClass}>
+            <CommandGroup heading={t('groups.savedSearches')} className={groupHeadingClass}>
               {savedSearches.map((s) => (
                 <CommandItem
                   key={s.id}
@@ -365,14 +368,14 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
                   <span className="min-w-0 flex-1 truncate">{s.name}</span>
                   <button
                     type="button"
-                    aria-label={`Delete saved search ${s.name}`}
+                    aria-label={t('dialog.filters.deleteSavedAria', { name: s.name })}
                     onClick={async (e) => {
                       e.stopPropagation();
                       try {
                         await deleteSavedSearch(s.id);
                         setSavedSearches((rows) => rows.filter((r) => r.id !== s.id));
                       } catch {
-                        toast.error('Could not delete');
+                        toast.error(t('dialog.filters.deleteError'));
                       }
                     }}
                     className="text-muted-foreground hover:text-foreground ml-2 text-xs"
@@ -385,55 +388,67 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
           )}
 
           {activeNoteId && (
-            <CommandGroup heading="Current note (AI)" className={groupHeadingClass}>
+            <CommandGroup heading={t('groups.currentNoteAi')} className={groupHeadingClass}>
               <CommandItem
                 onSelect={() => {
                   setOpen(false);
-                  void runAiOnNote('Summarising note…', () => summarizeNote(activeNoteId));
+                  void runAiOnNote(
+                    t('actions.summariseLoading'),
+                    () => summarizeNote(activeNoteId),
+                    t,
+                  );
                 }}
               >
                 <span className="grid size-7 place-items-center rounded-md bg-fuchsia-500/15 text-fuchsia-600">
                   <Sparkles className="size-3.5" />
                 </span>
-                <span>Summarise this note</span>
+                <span>{t('actions.summarise')}</span>
               </CommandItem>
               <CommandItem
                 onSelect={() => {
                   setOpen(false);
-                  void runAiOnNote('Extracting tasks…', () => extractActionItems(activeNoteId));
+                  void runAiOnNote(
+                    t('actions.extractActionsLoading'),
+                    () => extractActionItems(activeNoteId),
+                    t,
+                  );
                 }}
               >
                 <span className="grid size-7 place-items-center rounded-md bg-emerald-500/15 text-emerald-600">
                   <Sparkles className="size-3.5" />
                 </span>
-                <span>Extract action items</span>
+                <span>{t('actions.extractActions')}</span>
               </CommandItem>
               <CommandItem
                 onSelect={() => {
                   setOpen(false);
-                  void runAiOnNote('Rewriting for clarity…', () => rewriteForClarity(activeNoteId));
+                  void runAiOnNote(
+                    t('actions.rewriteLoading'),
+                    () => rewriteForClarity(activeNoteId),
+                    t,
+                  );
                 }}
               >
                 <span className="grid size-7 place-items-center rounded-md bg-sky-500/15 text-sky-600">
                   <Sparkles className="size-3.5" />
                 </span>
-                <span>Rewrite for clarity</span>
+                <span>{t('actions.rewrite')}</span>
               </CommandItem>
               <CommandItem
                 onSelect={() => {
                   setOpen(false);
-                  void runSuggestTags(activeNoteId);
+                  void runSuggestTags(activeNoteId, t);
                 }}
               >
                 <span className="grid size-7 place-items-center rounded-md bg-amber-500/15 text-amber-600">
                   <Sparkles className="size-3.5" />
                 </span>
-                <span>Suggest tags</span>
+                <span>{t('actions.suggestTags')}</span>
               </CommandItem>
             </CommandGroup>
           )}
 
-          <CommandGroup heading="Quick actions" className={groupHeadingClass}>
+          <CommandGroup heading={t('groups.quickActions')} className={groupHeadingClass}>
             <CommandItem
               onSelect={async () => {
                 setOpen(false);
@@ -444,7 +459,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               <span className="bg-primary/15 text-primary grid size-7 place-items-center rounded-md">
                 <Plus className="size-3.5" />
               </span>
-              <span>Create a new note</span>
+              <span>{t('actions.newNote')}</span>
               <CommandShortcut>⌘N</CommandShortcut>
             </CommandItem>
             <CommandItem
@@ -457,7 +472,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               <span className="bg-sticky-yellow text-foreground/70 grid size-7 place-items-center rounded-md">
                 <Sparkles className="size-3.5" />
               </span>
-              <span>Create a sticky note</span>
+              <span>{t('actions.newSticky')}</span>
             </CommandItem>
             <CommandItem
               onSelect={() => {
@@ -468,7 +483,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               <span className="grid size-7 place-items-center rounded-md bg-amber-500/15 text-amber-600">
                 <Sparkles className="size-3.5" />
               </span>
-              <span>Ask my notes…</span>
+              <span>{t('actions.ask')}</span>
               <CommandShortcut>⌘⇧K</CommandShortcut>
             </CommandItem>
             <CommandItem
@@ -480,7 +495,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               <span className="bg-muted text-muted-foreground grid size-7 place-items-center rounded-md">
                 <Network className="size-3.5" />
               </span>
-              <span>Open note graph</span>
+              <span>{t('actions.openGraph')}</span>
             </CommandItem>
             <CommandItem
               onSelect={() => {
@@ -491,29 +506,29 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               <span className="bg-muted text-muted-foreground grid size-7 place-items-center rounded-md">
                 <LayoutGrid className="size-3.5" />
               </span>
-              <span>Browse templates</span>
+              <span>{t('actions.browseTemplates')}</span>
             </CommandItem>
             <CommandItem
               onSelect={() => {
                 setOpen(false);
-                void summariseClipboardUrl(router);
+                void summariseClipboardUrl(router, t);
               }}
             >
               <span className="grid size-7 place-items-center rounded-md bg-amber-500/15 text-amber-600">
                 <LinkIcon className="size-3.5" />
               </span>
-              <span>Summarise URL from clipboard…</span>
+              <span>{t('actions.summariseClipboard')}</span>
             </CommandItem>
             <CommandItem
               onSelect={() => {
                 setOpen(false);
-                void randomRecall(router);
+                void randomRecall(router, t);
               }}
             >
               <span className="grid size-7 place-items-center rounded-md bg-violet-500/15 text-violet-600">
                 <Shuffle className="size-3.5" />
               </span>
-              <span>Random recall — jump to a forgotten note</span>
+              <span>{t('actions.randomRecall')}</span>
             </CommandItem>
             <CommandItem
               onSelect={() => {
@@ -524,7 +539,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               <span className="bg-muted text-muted-foreground grid size-7 place-items-center rounded-md">
                 <Inbox className="size-3.5" />
               </span>
-              <span>Inbox Zero — file unfiled notes</span>
+              <span>{t('actions.inboxZero')}</span>
             </CommandItem>
             <CommandItem
               onSelect={() => {
@@ -535,7 +550,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               <span className="bg-muted text-muted-foreground grid size-7 place-items-center rounded-md">
                 <CalendarDays className="size-3.5" />
               </span>
-              <span>Calendar — browse notes by day</span>
+              <span>{t('actions.calendar')}</span>
             </CommandItem>
             <CommandItem
               onSelect={() => {
@@ -546,7 +561,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               <span className="bg-muted text-muted-foreground grid size-7 place-items-center rounded-md">
                 <Sun className="size-3.5" />
               </span>
-              <span>Today’s daily note (⌘J)</span>
+              <span>{t('actions.today')}</span>
             </CommandItem>
             <CommandItem
               onSelect={() => {
@@ -557,7 +572,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               <span className="bg-muted text-muted-foreground grid size-7 place-items-center rounded-md">
                 <Search className="size-3.5" />
               </span>
-              <span>Open Trash</span>
+              <span>{t('actions.openTrash')}</span>
             </CommandItem>
           </CommandGroup>
 
@@ -565,12 +580,16 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
             <>
               <CommandSeparator className="my-1" />
               <CommandGroup
-                heading={searching ? 'Searching…' : `Results for "${query.trim()}"`}
+                heading={
+                  searching
+                    ? t('dialog.searching')
+                    : t('dialog.resultsFor', { query: query.trim() })
+                }
                 className={groupHeadingClass}
               >
                 {searching && hits.length === 0 && (
                   <div className="text-muted-foreground flex items-center gap-2 px-3 py-2 text-sm">
-                    <Loader2 className="size-3.5 animate-spin" /> Looking through your notes
+                    <Loader2 className="size-3.5 animate-spin" /> {t('dialog.lookingThrough')}
                   </div>
                 )}
                 {hits.map((h) => (
@@ -588,7 +607,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
                       {h.icon ?? <FileText className="text-muted-foreground size-3.5" />}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-serif">{h.title || 'Untitled'}</p>
+                      <p className="truncate font-serif">{h.title || t('dialog.untitled')}</p>
                       {h.snippet && (
                         <p className="text-muted-foreground truncate text-xs">
                           <Highlight text={h.snippet} match={query.trim()} />
@@ -604,7 +623,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
             notes.length > 0 && (
               <>
                 <CommandSeparator className="my-1" />
-                <CommandGroup heading="Recent" className={groupHeadingClass}>
+                <CommandGroup heading={t('groups.recent')} className={groupHeadingClass}>
                   {notes.slice(0, 12).map((n) => (
                     <CommandItem
                       key={n.id}
@@ -618,7 +637,7 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
                         {n.icon ?? <FileText className="text-muted-foreground size-3.5" />}
                       </span>
                       <span className="min-w-0 flex-1 truncate font-serif">
-                        {n.title || 'Untitled'}
+                        {n.title || t('dialog.untitled')}
                       </span>
                     </CommandItem>
                   ))}
@@ -633,7 +652,9 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
               <span className="bg-muted/70 grid size-5 shrink-0 place-items-center rounded text-[11px]">
                 {hoveredPreview.icon ?? <FileText className="text-muted-foreground size-3" />}
               </span>
-              <p className="truncate font-serif text-sm">{hoveredPreview.title || 'Untitled'}</p>
+              <p className="truncate font-serif text-sm">
+                {hoveredPreview.title || t('dialog.untitled')}
+              </p>
             </div>
             <p className="text-muted-foreground line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed">
               <Highlight
@@ -645,10 +666,10 @@ export function CommandPalette({ notes }: { notes: Note[] }) {
         )}
         <div className="bg-background/40 text-muted-foreground flex items-center justify-between gap-2 border-t px-3 py-2 text-[11px]">
           <div className="flex items-center gap-3">
-            <Hint kbd="↑↓">navigate</Hint>
-            <Hint kbd="↵">open</Hint>
+            <Hint kbd="↑↓">{t('dialog.hints.navigate')}</Hint>
+            <Hint kbd="↵">{t('dialog.hints.open')}</Hint>
           </div>
-          <Hint kbd="esc">close</Hint>
+          <Hint kbd="esc">{t('dialog.hints.close')}</Hint>
         </div>
       </CommandDialog>
       <AskDialog open={askOpen} onOpenChange={setAskOpen} />
@@ -675,41 +696,52 @@ const URL_RE = /^https?:\/\/\S+$/;
  * user gets to read the output, decide, and paste it where they want.
  * That keeps the destructive surface area zero.
  */
-async function runAiOnNote(loadingMsg: string, fn: () => Promise<string>): Promise<void> {
-  const t = toast.loading(loadingMsg);
+async function runAiOnNote(
+  loadingMsg: string,
+  fn: () => Promise<string>,
+  t: (key: string) => string,
+): Promise<void> {
+  const tt = toast.loading(loadingMsg);
   try {
     const out = (await fn()).trim();
     if (!out) {
-      toast.error('AI returned no content', { id: t });
+      toast.error(t('actions.aiNoContent'), { id: tt });
       return;
     }
     await navigator.clipboard.writeText(out).catch(() => undefined);
-    toast.success('Result copied to clipboard', {
-      id: t,
+    toast.success(t('actions.aiCopied'), {
+      id: tt,
       description: out.length > 120 ? out.slice(0, 117) + '…' : out,
     });
   } catch (e) {
-    toast.error(e instanceof Error ? e.message : 'AI action failed', { id: t });
+    toast.error(e instanceof Error ? e.message : t('actions.aiActionFailed'), { id: tt });
   }
 }
 
-async function runSuggestTags(noteId: string): Promise<void> {
-  const t = toast.loading('Suggesting tags…');
+async function runSuggestTags(
+  noteId: string,
+  t: (key: string, values?: Record<string, string | number | Date>) => string,
+): Promise<void> {
+  const tt = toast.loading(t('actions.suggestTagsLoading'));
   try {
     const tags = await suggestTagsForNote(noteId);
     if (!tags.length) {
-      toast.message('No tag suggestions for this note', { id: t });
+      toast.message(t('actions.suggestTagsEmpty'), { id: tt });
       return;
     }
     await navigator.clipboard
       .writeText(tags.map((tag) => (tag.startsWith('#') ? tag : `#${tag}`)).join(' '))
       .catch(() => undefined);
-    toast.success(`Copied ${tags.length} tag${tags.length === 1 ? '' : 's'}`, {
-      id: t,
+    const msg =
+      tags.length === 1
+        ? t('actions.suggestTagsCopiedOne')
+        : t('actions.suggestTagsCopiedOther', { count: tags.length });
+    toast.success(msg, {
+      id: tt,
       description: tags.slice(0, 6).join(', '),
     });
   } catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Failed to suggest tags', { id: t });
+    toast.error(e instanceof Error ? e.message : t('actions.suggestTagsError'), { id: tt });
   }
 }
 
@@ -719,38 +751,41 @@ async function runSuggestTags(noteId: string): Promise<void> {
  * `notai:pending-append` handoff. Wired to the command palette's
  * "Summarise URL from clipboard…" entry.
  */
-async function summariseClipboardUrl(router: ReturnType<typeof useRouter>): Promise<void> {
+async function summariseClipboardUrl(
+  router: ReturnType<typeof useRouter>,
+  t: (key: string, values?: Record<string, string | number | Date>) => string,
+): Promise<void> {
   let raw = '';
   try {
     raw = (await navigator.clipboard.readText()).trim();
   } catch {
-    toast.error('Clipboard access denied. Copy a URL and try again.');
+    toast.error(t('actions.clipboardDenied'));
     return;
   }
   if (!URL_RE.test(raw)) {
-    toast.error('No URL on the clipboard. Copy an https:// link first.');
+    toast.error(t('actions.clipboardNoUrl'));
     return;
   }
   try {
     new URL(raw);
   } catch {
-    toast.error('That clipboard text is not a valid URL.');
+    toast.error(t('actions.clipboardInvalidUrl'));
     return;
   }
 
-  const t = toast.loading('Summarising link\u2026');
+  const tt = toast.loading(t('actions.summariseLinkLoading'));
   try {
     const res = await summariseUrl({ url: raw });
     const heading = res.title?.trim() || res.host;
     const body = [
       `## ${heading}`,
-      res.summary?.trim() ? res.summary.trim() : '_(no summary available)_',
+      res.summary?.trim() ? res.summary.trim() : t('actions.summariseNoSummary'),
       '',
-      `Source: ${res.url}`,
+      t('actions.summariseSource', { url: res.url }),
     ].join('\n\n');
 
     const note = await createNote({ title: heading.slice(0, 200), icon: '\uD83D\uDD17' });
-    if (!note) throw new Error('Failed to create note');
+    if (!note) throw new Error(t('actions.summariseCreateFailed'));
 
     try {
       window.localStorage.setItem(
@@ -758,13 +793,13 @@ async function summariseClipboardUrl(router: ReturnType<typeof useRouter>): Prom
         JSON.stringify({ noteId: note.id, text: body, ts: Date.now() }),
       );
     } catch {
-      /* localStorage disabled \u2014 the note still opens, just without the body */
+      /* localStorage disabled — the note still opens, just without the body */
     }
 
-    toast.success('Note created', { id: t });
+    toast.success(t('actions.summariseSuccess'), { id: tt });
     router.push(`/app/n/${note.id}`);
   } catch (err) {
-    toast.error((err as Error).message, { id: t });
+    toast.error((err as Error).message, { id: tt });
   }
 }
 
@@ -774,18 +809,21 @@ async function summariseClipboardUrl(router: ReturnType<typeof useRouter>): Prom
  * just a one-shot navigation entry point. Silent toast when no
  * archive exists yet (first-week users).
  */
-async function randomRecall(router: ReturnType<typeof useRouter>): Promise<void> {
-  const t = toast.loading('Picking a note\u2026');
+async function randomRecall(
+  router: ReturnType<typeof useRouter>,
+  t: (key: string) => string,
+): Promise<void> {
+  const tt = toast.loading(t('actions.recallLoading'));
   try {
     const note = await getThrowbackNote();
     if (!note) {
-      toast.message('Nothing old enough yet \u2014 keep writing.', { id: t });
+      toast.message(t('actions.recallEmpty'), { id: tt });
       return;
     }
-    toast.success(note.title || 'Untitled', { id: t });
+    toast.success(note.title || t('dialog.untitled'), { id: tt });
     router.push(`/app/n/${note.id}`);
   } catch (err) {
-    toast.error((err as Error).message, { id: t });
+    toast.error((err as Error).message, { id: tt });
   }
 }
 
