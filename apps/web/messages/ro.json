@@ -182,5 +182,109 @@
       "offlineNote": "Merge online și offline din prima zi"
     },
     "skipLink": "Sari la conținut"
+  },
+  "features": {
+    "metaTitle": "Funcționalități",
+    "metaDescription": "Tot ce face Notai — notițe lipicioase deasupra ferestrelor, desene, căutare AI, sincronizare în timp real, notițe zilnice, vizualizare graf, pagini publice și API REST public.",
+    "badge": "Ce găsești în Notai",
+    "title": "Fiecare funcționalitate, organizată după felul în care o folosești.",
+    "subtitle": "Notai e o singură aplicație împărțită în patru momente: capturare, găsire, sincronizare, flux zilnic. Alege o secțiune mai jos — sau pur și simplu derulează.",
+    "readyTitle": "Gata să încerci?",
+    "readyText": "Gratuit pentru uz personal. Fără card. Merge offline.",
+    "seePricing": "Vezi tarifele",
+    "pillars": {
+      "capture": {
+        "title": "Captează",
+        "subtitle": "Scoate gândul din cap înainte să dispară.",
+        "pin": {
+          "title": "Notițe lipicioase care plutesc deasupra",
+          "body": "Ferestre mici care se fixează deasupra oricărei alte aplicații. Perfecte pentru fragmente, taskuri sau singurul lucru pe care trebuie să-l ții minte într-un apel."
+        },
+        "draw": {
+          "title": "Desenează, scrie și tastează pe aceeași pânză",
+          "body": "Bazat pe Excalidraw. Schițează un wireframe, scrie un paragraf, lipește o imagine — nu există un mod pe care trebuie să-l alegi mai întâi."
+        },
+        "quick": {
+          "title": "Capturare rapidă, de oriunde",
+          "body": "Cmd / Ctrl + Shift + N de oriunde de pe desktop deschide o notiță lipicioasă nouă. Și voce-spre-notiță merge."
+        },
+        "smartPaste": {
+          "title": "Lipire inteligentă",
+          "body": "Lipește un URL sau o transcriere și Notai extrage punctele cheie, tag-urile și un titlu pentru tine."
+        }
+      },
+      "find": {
+        "title": "Găsește",
+        "subtitle": "Notițele nu folosesc la nimic dacă nu le poți găsi.",
+        "palette": {
+          "title": "Paleta de comenzi (Ctrl + K)",
+          "body": "Sari la orice notiță, rulează orice comandă, deschide orice setare — nu rupe niciodată fluxul cu mouse-ul."
+        },
+        "ask": {
+          "title": "Întreabă notițele mele",
+          "body": "Căutare semantică + sinteză AI cu citări. Răspunsuri în câteva secunde, cu linkuri către notițele sursă."
+        },
+        "graph": {
+          "title": "Vizualizare graf",
+          "body": "Vezi cum se leagă notițele între ele. Click pe un nod ca să intri. Excelent pentru a depista notițe orfane și a redescoperi idei vechi."
+        },
+        "tags": {
+          "title": "Tag-uri, foldere și backlink-uri",
+          "body": "Folosește organizarea care ți se pare potrivită astăzi. Linkuri [[wiki]] plus pagini de tag-uri plus foldere — nu doar una singură."
+        }
+      },
+      "sync": {
+        "title": "Sincronizează",
+        "subtitle": "Local-first cu cloud opțional — niciodată invers.",
+        "offline": {
+          "title": "Merge offline din prima zi",
+          "body": "Fiecare modificare e local-first prin CRDT-uri Y.js. Când te reconectezi, modificările tale și ale colaboratorilor se îmbină curat."
+        },
+        "collab": {
+          "title": "Colaborare în timp real",
+          "body": "Partajează o notiță sau un folder. Cursoare multiple, prezență și zero conflicte de îmbinare. Bazat pe Hocuspocus pe servere din UE."
+        },
+        "public": {
+          "title": "Pagini publice",
+          "body": "Publică orice notiță ca pagină frumoasă, doar pentru citit, la notai.ro/u/numele-tau. Distribuie un link, fără cont pentru cititori."
+        },
+        "eu": {
+          "title": "Hosting în UE, fără antrenament AI",
+          "body": "Stocat în europe-west1. Nu antrenăm niciodată AI pe notițele tale, nu vindem datele și nu rulăm analytics în interiorul notițelor."
+        }
+      },
+      "dailyFlow": {
+        "title": "Flux zilnic",
+        "subtitle": "Construit pentru creierele ADHD și creative.",
+        "today": {
+          "title": "Notița de astăzi",
+          "body": "O notiță care se creează singură în fiecare dimineață. Deschide-o cu Ctrl+J. Scrie orice — Notai îți va oferi o recapitulare blândă la finalul zilei."
+        },
+        "pinned": {
+          "title": "Notițe fixate și istoric versiuni",
+          "body": "Fixează puținele notițe care contează; restul rămân deoparte. Fiecare salvare e o versiune la care te poți întoarce."
+        },
+        "kbd": {
+          "title": "Tastatura mai întâi, mouse-ul opțional",
+          "body": "Apasă ? oriunde pentru cheatsheet-ul live. Toată aplicația poate fi condusă de la tastatură."
+        },
+        "export": {
+          "title": "Export Markdown în masă",
+          "body": "Setări → Exportă notițele descarcă un ZIP cu fiecare notiță. Datele tale sunt ale tale, mereu."
+        }
+      },
+      "developers": {
+        "title": "Pentru dezvoltatori",
+        "subtitle": "Construiește deasupra propriilor tale notițe.",
+        "rest": {
+          "title": "API REST public",
+          "body": "Citește și scrie notițe cu token-uri personale de acces. Specificație OpenAPI la /api/v1/openapi."
+        },
+        "webhooks": {
+          "title": "Webhook-uri",
+          "body": "Abonează-te la note.created, note.updated și altele. Semnate cu HMAC-SHA256, reîncercate cu backoff, replayabile din dashboard."
+        }
+      }
+    }
   }
 }
