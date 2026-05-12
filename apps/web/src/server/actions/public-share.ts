@@ -228,6 +228,7 @@ export async function getPublicShareGate(token: string): Promise<
         icon: string | null;
         plaintext: string;
         updatedAt: Date;
+        imageUrl: string | null;
       };
     }
 > {
@@ -241,6 +242,7 @@ export async function getPublicShareGate(token: string): Promise<
       updatedAt: notes.updatedAt,
       expiresAt: notes.publicShareExpiresAt,
       passwordHash: notes.passwordHash,
+      imageUrl: notes.publicShareImageUrl,
     })
     .from(notes)
     .where(
@@ -265,6 +267,7 @@ export async function getPublicShareGate(token: string): Promise<
       icon: row.icon,
       plaintext: row.plaintext,
       updatedAt: row.updatedAt,
+      imageUrl: row.imageUrl,
     },
   };
 }

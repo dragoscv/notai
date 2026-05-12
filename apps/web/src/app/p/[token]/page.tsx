@@ -72,6 +72,15 @@ export default async function PublicNotePage({ params }: { params: Promise<Param
   return (
     <main className="bg-background min-h-dvh">
       <article className="mx-auto max-w-2xl px-6 py-16">
+        {note.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={note.imageUrl}
+            alt=""
+            className="bg-muted/30 mb-8 w-full rounded-lg border object-contain"
+            loading="eager"
+          />
+        ) : null}
         <header className="mb-10 border-b pb-6">
           <div className="text-muted-foreground mb-2 text-xs uppercase tracking-widest">
             Shared from Notai

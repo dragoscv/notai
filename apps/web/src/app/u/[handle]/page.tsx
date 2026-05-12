@@ -29,6 +29,7 @@ async function loadBlog(handleRaw: string) {
       publicShareToken: notes.publicShareToken,
       publicShareSlug: notes.publicShareSlug,
       publicShareExpiresAt: notes.publicShareExpiresAt,
+      publicShareImageUrl: notes.publicShareImageUrl,
       blogPublishAt: notes.blogPublishAt,
       updatedAt: notes.updatedAt,
     })
@@ -104,6 +105,15 @@ export default async function BlogIndexPage({ params }: { params: Promise<Params
               return (
                 <li key={p.id} className="border-b pb-6 last:border-b-0">
                   <Link href={`/p/${encodeURIComponent(slug)}`} className="group block">
+                    {p.publicShareImageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.publicShareImageUrl}
+                        alt=""
+                        className="bg-muted/30 mb-3 aspect-[1200/630] w-full rounded-md border object-cover"
+                        loading="lazy"
+                      />
+                    ) : null}
                     <h2 className="font-serif text-2xl font-semibold group-hover:underline">
                       {p.icon ? <span className="mr-2">{p.icon}</span> : null}
                       {p.title || t('untitled')}
