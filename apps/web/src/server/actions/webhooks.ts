@@ -204,9 +204,35 @@ export async function redeliverWebhook(deliveryId: string): Promise<{ statusCode
  * being discovered hours later by a customer asking why their integration
  * never fired.
  */
+/**
+ * Full list of webhook event names a user can subscribe to. Order is the
+ * order rendered in the picker UI. New endpoints opt-in to extras via
+ * the `events` field; the schema default still only includes the three
+ * legacy events so existing endpoints don't suddenly fire on more.
+ */
+export const WEBHOOK_EVENTS = [
+  'note.created',
+  'note.updated',
+  'note.archived',
+  'note.deleted',
+  'note.restored',
+  'note.shared',
+  'note.unshared',
+  'note.share_accepted',
+  'note.published',
+  'note.unpublished',
+  'note.tagged',
+  'note.untagged',
+  'comment.created',
+  'comment.resolved',
+  'comment.deleted',
+] as const;
+
+export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
+
 export async function dispatchNoteEvent(
   userId: string,
-  event: 'note.created' | 'note.updated' | 'note.archived',
+  event: WebhookEvent,
   payload: Record<string, unknown>,
 ): Promise<void> {
   const endpoints = await db

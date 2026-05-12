@@ -16,6 +16,7 @@ import {
   inArray,
 } from '@notai/db';
 import { auth } from '@/auth';
+import { dispatchNoteEvent } from '@/server/actions/webhooks';
 
 async function requireUser() {
   const session = await auth();
@@ -282,6 +283,19 @@ export async function addComment(input: z.input<typeof addCommentSchema>): Promi
   // Re-fetch to get the joined author + canonical timestamps.
   const [reread] = await listCommentsByIds([row.id]);
   if (!reread) throw new Error('Insert succeeded but reread failed');
+  try {
+    await dispatchNoteEvent(note.ownerId, 'comment.created', {
+      noteId: parsed.noteId,
+      commentId: row.id,
+      authorUserId: me.id,
+      createdAt: row.createdAt.toISOString(),
+    });
+  } catch (err) {
+    console.warn(
+      'webhook dispatch comment.created failed',
+      err instanceof Error ? err.message : err,
+    );
+  }
   return reread;
 }
 
@@ -349,11 +363,23 @@ export async function resolveComment(input: z.input<typeof idSchema>) {
     .where(eq(noteComments.id, id))
     .limit(1);
   if (!row) throw new Error('Not found');
-  await requireNoteAccess(row.noteId, me.id);
+  const note = await requireNoteAccess(row.noteId, me.id);
   await db
     .update(noteComments)
     .set({ resolvedAt: new Date(), updatedAt: new Date() })
     .where(eq(noteComments.id, id));
+  try {
+    await dispatchNoteEvent(note.ownerId, 'comment.resolved', {
+      noteId: row.noteId,
+      commentId: id,
+      resolvedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn(
+      'webhook dispatch comment.resolved failed',
+      err instanceof Error ? err.message : err,
+    );
+  }
 }
 
 export async function unresolveComment(input: z.input<typeof idSchema>) {
@@ -391,6 +417,18 @@ export async function deleteComment(input: z.input<typeof idSchema>) {
     throw new Error('Not allowed');
   }
   await db.delete(noteComments).where(eq(noteComments.id, id));
+  try {
+    await dispatchNoteEvent(row.ownerId, 'comment.deleted', {
+      noteId: row.noteId,
+      commentId: id,
+      deletedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn(
+      'webhook dispatch comment.deleted failed',
+      err instanceof Error ? err.message : err,
+    );
+  }
 }
 
 const rewireSchema = z.object({

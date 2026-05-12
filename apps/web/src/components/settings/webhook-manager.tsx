@@ -23,8 +23,15 @@ import {
   listWebhookDeliveries,
   redeliverWebhook,
   rotateWebhookSecret,
+  WEBHOOK_EVENTS,
   type DeliveryRow,
 } from '@/server/actions/webhooks';
+
+const DEFAULT_EVENTS: ReadonlyArray<(typeof WEBHOOK_EVENTS)[number]> = [
+  'note.created',
+  'note.updated',
+  'note.archived',
+];
 
 export interface SerializedHook {
   id: string;
@@ -43,20 +50,36 @@ export function WebhookManager({ initial }: { initial: SerializedHook[] }) {
   const [url, setUrl] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [freshSecret, setFreshSecret] = React.useState<string | null>(null);
+  const [selectedEvents, setSelectedEvents] = React.useState<Set<string>>(
+    () => new Set(DEFAULT_EVENTS),
+  );
+
+  const toggleEvent = (name: string) => {
+    setSelectedEvents((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
     setBusy(true);
     try {
-      const res = await createWebhook({ url: url.trim() });
+      const events =
+        selectedEvents.size > 0
+          ? WEBHOOK_EVENTS.filter((ev) => selectedEvents.has(ev)).join(' ')
+          : DEFAULT_EVENTS.join(' ');
+      const res = await createWebhook({ url: url.trim(), events });
       setFreshSecret(res.secret);
       setHooks((rows) => [
         ...rows,
         {
           id: res.id,
           url: url.trim(),
-          events: 'note.created note.updated note.archived',
+          events,
           isActive: true,
           createdAt: new Date().toISOString(),
           lastSuccessAt: null,
@@ -65,6 +88,7 @@ export function WebhookManager({ initial }: { initial: SerializedHook[] }) {
         },
       ]);
       setUrl('');
+      setSelectedEvents(new Set(DEFAULT_EVENTS));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('couldNotCreate'));
     } finally {
@@ -101,19 +125,48 @@ export function WebhookManager({ initial }: { initial: SerializedHook[] }) {
         </div>
       )}
 
-      <form onSubmit={onCreate} className="bg-card flex items-center gap-2 rounded-2xl border p-4">
-        <input
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          maxLength={2048}
-          placeholder={t('urlPlaceholder')}
-          className="bg-background flex-1 rounded-md border px-3 py-2 text-sm"
-        />
-        <Button type="submit" disabled={busy || !url.trim()}>
-          {busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-          {t('add')}
-        </Button>
+      <form onSubmit={onCreate} className="bg-card flex flex-col gap-3 rounded-2xl border p-4">
+        <div className="flex items-center gap-2">
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            maxLength={2048}
+            placeholder={t('urlPlaceholder')}
+            className="bg-background flex-1 rounded-md border px-3 py-2 text-sm"
+          />
+          <Button type="submit" disabled={busy || !url.trim()}>
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+            {t('add')}
+          </Button>
+        </div>
+        <details className="text-sm">
+          <summary className="text-muted-foreground cursor-pointer select-none text-xs">
+            {t('events.toggle', {
+              count: selectedEvents.size,
+              total: WEBHOOK_EVENTS.length,
+            })}
+          </summary>
+          <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+            {WEBHOOK_EVENTS.map((ev) => (
+              <label
+                key={ev}
+                className="hover:bg-muted/40 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedEvents.has(ev)}
+                  onChange={() => toggleEvent(ev)}
+                  className="size-3.5"
+                />
+                <span className="font-mono text-[11px]">{ev}</span>
+                <span className="text-muted-foreground ml-1 truncate">
+                  {t(`events.${ev}` as 'events.note.created')}
+                </span>
+              </label>
+            ))}
+          </div>
+        </details>
       </form>
 
       {hooks.length === 0 ? (

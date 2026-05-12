@@ -722,7 +722,25 @@
       "resend": "Resend",
       "couldNotCreate": "Could not create",
       "couldNotLoad": "Could not load",
-      "failed": "Failed"
+      "failed": "Failed",
+      "events": {
+        "toggle": "Events ({count}/{total} selected)",
+        "note.created": "Note created",
+        "note.updated": "Note updated",
+        "note.archived": "Note archived",
+        "note.deleted": "Note deleted (moved to trash)",
+        "note.restored": "Note restored from trash",
+        "note.shared": "Note shared / role changed",
+        "note.unshared": "Collaborator removed or invite revoked",
+        "note.share_accepted": "Share invite accepted",
+        "note.published": "Public link enabled",
+        "note.unpublished": "Public link disabled",
+        "note.tagged": "Tag attached to note",
+        "note.untagged": "Tag removed from note",
+        "comment.created": "Comment added",
+        "comment.resolved": "Comment resolved",
+        "comment.deleted": "Comment deleted"
+      }
     },
     "deliveries": {
       "recent": "Recent deliveries",

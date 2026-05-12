@@ -722,7 +722,25 @@
       "resend": "Retrimite",
       "couldNotCreate": "Nu s-a putut crea",
       "couldNotLoad": "Nu s-a putut încărca",
-      "failed": "Eșuat"
+      "failed": "Eșuat",
+      "events": {
+        "toggle": "Evenimente ({count}/{total} selectate)",
+        "note.created": "Notă creată",
+        "note.updated": "Notă actualizată",
+        "note.archived": "Notă arhivată",
+        "note.deleted": "Notă ștearsă (mutată la coș)",
+        "note.restored": "Notă restaurată din coș",
+        "note.shared": "Notă partajată / rol schimbat",
+        "note.unshared": "Colaborator eliminat sau invitație revocată",
+        "note.share_accepted": "Invitație de partajare acceptată",
+        "note.published": "Link public activat",
+        "note.unpublished": "Link public dezactivat",
+        "note.tagged": "Etichetă adăugată la notă",
+        "note.untagged": "Etichetă eliminată de la notă",
+        "comment.created": "Comentariu adăugat",
+        "comment.resolved": "Comentariu rezolvat",
+        "comment.deleted": "Comentariu șters"
+      }
     },
     "deliveries": {
       "recent": "Livrări recente",

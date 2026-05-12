@@ -374,6 +374,14 @@ export async function deleteNote(id: string) {
     .where(and(eq(notes.id, id), eq(notes.ownerId, user.id), isNull(notes.deletedAt)));
   revalidatePath('/app');
   revalidatePath('/app/trash');
+  try {
+    await dispatchNoteEvent(user.id, 'note.deleted', {
+      noteId: id,
+      deletedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn('webhook dispatch note.deleted failed', err instanceof Error ? err.message : err);
+  }
 }
 
 /** Move a soft-deleted note back to the active workspace. */
@@ -385,6 +393,14 @@ export async function restoreNote(id: string) {
     .where(and(eq(notes.id, id), eq(notes.ownerId, user.id), isNotNull(notes.deletedAt)));
   revalidatePath('/app');
   revalidatePath('/app/trash');
+  try {
+    await dispatchNoteEvent(user.id, 'note.restored', {
+      noteId: id,
+      restoredAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn('webhook dispatch note.restored failed', err instanceof Error ? err.message : err);
+  }
 }
 
 /** Permanently delete a single trashed note. Triggers Y.Doc cascade. */
@@ -465,6 +481,19 @@ export async function bulkDeleteNotes(ids: string[]) {
     .returning({ id: notes.id });
   revalidatePath('/app');
   revalidatePath('/app/trash');
+  if (res.length > 0) {
+    const deletedAt = new Date().toISOString();
+    try {
+      await Promise.all(
+        res.map((n) => dispatchNoteEvent(user.id, 'note.deleted', { noteId: n.id, deletedAt })),
+      );
+    } catch (err) {
+      console.warn(
+        'webhook dispatch note.deleted (bulk) failed',
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
   return { deleted: res.length };
 }
 

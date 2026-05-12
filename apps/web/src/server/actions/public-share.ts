@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { auth } from '@/auth';
 import { db, notes, eq, and, or, isNull } from '@notai/db';
 import { hashNotePassword, verifyNotePassword } from '@/lib/note-password';
+import { dispatchNoteEvent } from '@/server/actions/webhooks';
 
 const SHARE_PW_COOKIE = (noteId: string) => `notai_share_pw_${noteId}`;
 
@@ -43,6 +44,18 @@ export async function enablePublicShare(
     .returning({ id: notes.id });
 
   if (updated.length === 0) throw new Error('Note not found');
+  try {
+    await dispatchNoteEvent(userId, 'note.published', {
+      noteId: parsed.noteId,
+      slug: token,
+      publishedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn(
+      'webhook dispatch note.published failed',
+      err instanceof Error ? err.message : err,
+    );
+  }
   return { token, expiresAt };
 }
 
@@ -55,6 +68,17 @@ export async function disablePublicShare(noteId: string): Promise<void> {
     .update(notes)
     .set({ publicShareToken: null, publicShareExpiresAt: null, updatedAt: new Date() })
     .where(and(eq(notes.id, noteId), eq(notes.ownerId, userId)));
+  try {
+    await dispatchNoteEvent(userId, 'note.unpublished', {
+      noteId,
+      unpublishedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn(
+      'webhook dispatch note.unpublished failed',
+      err instanceof Error ? err.message : err,
+    );
+  }
 }
 
 /** Read the current public-share status for the owner. */

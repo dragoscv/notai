@@ -7,6 +7,7 @@ import { auth } from '@/auth';
 import { db, notes, noteCollaborators, noteInvites, users, eq, and, or, sql } from '@notai/db';
 import { sendEmail } from '@/server/email';
 import { sendPushToUser } from '@/server/push/dispatch';
+import { dispatchNoteEvent } from '@/server/actions/webhooks';
 
 async function requireUser() {
   const session = await auth();
@@ -178,6 +179,16 @@ export async function inviteToNote(input: z.input<typeof inviteSchema>) {
       tag: `note-share-${noteId}`,
     }).catch(() => undefined);
     revalidatePath(`/app/n/${noteId}`);
+    try {
+      await dispatchNoteEvent(me.id, 'note.shared', {
+        noteId,
+        inviteeEmail: email,
+        role,
+        invitedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.warn('webhook dispatch note.shared failed', err instanceof Error ? err.message : err);
+    }
     return { ok: true, status: 'added' as const };
   }
 
@@ -241,6 +252,19 @@ export async function inviteToNote(input: z.input<typeof inviteSchema>) {
   });
 
   revalidatePath(`/app/n/${noteId}`);
+  try {
+    await dispatchNoteEvent(me.id, 'note.shared', {
+      noteId,
+      inviteeEmail: email,
+      role,
+      invitedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn(
+      'webhook dispatch note.shared (invite) failed',
+      err instanceof Error ? err.message : err,
+    );
+  }
   return { ok: true, status: 'invited' as const, inviteId: invite!.id };
 }
 
@@ -259,6 +283,19 @@ export async function updateCollaboratorRole(input: z.input<typeof updateRoleSch
     .set({ role })
     .where(and(eq(noteCollaborators.noteId, noteId), eq(noteCollaborators.userId, userId)));
   revalidatePath(`/app/n/${noteId}`);
+  try {
+    await dispatchNoteEvent(me.id, 'note.shared', {
+      noteId,
+      collaboratorUserId: userId,
+      role,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn(
+      'webhook dispatch note.shared (role) failed',
+      err instanceof Error ? err.message : err,
+    );
+  }
 }
 
 export async function removeCollaborator(input: { noteId: string; userId: string }) {
@@ -270,6 +307,15 @@ export async function removeCollaborator(input: { noteId: string; userId: string
       and(eq(noteCollaborators.noteId, input.noteId), eq(noteCollaborators.userId, input.userId)),
     );
   revalidatePath(`/app/n/${input.noteId}`);
+  try {
+    await dispatchNoteEvent(me.id, 'note.unshared', {
+      noteId: input.noteId,
+      removedUserId: input.userId,
+      removedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn('webhook dispatch note.unshared failed', err instanceof Error ? err.message : err);
+  }
 }
 
 export async function revokeInvite(input: { inviteId: string; noteId: string }) {
@@ -277,6 +323,18 @@ export async function revokeInvite(input: { inviteId: string; noteId: string }) 
   await requireOwner(input.noteId, me.id);
   await db.delete(noteInvites).where(eq(noteInvites.id, input.inviteId));
   revalidatePath(`/app/n/${input.noteId}`);
+  try {
+    await dispatchNoteEvent(me.id, 'note.unshared', {
+      noteId: input.noteId,
+      inviteId: input.inviteId,
+      revokedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn(
+      'webhook dispatch note.unshared (invite) failed',
+      err instanceof Error ? err.message : err,
+    );
+  }
 }
 
 /**
@@ -313,6 +371,27 @@ export async function acceptInvite(rawToken: string): Promise<{ noteId: string }
     });
   await db.update(noteInvites).set({ acceptedAt: new Date() }).where(eq(noteInvites.id, invite.id));
   revalidatePath(`/app/n/${invite.noteId}`);
+  // Dispatch to the NOTE OWNER, not the accepting user. invitedBy is the owner
+  // in practice (only owners can invite — see requireOwner in inviteToNote).
+  try {
+    const [ownerRow] = await db
+      .select({ ownerId: notes.ownerId })
+      .from(notes)
+      .where(eq(notes.id, invite.noteId))
+      .limit(1);
+    if (ownerRow) {
+      await dispatchNoteEvent(ownerRow.ownerId, 'note.share_accepted', {
+        noteId: invite.noteId,
+        acceptedByUserId: me.id,
+        acceptedAt: new Date().toISOString(),
+      });
+    }
+  } catch (err) {
+    console.warn(
+      'webhook dispatch note.share_accepted failed',
+      err instanceof Error ? err.message : err,
+    );
+  }
   return { noteId: invite.noteId };
 }
 

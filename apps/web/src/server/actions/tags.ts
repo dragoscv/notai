@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { auth } from '@/auth';
+import { dispatchNoteEvent } from '@/server/actions/webhooks';
 import {
   db,
   tags,
@@ -114,6 +115,15 @@ export async function attachTag(input: z.input<typeof upsertSchema>) {
 
   await db.insert(noteTags).values({ noteId, tagId: tag.id }).onConflictDoNothing();
   revalidatePath(`/app/n/${noteId}`);
+  try {
+    await dispatchNoteEvent(me.id, 'note.tagged', {
+      noteId,
+      tagName: name,
+      taggedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn('webhook dispatch note.tagged failed', err instanceof Error ? err.message : err);
+  }
   return tag;
 }
 
@@ -124,6 +134,15 @@ export async function detachTag(input: { noteId: string; tagId: string }) {
     .delete(noteTags)
     .where(and(eq(noteTags.noteId, input.noteId), eq(noteTags.tagId, input.tagId)));
   revalidatePath(`/app/n/${input.noteId}`);
+  try {
+    await dispatchNoteEvent(me.id, 'note.untagged', {
+      noteId: input.noteId,
+      tagId: input.tagId,
+      untaggedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn('webhook dispatch note.untagged failed', err instanceof Error ? err.message : err);
+  }
 }
 
 const bulkTagSchema = z.object({
@@ -165,6 +184,19 @@ export async function bulkAttachTag(input: z.input<typeof bulkTagSchema>) {
     .onConflictDoNothing();
 
   revalidatePath('/app');
+  try {
+    const taggedAt = new Date().toISOString();
+    await Promise.all(
+      ownedIds.map((noteId) =>
+        dispatchNoteEvent(me.id, 'note.tagged', { noteId, tagName: name, taggedAt }),
+      ),
+    );
+  } catch (err) {
+    console.warn(
+      'webhook dispatch note.tagged (bulk) failed',
+      err instanceof Error ? err.message : err,
+    );
+  }
   return { attached: ownedIds.length, tagId: tag.id };
 }
 
