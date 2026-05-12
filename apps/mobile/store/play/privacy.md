@@ -1,7 +1,8 @@
 # Privacy policy — Notai
 
-Operator: **${LEGAL.operator}** (replace in `apps/web/src/lib/legal.ts`).
-Effective date: **2025-01-01** (update on material changes).
+Operator: **Vlăduțescu Dragoș Cătălin** (persoană fizică, Romania).
+For the canonical, always-current legal text, see <https://notai.ro/privacy-policy>.
+Effective date: **2026-05-11** (update on material changes).
 
 ## What we collect
 

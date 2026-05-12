@@ -77,6 +77,9 @@ export function LegalPage({ title, subtitle, updated, children }: LegalPageProps
         <div className="text-muted-foreground mx-auto flex max-w-3xl flex-col gap-3 px-6 py-8 text-sm sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} Notai · Made in Romania.</p>
           <nav aria-label="Legal navigation" className="flex flex-wrap gap-x-5 gap-y-2">
+            <Link className="hover:text-foreground" href="/docs">
+              Docs
+            </Link>
             <Link className="hover:text-foreground" href="/faq">
               FAQ
             </Link>

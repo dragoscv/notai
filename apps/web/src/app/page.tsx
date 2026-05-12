@@ -791,6 +791,7 @@ function SiteFooter() {
         <FooterCol
           title="Help"
           links={[
+            { href: '/docs', label: 'Docs' },
             { href: '/faq', label: 'FAQ' },
             { href: '/support', label: 'My tickets' },
             { href: '/support/new', label: 'Open a ticket' },
