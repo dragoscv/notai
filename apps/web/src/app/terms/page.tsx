@@ -1,20 +1,23 @@
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/layout/legal-page';
 import { LEGAL } from '@/lib/legal-info';
+import { resolveLocale } from '../../../i18n';
 
-export const metadata: Metadata = {
-  title: 'Terms of service',
-  description: 'The agreement between you and Notai when you use the service.',
-  alternates: { canonical: '/terms' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await resolveLocale();
+  const isRo = locale === 'ro';
+  return {
+    title: isRo ? 'Termeni și condiții' : 'Terms of service',
+    description: isRo
+      ? 'Acordul dintre tine și Notai atunci când folosești serviciul.'
+      : 'The agreement between you and Notai when you use the service.',
+    alternates: { canonical: '/terms' },
+  };
+}
 
-export default function TermsPage() {
+function EnBody() {
   return (
-    <LegalPage
-      title="Terms of service"
-      subtitle={`The agreement between you and ${LEGAL.brand} when you use the service.`}
-      updated={LEGAL.lastUpdated}
-    >
+    <>
       <p>
         Welcome to {LEGAL.brand}. These Terms (the &ldquo;Terms&rdquo;) form a binding contract
         between you and the operator described in section&nbsp;1. By creating an account or using
@@ -199,6 +202,227 @@ export default function TermsPage() {
         Legal notices: <a href={`mailto:${LEGAL.emails.legal}`}>{LEGAL.emails.legal}</a>. General
         support: <a href={`mailto:${LEGAL.emails.support}`}>{LEGAL.emails.support}</a>.
       </p>
+    </>
+  );
+}
+
+function RoBody() {
+  return (
+    <>
+      <p>
+        Bun venit la {LEGAL.brand}. Acești Termeni („Termenii”) formează un contract obligatoriu
+        între tine și operatorul descris la secțiunea&nbsp;1. Prin crearea unui cont sau folosirea
+        serviciului accepți să respecți acești Termeni. Dacă nu ești de acord, nu folosi serviciul.
+      </p>
+
+      <h2>1. Cine suntem</h2>
+      <p>
+        Serviciul {LEGAL.brand} este operat de <strong>{LEGAL.operatorLegalName}</strong> (
+        {LEGAL.operatorForm}), cu sediul în{' '}
+        {LEGAL.countryName === 'Romania' ? 'România' : LEGAL.countryName}. Ne poți contacta la{' '}
+        <a href={`mailto:${LEGAL.emails.legal}`}>{LEGAL.emails.legal}</a>. Referințele la „noi”
+        înseamnă operatorul. Referințele la „tu” înseamnă persoana fizică sau juridică care
+        folosește serviciul.
+      </p>
+
+      <h2>2. Serviciul</h2>
+      <p>
+        {LEGAL.brand} este o aplicație de notițe local-first, cu sincronizare cloud opțională,
+        partajare, funcții asistate de AI și colaborare. Unele funcții sunt gratuite, altele
+        necesită un abonament plătit descris pe <a href="/pricing">pagina de prețuri</a>.
+      </p>
+
+      <h2>3. Eligibilitate</h2>
+      <p>
+        Trebuie să ai cel puțin 16 ani, sau mai mult dacă jurisdicția ta cere o vârstă mai mare
+        pentru consimțământ digital. Folosind serviciul, confirmi că îndeplinești această cerință.
+      </p>
+
+      <h2>4. Contul tău</h2>
+      <ul>
+        <li>
+          Ești responsabil pentru activitatea din contul tău și pentru păstrarea lui în siguranță.
+        </li>
+        <li>
+          Trebuie să furnizezi informații exacte și să ne anunți dacă acestea se schimbă
+          semnificativ.
+        </li>
+        <li>
+          Nu poți partaja credențialele contului. Fiecare persoană fizică are nevoie de cont
+          propriu.
+        </li>
+        <li>
+          Putem suspenda sau închide conturile care încalcă acești Termeni sau{' '}
+          <a href="/aup">politica de utilizare acceptabilă</a>.
+        </li>
+      </ul>
+
+      <h2>5. Conținutul tău</h2>
+      <p>
+        Păstrezi toate drepturile asupra notițelor, atașamentelor, desenelor și a oricărui conținut
+        creat cu {LEGAL.brand} („Conținutul” tău). Ne acorzi o licență limitată, mondială, fără
+        redevențe, pentru a găzdui, transmite, face copii de rezervă și afișa Conținutul tău, strict
+        cât este necesar pentru a-ți oferi serviciul și a-l partaja cu persoanele alese de tine. Nu
+        folosim Conținutul tău pentru a antrena modele AI.
+      </p>
+      <p>
+        Ești singurul responsabil pentru Conținutul tău și pentru a te asigura că ai dreptul să-l
+        încarci și să-l partajezi.
+      </p>
+
+      <h2>6. Utilizare acceptabilă</h2>
+      <p>
+        Folosirea serviciului este supusă <a href="/aup">politicii de utilizare acceptabilă</a>,
+        care este încorporată prin referință. Putem elimina Conținut sau suspenda accesul în caz de
+        încălcare.
+      </p>
+
+      <h2>7. Abonamente, plată și reînnoire</h2>
+      <ul>
+        <li>
+          Abonamentele plătite sunt facturate în avans pentru perioada aleasă (lunar sau anual) prin
+          Stripe. Prețurile și valutele sunt afișate la finalizarea comenzii.
+        </li>
+        <li>
+          Abonamentele se reînnoiesc automat la sfârșitul fiecărei perioade dacă nu anulezi înainte
+          de data reînnoirii. Poți anula oricând din <em>Setări &rarr; Facturare</em>.
+        </li>
+        <li>
+          Ne autorizezi (pe noi și pe Stripe) să percepem metoda ta de plată pentru reînnoiri la
+          prețul curent al planului și valutei tale. Te vom anunța pe email cu suficient timp
+          înainte dacă prețul se schimbă.
+        </li>
+        <li>
+          Plățile eșuate pot duce la trecerea contului la planul Gratuit după o perioadă de grație.
+        </li>
+      </ul>
+
+      <h2>8. Dreptul de retragere și rambursări</h2>
+      <p>
+        Consumatorii din UE au un drept de retragere de {LEGAL.refund.rightOfWithdrawalDays} zile
+        conform OUG&nbsp;34/2014 (România). Condițiile, excepțiile pentru servicii digitale începute
+        imediat și procedura pentru a solicita o rambursare sunt descrise în detaliu în{' '}
+        <a href="/refund">politica de rambursare și retragere</a>.
+      </p>
+
+      <h2>9. Confidențialitate</h2>
+      <p>
+        Prelucrăm datele cu caracter personal conform{' '}
+        <a href="/privacy-policy">politicii de confidențialitate</a>. Folosind serviciul, iei la
+        cunoștință această prelucrare.
+      </p>
+
+      <h2>10. Proprietate intelectuală</h2>
+      <p>
+        Brandul, software-ul și designul {LEGAL.brand} ne aparțin și sunt protejate prin drepturi de
+        autor, mărci și alte legi. Îți acordăm o licență limitată, neexclusivă, netransferabilă de a
+        folosi serviciul în scopul său prevăzut pe durata abonamentului tău.
+      </p>
+
+      <h2>11. Funcționalități beta</h2>
+      <p>
+        Putem oferi funcționalități experimentale sau beta. Acestea sunt furnizate „așa cum sunt”,
+        pot fi modificate sau retrase fără preaviz și sunt excluse de la orice angajament de
+        disponibilitate.
+      </p>
+
+      <h2>12. Disponibilitatea serviciului</h2>
+      <p>
+        Depunem eforturi pentru a menține serviciul disponibil, dar nu garantăm funcționarea
+        neîntreruptă. Mentenanța planificată este anunțată în avans atunci când este rezonabil
+        posibil. Starea serviciului este publicată la <a href={`${LEGAL.url}`}>{LEGAL.domain}</a>.
+      </p>
+
+      <h2>13. Limitarea garanțiilor</h2>
+      <p>
+        Cu excepția cazurilor interzise de legislația obligatorie privind protecția consumatorilor,
+        serviciul este furnizat „așa cum este” și „așa cum este disponibil”, fără garanții de niciun
+        fel, exprese, implicite sau statutare. Nu garantăm că serviciul va fi neîntrerupt, fără
+        erori sau securizat, sau că va îndeplini cerințele tale specifice.
+      </p>
+
+      <h2>14. Limitarea răspunderii</h2>
+      <p>
+        În măsura maximă permisă de legea aplicabilă, răspunderea noastră totală care decurge din
+        sau este legată de folosirea serviciului este limitată la valoarea cea mai mare dintre (a)
+        sumele plătite de tine în cele douăsprezece luni anterioare evenimentului care a dat naștere
+        cererii, sau (b) EUR&nbsp;100. Nu suntem răspunzători pentru daune indirecte, incidentale,
+        speciale, consecvente sau punitive, ori pentru pierderi de date, profit sau oportunități de
+        afaceri, chiar dacă am fost informați despre posibilitatea unor astfel de daune.
+      </p>
+      <p>
+        Nimic din acești Termeni nu limitează sau exclude vreo răspundere care nu poate fi limitată
+        sau exclusă conform legii aplicabile — inclusiv răspunderea pentru fraudă, neglijență gravă
+        sau intenție.
+      </p>
+
+      <h2>15. Despăgubiri</h2>
+      <p>
+        Ești de acord să ne aperi, despăgubești și ne ții indemni față de orice pretenții ale
+        terților rezultate din (a) folosirea serviciului cu încălcarea acestor Termeni sau a legii
+        aplicabile, (b) Conținutul tău, sau (c) încălcarea de către tine a drepturilor unor terți.
+      </p>
+
+      <h2>16. Încetare</h2>
+      <p>
+        Poți înceta folosirea serviciului și șterge contul oricând. Putem suspenda sau înceta
+        accesul pentru încălcări materiale ale acestor Termeni, cu preaviz acolo unde este rezonabil
+        posibil. Secțiunile care prin natura lor ar trebui să supraviețuiască încetării
+        (secțiunile&nbsp;5, 10, 13&ndash;15, 17&ndash;19) supraviețuiesc.
+      </p>
+
+      <h2>17. Modificări ale serviciului sau ale Termenilor</h2>
+      <p>
+        Putem actualiza acești Termeni din când în când. Modificările materiale sunt anunțate în-app
+        și prin email cu cel puțin 30 de zile în avans pentru planurile plătite. Folosirea continuă
+        a serviciului după data de intrare în vigoare constituie acceptarea Termenilor actualizați.
+      </p>
+
+      <h2>18. Lege aplicabilă și jurisdicție</h2>
+      <p>
+        Acești Termeni sunt guvernați de legea română. Instanțele competente din România au
+        jurisdicție exclusivă, cu excepția cazurilor în care legislația obligatorie privind
+        protecția consumatorilor din țara ta de rezidență îți acordă dreptul de a introduce acțiuni
+        în fața instanțelor locale.
+      </p>
+
+      <h2>19. Soluționarea disputelor și drepturile consumatorilor</h2>
+      <p>
+        Consumatorii din UE pot folosi platforma de soluționare online a disputelor a Comisiei
+        Europene la{' '}
+        <a href={LEGAL.jurisdiction.odrUrl} target="_blank" rel="noopener">
+          {LEGAL.jurisdiction.odrUrl}
+        </a>
+        . Consumatorii români se pot adresa și{' '}
+        <a href={LEGAL.jurisdiction.consumerAuthority.url} target="_blank" rel="noopener">
+          {LEGAL.jurisdiction.consumerAuthority.name}
+        </a>
+        .
+      </p>
+
+      <h2>20. Contact</h2>
+      <p>
+        Notificări legale: <a href={`mailto:${LEGAL.emails.legal}`}>{LEGAL.emails.legal}</a>. Suport
+        general: <a href={`mailto:${LEGAL.emails.support}`}>{LEGAL.emails.support}</a>.
+      </p>
+    </>
+  );
+}
+
+export default async function TermsPage() {
+  const locale = await resolveLocale();
+  const isRo = locale === 'ro';
+  return (
+    <LegalPage
+      title={isRo ? 'Termeni și condiții' : 'Terms of service'}
+      subtitle={
+        isRo
+          ? `Acordul dintre tine și ${LEGAL.brand} atunci când folosești serviciul.`
+          : `The agreement between you and ${LEGAL.brand} when you use the service.`
+      }
+      updated={LEGAL.lastUpdated}
+    >
+      {isRo ? <RoBody /> : <EnBody />}
     </LegalPage>
   );
 }

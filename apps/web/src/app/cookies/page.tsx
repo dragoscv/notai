@@ -2,21 +2,23 @@ import type { Metadata } from 'next';
 import { LegalPage } from '@/components/layout/legal-page';
 import { LEGAL } from '@/lib/legal-info';
 import { CookieSettingsButtonClient } from '@/components/legal/cookie-settings-button';
+import { resolveLocale } from '../../../i18n';
 
-export const metadata: Metadata = {
-  title: 'Cookie policy',
-  description:
-    'What cookies and similar technologies Notai uses, what they do, and how you can control them.',
-  alternates: { canonical: '/cookies' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await resolveLocale();
+  const isRo = locale === 'ro';
+  return {
+    title: isRo ? 'Politica de cookie-uri' : 'Cookie policy',
+    description: isRo
+      ? 'Ce cookie-uri și tehnologii similare folosește Notai, ce fac și cum le poți controla.'
+      : 'What cookies and similar technologies Notai uses, what they do, and how you can control them.',
+    alternates: { canonical: '/cookies' },
+  };
+}
 
-export default function CookiesPage() {
+function EnBody() {
   return (
-    <LegalPage
-      title="Cookie policy"
-      subtitle="What cookies and similar technologies we use, and how you can control them."
-      updated={LEGAL.lastUpdated}
-    >
+    <>
       <h2>Summary</h2>
       <ul>
         <li>
@@ -112,6 +114,131 @@ export default function CookiesPage() {
         Cookie or privacy questions:{' '}
         <a href={`mailto:${LEGAL.emails.privacy}`}>{LEGAL.emails.privacy}</a>.
       </p>
+    </>
+  );
+}
+
+function RoBody() {
+  return (
+    <>
+      <h2>Pe scurt</h2>
+      <ul>
+        <li>
+          Cookie-urile strict necesare sunt mereu active &mdash; fără ele nu te poți autentifica.
+        </li>
+        <li>
+          Cookie-urile opționale (preferințe, analitice, marketing) necesită consimțământul tău.
+        </li>
+        <li>
+          Alegerea ta este salvată pe acest dispozitiv timp de 12 luni și o poți modifica oricând.
+        </li>
+      </ul>
+
+      <p>
+        <CookieSettingsButtonClient />
+      </p>
+
+      <h2>1. Ce este un cookie?</h2>
+      <p>
+        Un cookie este un mic fișier text stocat de browserul tău când vizitezi un site.
+        Tehnologiile similare includ <code>localStorage</code>, <code>sessionStorage</code> și
+        cache-ul Service Worker. Pe această pagină, „cookie-uri” se referă la toate aceste
+        tehnologii.
+      </p>
+
+      <h2>2. Cookie-urile pe care le folosim</h2>
+      <h3>Strict necesare</h3>
+      <ul>
+        <li>
+          <code>authjs.session-token</code> &mdash; te ține autentificat. First-party, expiră la
+          sfârșitul sesiunii sau după 30 de zile.
+        </li>
+        <li>
+          <code>authjs.csrf-token</code>, <code>authjs.callback-url</code> &mdash; protejează fluxul
+          de autentificare. First-party, sesiune.
+        </li>
+        <li>
+          <code>{`notai_consent`}</code> &mdash; reține alegerea ta pentru cookie-uri. First-party,
+          12 luni.
+        </li>
+        <li>
+          <code>__Secure-*</code> cookie-uri de checkout Stripe &mdash; setate doar pe paginile de
+          plată găzduite de Stripe.
+        </li>
+      </ul>
+
+      <h3>Preferințe (opționale)</h3>
+      <ul>
+        <li>
+          <code>theme</code> &mdash; reține light/dark/system. First-party, 12 luni.
+        </li>
+        <li>
+          <code>editor.width</code>, <code>sidebar.collapsed</code> &mdash; preferințe de layout.
+          First-party, 12 luni.
+        </li>
+      </ul>
+
+      <h3>Analitice (opționale, doar cu consimțământ)</h3>
+      <ul>
+        <li>
+          <strong>Google Analytics 4</strong> &mdash; statistici agregate de utilizare ca să știm ce
+          funcții contează. Anonimizarea IP este activă; nu folosim Google Signals.
+        </li>
+      </ul>
+
+      <h3>Marketing (opționale, doar cu consimțământ)</h3>
+      <ul>
+        <li>
+          <strong>Meta Pixel</strong> &mdash; măsurarea conversiilor pentru reclame. Încărcat doar
+          dacă consimți și doar pe paginile de marketing.
+        </li>
+      </ul>
+
+      <h3>Operaționale (necesare, fără date personale)</h3>
+      <ul>
+        <li>
+          <strong>Sentry</strong> &mdash; raportarea erorilor pe partea de client. PII este curățat;
+          cookie-urile sunt first-party și limitate la un ID de sesiune.
+        </li>
+      </ul>
+
+      <h2>3. Gestionarea alegerilor tale</h2>
+      <p>
+        Folosește banner-ul de consimțământ la prima vizită, sau deschide <em>Setări cookie-uri</em>{' '}
+        oricând cu butonul de mai sus. Poți, de asemenea, șterge cookie-urile pentru {LEGAL.domain}{' '}
+        din setările browserului &mdash; asta va reseta alegerea și banner-ul va apărea din nou.
+      </p>
+
+      <h2>4. Do Not Track</h2>
+      <p>
+        Browserele trimit semnale Do-Not-Track în formate diferite și nu există un consens al
+        industriei privind semnificația lor. Tratăm semnalul Global Privacy Control (GPC) ca pe o
+        cerere de respingere a cookie-urilor opționale.
+      </p>
+
+      <h2>5. Contact</h2>
+      <p>
+        Întrebări despre cookie-uri sau confidențialitate:{' '}
+        <a href={`mailto:${LEGAL.emails.privacy}`}>{LEGAL.emails.privacy}</a>.
+      </p>
+    </>
+  );
+}
+
+export default async function CookiesPage() {
+  const locale = await resolveLocale();
+  const isRo = locale === 'ro';
+  return (
+    <LegalPage
+      title={isRo ? 'Politica de cookie-uri' : 'Cookie policy'}
+      subtitle={
+        isRo
+          ? 'Ce cookie-uri și tehnologii similare folosim, și cum le poți controla.'
+          : 'What cookies and similar technologies we use, and how you can control them.'
+      }
+      updated={LEGAL.lastUpdated}
+    >
+      {isRo ? <RoBody /> : <EnBody />}
     </LegalPage>
   );
 }

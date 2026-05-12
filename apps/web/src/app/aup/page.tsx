@@ -1,21 +1,23 @@
 import type { Metadata } from 'next';
 import { LegalPage } from '@/components/layout/legal-page';
 import { LEGAL } from '@/lib/legal-info';
+import { resolveLocale } from '../../../i18n';
 
-export const metadata: Metadata = {
-  title: 'Acceptable use policy',
-  description:
-    'What you can and cannot do on Notai. Common-sense rules to keep the service safe for everyone.',
-  alternates: { canonical: '/aup' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await resolveLocale();
+  const isRo = locale === 'ro';
+  return {
+    title: isRo ? 'Politica de utilizare acceptabilă' : 'Acceptable use policy',
+    description: isRo
+      ? 'Ce poți și ce nu poți face pe Notai. Reguli de bun-simț ca serviciul să rămână sigur pentru toți.'
+      : 'What you can and cannot do on Notai. Common-sense rules to keep the service safe for everyone.',
+    alternates: { canonical: '/aup' },
+  };
+}
 
-export default function AupPage() {
+function EnBody() {
   return (
-    <LegalPage
-      title="Acceptable use policy"
-      subtitle="Common-sense rules so Notai stays safe and useful for everyone."
-      updated={LEGAL.lastUpdated}
-    >
+    <>
       <p>
         This policy is part of the <a href="/terms">Terms of Service</a>. By using {LEGAL.brand} you
         agree not to use the service in any of the ways listed below.
@@ -102,6 +104,123 @@ export default function AupPage() {
         notice or email <a href={`mailto:${LEGAL.emails.legal}`}>{LEGAL.emails.legal}</a> within 30
         days.
       </p>
+    </>
+  );
+}
+
+function RoBody() {
+  const countryName = LEGAL.countryName === 'Romania' ? 'România' : LEGAL.countryName;
+  return (
+    <>
+      <p>
+        Această politică face parte din <a href="/terms">Termenii și condițiile</a>. Folosind{' '}
+        {LEGAL.brand} ești de acord să nu folosești serviciul în vreunul din modurile listate mai
+        jos.
+      </p>
+
+      <h2>1. Conținut și activități ilegale</h2>
+      <ul>
+        <li>
+          Stocarea, partajarea sau transmiterea de conținut ilegal conform legii din {countryName}{' '}
+          sau a UE &mdash; inclusiv material de abuz sexual asupra copiilor (CSAM), conținut
+          terorist sau conținut care încalcă drepturile de proprietate intelectuală.
+        </li>
+        <li>
+          Folosirea serviciului pentru a planifica, facilita sau desfășura activități ilegale.
+        </li>
+      </ul>
+
+      <h2>2. Abuz și hărțuire</h2>
+      <ul>
+        <li>Amenințarea, hărțuirea, doxxing-ul sau urmărirea altor utilizatori.</li>
+        <li>
+          Discurs de ură sau conținut care incită la violență pe bază de caracteristici protejate.
+        </li>
+        <li>Spam, phishing, conținut înșelător sau uzurpare de identitate.</li>
+      </ul>
+
+      <h2>3. Securitate și integritate</h2>
+      <ul>
+        <li>
+          Sondarea, scanarea sau testarea securității serviciului fără permisiune scrisă prealabilă.
+        </li>
+        <li>Ocolirea autentificării, a limitelor de rată sau a cotelor.</li>
+        <li>
+          Încărcarea de malware, viruși sau conținut conceput să dăuneze dispozitivelor ori
+          rețelelor altor utilizatori.
+        </li>
+        <li>Reverse engineering în alte scopuri decât interoperabilitatea permisă de lege.</li>
+      </ul>
+
+      <h2>4. Abuz de resurse</h2>
+      <ul>
+        <li>
+          Folosirea serviciului în principal ca depozit bulk de fișiere sau ca CDN public.
+          Atașamentele sunt legate de notițele cu care lucrezi efectiv.
+        </li>
+        <li>Scraping automat sau antrenarea de modele AI terțe pe datele din Notai.</li>
+        <li>
+          Rularea de minerit de criptomonede, atacuri DoS sau orice sarcină susținută fără legătură
+          cu folosirea normală a unei aplicații de notițe.
+        </li>
+      </ul>
+
+      <h2>5. Funcționalități AI</h2>
+      <ul>
+        <li>
+          Trimiterea de prompturi menite să extragă date personale ale altor utilizatori, să
+          genereze conținut interzis (CSAM, instrucțiuni de sinteză a armelor etc.) sau să facă
+          jailbreak modelelor.
+        </li>
+        <li>Revânzarea funcționalităților AI ca produs de sine stătător.</li>
+      </ul>
+
+      <h2>6. Partajare și linkuri publice</h2>
+      <ul>
+        <li>
+          Linkurile publice de partajare nu pot fi folosite pentru a publica conținut care încalcă
+          această politică. Putem revoca orice link de partajare care o face.
+        </li>
+      </ul>
+
+      <h2>7. Raportarea încălcărilor</h2>
+      <p>
+        Trimite un email la <a href={`mailto:${LEGAL.emails.abuse}`}>{LEGAL.emails.abuse}</a> cu cât
+        mai multe detalii posibile (URL, cont, capturi). Țintim să răspundem în două zile
+        lucrătoare.
+      </p>
+
+      <h2>8. Aplicare</h2>
+      <p>
+        În funcție de gravitate, putem emite un avertisment, elimina conținutul, suspenda accesul
+        sau rezilia contul &mdash; cu sau fără preaviz în cazul încălcărilor grave. Cooperăm cu
+        cererile legale ale autorităților și putem păstra datele relevante în acest scop.
+      </p>
+
+      <h2>9. Apeluri</h2>
+      <p>
+        Dacă crezi că o acțiune de aplicare împotriva ta este greșită, răspunde la notificarea de
+        aplicare sau trimite un email la{' '}
+        <a href={`mailto:${LEGAL.emails.legal}`}>{LEGAL.emails.legal}</a> în 30 de zile.
+      </p>
+    </>
+  );
+}
+
+export default async function AupPage() {
+  const locale = await resolveLocale();
+  const isRo = locale === 'ro';
+  return (
+    <LegalPage
+      title={isRo ? 'Politica de utilizare acceptabilă' : 'Acceptable use policy'}
+      subtitle={
+        isRo
+          ? 'Reguli de bun-simț ca Notai să rămână sigur și util pentru toți.'
+          : 'Common-sense rules so Notai stays safe and useful for everyone.'
+      }
+      updated={LEGAL.lastUpdated}
+    >
+      {isRo ? <RoBody /> : <EnBody />}
     </LegalPage>
   );
 }

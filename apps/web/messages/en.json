@@ -437,5 +437,26 @@
     "metaDescription": "Live status of Notai — web, realtime, database, and background workers.",
     "title": "Notai status",
     "subtitle": "Real-time health for every service that powers your notes."
+  },
+  "legal": {
+    "shell": {
+      "skipToContent": "Skip to content",
+      "backHome": "Back home",
+      "eyebrow": "Legal",
+      "lastUpdated": "Last updated:",
+      "copyright": "© {year} Notai · Made in Romania.",
+      "nav": {
+        "docs": "Docs",
+        "faq": "FAQ",
+        "support": "Support",
+        "privacy": "Privacy",
+        "terms": "Terms",
+        "refund": "Refund",
+        "aup": "Acceptable use",
+        "cookies": "Cookies",
+        "accessibility": "Accessibility",
+        "contact": "Contact"
+      }
+    }
   }
 }

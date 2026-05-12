@@ -437,5 +437,26 @@
     "metaDescription": "Status în timp real pentru Notai — web, realtime, bază de date și worker-i.",
     "title": "Status Notai",
     "subtitle": "Stare în timp real pentru fiecare serviciu care îți susține notițele."
+  },
+  "legal": {
+    "shell": {
+      "skipToContent": "Sari la conținut",
+      "backHome": "Înapoi acasă",
+      "eyebrow": "Documente legale",
+      "lastUpdated": "Ultima actualizare:",
+      "copyright": "© {year} Notai · Făcut în România.",
+      "nav": {
+        "docs": "Documentație",
+        "faq": "Întrebări frecvente",
+        "support": "Suport",
+        "privacy": "Confidențialitate",
+        "terms": "Termeni",
+        "refund": "Rambursări",
+        "aup": "Utilizare acceptabilă",
+        "cookies": "Cookie-uri",
+        "accessibility": "Accesibilitate",
+        "contact": "Contact"
+      }
+    }
   }
 }

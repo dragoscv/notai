@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, PenLine } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
+import { resolveLocale } from '../../../i18n';
 
 interface LegalPageProps {
   /** Visible h1. */
@@ -16,14 +18,21 @@ interface LegalPageProps {
  * Shared shell for /privacy-policy, /terms, /contact, /cookies, /accessibility.
  * Provides a clean reading width, header, and footer with cross-links.
  */
-export function LegalPage({ title, subtitle, updated, children }: LegalPageProps) {
+export async function LegalPage({ title, subtitle, updated, children }: LegalPageProps) {
+  const locale = await resolveLocale();
+  const t = await getTranslations('legal.shell');
+  const formattedDate = new Date(updated).toLocaleDateString(locale === 'ro' ? 'ro-RO' : 'en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
   return (
     <div className="bg-background text-foreground relative min-h-dvh">
       <a
         href="#legal-main"
         className="focus:bg-primary focus:text-primary-foreground sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:px-4 focus:py-2 focus:shadow-lg"
       >
-        Skip to content
+        {t('skipToContent')}
       </a>
 
       <header className="border-border/60 border-b">
@@ -46,25 +55,18 @@ export function LegalPage({ title, subtitle, updated, children }: LegalPageProps
             className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2"
           >
             <ArrowLeft className="size-4" aria-hidden />
-            Back home
+            {t('backHome')}
           </Link>
         </div>
       </header>
 
       <main id="legal-main" className="mx-auto max-w-3xl px-6 py-12">
         <header className="mb-10">
-          <p className="text-primary text-sm font-medium uppercase tracking-wide">Legal</p>
+          <p className="text-primary text-sm font-medium uppercase tracking-wide">{t('eyebrow')}</p>
           <h1 className="mt-2 text-4xl font-semibold tracking-tight">{title}</h1>
           {subtitle ? <p className="text-muted-foreground mt-3 text-lg">{subtitle}</p> : null}
           <p className="text-muted-foreground mt-4 text-sm">
-            Last updated:{' '}
-            <time dateTime={updated}>
-              {new Date(updated).toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-            </time>
+            {t('lastUpdated')} <time dateTime={updated}>{formattedDate}</time>
           </p>
         </header>
 
@@ -75,37 +77,37 @@ export function LegalPage({ title, subtitle, updated, children }: LegalPageProps
 
       <footer className="border-border/60 border-t">
         <div className="text-muted-foreground mx-auto flex max-w-3xl flex-col gap-3 px-6 py-8 text-sm sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} Notai · Made in Romania.</p>
+          <p>{t('copyright', { year: new Date().getFullYear() })}</p>
           <nav aria-label="Legal navigation" className="flex flex-wrap gap-x-5 gap-y-2">
             <Link className="hover:text-foreground" href="/docs">
-              Docs
+              {t('nav.docs')}
             </Link>
             <Link className="hover:text-foreground" href="/faq">
-              FAQ
+              {t('nav.faq')}
             </Link>
             <Link className="hover:text-foreground" href="/support">
-              Support
+              {t('nav.support')}
             </Link>
             <Link className="hover:text-foreground" href="/privacy-policy">
-              Privacy
+              {t('nav.privacy')}
             </Link>
             <Link className="hover:text-foreground" href="/terms">
-              Terms
+              {t('nav.terms')}
             </Link>
             <Link className="hover:text-foreground" href="/refund">
-              Refund
+              {t('nav.refund')}
             </Link>
             <Link className="hover:text-foreground" href="/aup">
-              Acceptable use
+              {t('nav.aup')}
             </Link>
             <Link className="hover:text-foreground" href="/cookies">
-              Cookies
+              {t('nav.cookies')}
             </Link>
             <Link className="hover:text-foreground" href="/accessibility">
-              Accessibility
+              {t('nav.accessibility')}
             </Link>
             <Link className="hover:text-foreground" href="/contact">
-              Contact
+              {t('nav.contact')}
             </Link>
           </nav>
         </div>
