@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@notai/lib/utils';
 
 interface SidebarContextValue {
@@ -43,6 +44,7 @@ export function AppShell({
 }) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [desktopCollapsed, setDesktopCollapsedState] = React.useState(false);
+  const t = useTranslations('appShell');
 
   // Hydrate desktop collapse state after mount to avoid SSR mismatch.
   React.useEffect(() => {
@@ -88,10 +90,10 @@ export function AppShell({
   return (
     <SidebarContext.Provider value={value}>
       <a href="#app-main" className="a11y-skip-link">
-        Skip to content
+        {t('skipToContent')}
       </a>
       <a href="#app-sidebar" className="a11y-skip-link" style={{ left: '10rem' }}>
-        Skip to sidebar
+        {t('skipToSidebar')}
       </a>
       <div
         className="bg-background flex h-dvh w-full overflow-hidden"

@@ -1,4 +1,6 @@
 import { Pin, PenLine, Plus, Sparkles, StickyNote } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
+import { resolveLocale } from '../../../i18n';
 import { listNotes, createNote } from '@/server/actions/notes';
 import { listFolders } from '@/server/actions/folders';
 import { listTags } from '@/server/actions/tags';
@@ -27,11 +29,13 @@ import { redirect } from 'next/navigation';
 export const metadata = { title: 'Home' };
 
 export default async function AppHome() {
-  const [notes, views, folders, tags] = await Promise.all([
+  const [notes, views, folders, tags, locale, t] = await Promise.all([
     listNotes({ archived: false }),
     listDashboardViews(),
     listFolders(),
     listTags(),
+    resolveLocale(),
+    getTranslations('appShell.home'),
   ]);
   const isEmpty = notes.length === 0;
 
@@ -43,8 +47,9 @@ export default async function AppHome() {
   }
 
   const today = new Date();
-  const weekday = today.toLocaleDateString(undefined, { weekday: 'long' });
-  const dateLabel = today.toLocaleDateString(undefined, {
+  const intlLocale = locale === 'ro' ? 'ro-RO' : 'en-US';
+  const weekday = today.toLocaleDateString(intlLocale, { weekday: 'long' });
+  const dateLabel = today.toLocaleDateString(intlLocale, {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
@@ -66,7 +71,10 @@ export default async function AppHome() {
               {weekday}
             </h1>
             <p className="text-muted-foreground truncate text-xs md:text-sm">
-              {dateLabel} · {pluralize(notes.length, 'note')}
+              {dateLabel} ·{' '}
+              {notes.length === 1
+                ? t('notesCountOne', { count: notes.length })
+                : t('notesCountOther', { count: notes.length })}
             </p>
           </div>
         </div>
@@ -79,7 +87,7 @@ export default async function AppHome() {
             size="sm"
             className="hidden sm:inline-flex"
           >
-            <Sparkles /> New sticky
+            <Sparkles /> {t('newSticky')}
           </Button>
           <Button
             type="submit"
@@ -88,7 +96,7 @@ export default async function AppHome() {
             variant="outline"
             size="icon-sm"
             className="sm:hidden"
-            aria-label="New sticky"
+            aria-label={t('newStickyAria')}
           >
             <Sparkles />
           </Button>
@@ -99,7 +107,7 @@ export default async function AppHome() {
             size="sm"
             className="shadow-primary/20 hidden shadow-sm sm:inline-flex"
           >
-            <Plus /> New note
+            <Plus /> {t('newNote')}
           </Button>
           <Button
             type="submit"
@@ -107,7 +115,7 @@ export default async function AppHome() {
             value="note"
             size="icon-sm"
             className="shadow-primary/20 shadow-sm sm:hidden"
-            aria-label="New note"
+            aria-label={t('newNoteAria')}
           >
             <Plus />
           </Button>
@@ -117,7 +125,14 @@ export default async function AppHome() {
       <div className="flex-1 overflow-y-auto">
         {isEmpty ? (
           <div className="p-6">
-            <EmptyState />
+            <EmptyState
+              eyebrow={t('emptyEyebrow')}
+              headline={t('emptyHeadline')}
+              hintPrefix={t('emptyHintPrefix')}
+              hintSuffix={t('emptyHintSuffix')}
+              createFirstNote={t('createFirstNote')}
+              addSticky={t('addSticky')}
+            />
           </div>
         ) : (
           <div className="flex flex-col pb-6">
@@ -177,11 +192,21 @@ export default async function AppHome() {
   );
 }
 
-function pluralize(n: number, word: string) {
-  return `${n} ${word}${n === 1 ? '' : 's'}`;
-}
-
-function EmptyState() {
+function EmptyState({
+  eyebrow,
+  headline,
+  hintPrefix,
+  hintSuffix,
+  createFirstNote,
+  addSticky,
+}: {
+  eyebrow: string;
+  headline: string;
+  hintPrefix: string;
+  hintSuffix: string;
+  createFirstNote: string;
+  addSticky: string;
+}) {
   return (
     <div className="bg-card/60 relative mx-auto max-w-2xl overflow-hidden rounded-2xl border p-10 text-center backdrop-blur">
       {/* subtle warm wash */}
@@ -217,25 +242,17 @@ function EmptyState() {
       </div>
 
       <div className="relative">
-        <p className="text-primary text-xs font-medium uppercase tracking-wider">
-          Your notebook is fresh
-        </p>
-        <h3 className="mt-2 font-serif text-2xl font-semibold tracking-tight">
-          Start with a single thought.
-        </h3>
+        <p className="text-primary text-xs font-medium uppercase tracking-wider">{eyebrow}</p>
+        <h3 className="mt-2 font-serif text-2xl font-semibold tracking-tight">{headline}</h3>
         <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm">
-          Press <kbd className="bg-muted rounded border px-1.5 py-0.5 text-xs">N</kbd> to create
-          your first note, or pin a quick sticky to keep something on your mind.
+          {hintPrefix}
+          <kbd className="bg-muted rounded border px-1.5 py-0.5 text-xs">N</kbd>
+          {hintSuffix}
         </p>
 
         <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
-          <NewNoteAction kind="note" label="Create your first note" icon={<PenLine />} />
-          <NewNoteAction
-            kind="sticky"
-            label="Add a sticky"
-            icon={<StickyNote />}
-            variant="outline"
-          />
+          <NewNoteAction kind="note" label={createFirstNote} icon={<PenLine />} />
+          <NewNoteAction kind="sticky" label={addSticky} icon={<StickyNote />} variant="outline" />
         </div>
       </div>
     </div>

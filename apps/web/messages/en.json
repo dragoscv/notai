@@ -464,5 +464,101 @@
         "contact": "Contact"
       }
     }
+  },
+  "appShell": {
+    "skipToContent": "Skip to content",
+    "skipToSidebar": "Skip to sidebar",
+    "sidebar": {
+      "ariaLabel": "Primary navigation",
+      "brandAria": "Notai home",
+      "closeNav": "Close navigation",
+      "close": "Close",
+      "expand": "Expand sidebar",
+      "collapse": "Collapse sidebar",
+      "expandHint": "Expand sidebar (⌘\\)",
+      "collapseHint": "Collapse sidebar (⌘\\)",
+      "searchAria": "Search (⌘K)",
+      "searchPlaceholder": "Search…",
+      "today": "Today",
+      "dailyNote": "Daily Note",
+      "askNotai": "Ask Notai",
+      "graph": "Graph",
+      "review": "Review",
+      "favorites": "Favorites",
+      "archived": "Archived"
+    },
+    "account": {
+      "menuAria": "Account menu",
+      "anonymous": "Anon",
+      "fallbackLabel": "Account",
+      "superAdmin": "Super admin",
+      "settings": "Settings",
+      "admin": "Admin",
+      "signOut": "Sign out"
+    },
+    "onboarding": {
+      "skipAria": "Skip tour",
+      "skip": "Skip",
+      "next": "Next",
+      "getStarted": "Get started",
+      "step1Title": "Welcome to Notai ✨",
+      "step1Body": "Notai is an ADHD-friendly notebook. Quick capture, infinite canvas, AI that helps you find what you wrote three weeks ago. This is a 30-second tour — you can skip any time.",
+      "step2Title": "Capture anything in 2 keystrokes",
+      "step2BodyPrefix": "Press ",
+      "step2BodySuffix": " from anywhere to drop a note into your inbox without breaking flow. The AI will suggest a folder once you've written a few notes.",
+      "step3Title": "Today's daily note",
+      "step3BodyPrefix": "Press ",
+      "step3BodySuffix": " to jump to today's daily note. We auto-create one each day so there's never a blank page when an idea strikes.",
+      "step4Title": "Ask your notes",
+      "step4BodyPrefix": "The Ask page (",
+      "step4BodyMiddle": " → \"Ask\") runs semantic search across everything you've written and answers in your own words. Bring your own API key in Settings.",
+      "step5Title": "Make it yours",
+      "step5Body": "Settings → Appearance lets you swap themes, switch on a dyslexia-friendly font, and crank up contrast. Settings → Account exports everything as a .zip of markdown files — your notes, your data."
+    },
+    "installPrompt": {
+      "title": "Install Notai",
+      "description": "Add to your home screen for offline access and faster capture.",
+      "install": "Install",
+      "dismissAria": "Dismiss install prompt"
+    },
+    "desktopPromo": {
+      "openTitle": "Open desktop app",
+      "getTitle": "Get the desktop app",
+      "headline": "Get Notai for desktop",
+      "body": "Pin sticky notes on top of every window.",
+      "ctaFree": "Download · Free"
+    },
+    "mobileFab": {
+      "voice": "Voice capture",
+      "quick": "Quick capture"
+    },
+    "authButtons": {
+      "waitingBrowser": "Waiting for browser sign-in…",
+      "openerErrorTitle": "Could not open the system browser",
+      "openerErrorDesc": "Open this URL manually in your browser:",
+      "waitingToast": "Waiting for sign-in…",
+      "waitingToastDesc": "Finish signing in with Google in your browser.",
+      "signInDidNotComplete": "Sign-in did not complete",
+      "signInExpired": "Sign-in expired. Please try again.",
+      "signInTimedOut": "Sign-in timed out. Please try again.",
+      "passkeyStartFailed": "Could not start passkey sign-in",
+      "signInFailed": "Sign-in failed",
+      "passkeyWaiting": "Waiting…",
+      "passkeyCta": "Sign in with a passkey"
+    },
+    "home": {
+      "newSticky": "New sticky",
+      "newStickyAria": "New sticky",
+      "newNote": "New note",
+      "newNoteAria": "New note",
+      "notesCountOne": "{count} note",
+      "notesCountOther": "{count} notes",
+      "emptyEyebrow": "Your notebook is fresh",
+      "emptyHeadline": "Start with a single thought.",
+      "emptyHintPrefix": "Press ",
+      "emptyHintSuffix": " to create your first note, or pin a quick sticky to keep something on your mind.",
+      "createFirstNote": "Create your first note",
+      "addSticky": "Add a sticky"
+    }
   }
 }

@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Sparkles, ArrowRight, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { Kbd } from '@notai/ui/components/kbd';
 
@@ -12,63 +13,56 @@ interface Step {
   body: React.ReactNode;
 }
 
-const STEPS: Step[] = [
-  {
-    title: 'Welcome to Notai \u2728',
-    body: (
-      <p>
-        Notai is an ADHD-friendly notebook. Quick capture, infinite canvas, AI that helps you find
-        what you wrote three weeks ago. This is a 30-second tour \u2014 you can skip any time.
-      </p>
-    ),
-  },
-  {
-    title: 'Capture anything in 2 keystrokes',
-    body: (
-      <p>
-        Press <Kbd>mod+shift+n</Kbd> from anywhere to drop a note into your inbox without breaking
-        flow. The AI will suggest a folder once you\u2019ve written a few notes.
-      </p>
-    ),
-  },
-  {
-    title: 'Today\u2019s daily note',
-    body: (
-      <p>
-        Press <Kbd>mod+j</Kbd> to jump to today\u2019s daily note. We auto-create one each day so
-        there\u2019s never a blank page when an idea strikes.
-      </p>
-    ),
-  },
-  {
-    title: 'Ask your notes',
-    body: (
-      <p>
-        The Ask page (<Kbd>mod+k</Kbd> \u2192 \u201cAsk\u201d) runs semantic search across
-        everything you\u2019ve written and answers in your own words. Bring your own API key in
-        Settings.
-      </p>
-    ),
-  },
-  {
-    title: 'Make it yours',
-    body: (
-      <p>
-        Settings \u2192 Appearance lets you swap themes, switch on a dyslexia-friendly font, and
-        crank up contrast. Settings \u2192 Account exports everything as a .zip of markdown files
-        \u2014 your notes, your data.
-      </p>
-    ),
-  },
-];
+function useSteps(): Step[] {
+  const t = useTranslations('appShell.onboarding');
+  return React.useMemo<Step[]>(
+    () => [
+      {
+        title: t('step1Title'),
+        body: <p>{t('step1Body')}</p>,
+      },
+      {
+        title: t('step2Title'),
+        body: (
+          <p>
+            {t('step2BodyPrefix')}
+            <Kbd>mod+shift+n</Kbd>
+            {t('step2BodySuffix')}
+          </p>
+        ),
+      },
+      {
+        title: t('step3Title'),
+        body: (
+          <p>
+            {t('step3BodyPrefix')}
+            <Kbd>mod+j</Kbd>
+            {t('step3BodySuffix')}
+          </p>
+        ),
+      },
+      {
+        title: t('step4Title'),
+        body: (
+          <p>
+            {t('step4BodyPrefix')}
+            <Kbd>mod+k</Kbd>
+            {t('step4BodyMiddle')}
+          </p>
+        ),
+      },
+      {
+        title: t('step5Title'),
+        body: <p>{t('step5Body')}</p>,
+      },
+    ],
+    [t],
+  );
+}
 
-/**
- * Lightweight 5-step welcome overlay shown the first time a user lands
- * on the app shell. Skipped on subsequent loads via a localStorage
- * flag. Pure CSS modal \u2014 no portal so it lives in the same paint as
- * the page underneath.
- */
 export function OnboardingTour() {
+  const t = useTranslations('appShell.onboarding');
+  const steps = useSteps();
   const [step, setStep] = React.useState(0);
   const [open, setOpen] = React.useState(false);
 
@@ -78,9 +72,8 @@ export function OnboardingTour() {
     } catch {
       return;
     }
-    // Wait a beat so the user sees the app render first.
-    const t = setTimeout(() => setOpen(true), 400);
-    return () => clearTimeout(t);
+    const handle = setTimeout(() => setOpen(true), 400);
+    return () => clearTimeout(handle);
   }, []);
 
   const finish = React.useCallback(() => {
@@ -93,8 +86,8 @@ export function OnboardingTour() {
   }, []);
 
   if (!open) return null;
-  const current = STEPS[step]!;
-  const isLast = step === STEPS.length - 1;
+  const current = steps[step]!;
+  const isLast = step === steps.length - 1;
 
   return (
     <div
@@ -105,7 +98,7 @@ export function OnboardingTour() {
     >
       <button
         type="button"
-        aria-label="Skip tour"
+        aria-label={t('skipAria')}
         className="bg-background/70 absolute inset-0 backdrop-blur-sm"
         onClick={finish}
       />
@@ -116,7 +109,7 @@ export function OnboardingTour() {
           </div>
           <button
             type="button"
-            aria-label="Skip tour"
+            aria-label={t('skipAria')}
             onClick={finish}
             className="text-muted-foreground hover:text-foreground absolute right-3 top-3"
           >
@@ -134,7 +127,7 @@ export function OnboardingTour() {
         </div>
         <div className="bg-muted/30 flex items-center justify-between gap-3 border-t px-6 py-3">
           <div className="flex items-center gap-1.5">
-            {STEPS.map((_, i) => (
+            {steps.map((_, i) => (
               <span
                 key={i}
                 className={
@@ -150,14 +143,14 @@ export function OnboardingTour() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={finish}>
-              Skip
+              {t('skip')}
             </Button>
             <Button size="sm" onClick={() => (isLast ? finish() : setStep(step + 1))}>
               {isLast ? (
-                'Get started'
+                t('getStarted')
               ) : (
                 <>
-                  Next <ArrowRight className="size-3.5" />
+                  {t('next')} <ArrowRight className="size-3.5" />
                 </>
               )}
             </Button>

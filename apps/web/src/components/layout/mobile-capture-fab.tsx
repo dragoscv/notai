@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Plus, Mic } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { haptic } from '@/lib/haptics';
 
 /**
@@ -11,6 +12,7 @@ import { haptic } from '@/lib/haptics';
  * because desktop users have keyboard shortcuts.
  */
 export function MobileCaptureFab() {
+  const t = useTranslations('appShell.mobileFab');
   return (
     <div
       className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3 md:hidden"
@@ -18,7 +20,7 @@ export function MobileCaptureFab() {
     >
       <button
         type="button"
-        aria-label="Voice capture"
+        aria-label={t('voice')}
         onClick={() => {
           haptic('light');
           document.dispatchEvent(new CustomEvent('notai:voice-capture'));
@@ -29,7 +31,7 @@ export function MobileCaptureFab() {
       </button>
       <button
         type="button"
-        aria-label="Quick capture"
+        aria-label={t('quick')}
         onClick={() => {
           haptic('medium');
           window.dispatchEvent(new CustomEvent('notai:quick-capture-open'));

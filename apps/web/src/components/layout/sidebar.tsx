@@ -2,6 +2,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   PenLine,
   Star,
@@ -55,6 +56,8 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
   const pathname = usePathname();
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const { mobileOpen, setMobileOpen, desktopCollapsed, toggleDesktop } = useSidebar();
+  const t = useTranslations('appShell.sidebar');
+  const ta = useTranslations('appShell.account');
 
   useHotkey('mod+n', async () => {
     const note = await createNote();
@@ -83,7 +86,7 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
 
   return (
     <aside
-      aria-label="Primary navigation"
+      aria-label={t('ariaLabel')}
       id="app-sidebar"
       tabIndex={-1}
       data-focus-hide
@@ -134,7 +137,7 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
           // Copy link, etc.) — the user explicitly asked for it on the logo.
           onContextMenu={(e) => e.stopPropagation()}
           className="hover:bg-accent/40 flex items-center gap-2 rounded-md px-1 py-0.5 font-semibold tracking-tight transition-colors"
-          aria-label="Notai home"
+          aria-label={t('brandAria')}
           title="Notai"
         >
           <span className="from-primary to-primary/70 text-primary-foreground shadow-primary/30 grid size-7 shrink-0 place-items-center rounded-lg bg-gradient-to-br shadow-sm">
@@ -157,8 +160,8 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
             variant="ghost"
             className="md:hidden"
             onClick={() => setMobileOpen(false)}
-            aria-label="Close navigation"
-            title="Close"
+            aria-label={t('closeNav')}
+            title={t('close')}
           >
             <X />
           </Button>
@@ -169,8 +172,8 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
             variant="ghost"
             className="hidden md:inline-flex"
             onClick={toggleDesktop}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            title={collapsed ? 'Expand sidebar (⌘\\)' : 'Collapse sidebar (⌘\\)'}
+            aria-label={collapsed ? t('expand') : t('collapse')}
+            title={collapsed ? t('expandHint') : t('collapseHint')}
           >
             {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
           </Button>
@@ -188,8 +191,8 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
             size="icon-sm"
             className="bg-background/60 hover:bg-accent/60 mx-auto flex size-9"
             onClick={() => document.dispatchEvent(new CustomEvent('notai:command-palette'))}
-            aria-label="Search (⌘K)"
-            title="Search (⌘K)"
+            aria-label={t('searchAria')}
+            title={t('searchAria')}
           >
             <Search />
           </Button>
@@ -200,7 +203,7 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
             className="bg-background/60 text-muted-foreground hover:bg-accent/60 w-full justify-start"
             onClick={() => document.dispatchEvent(new CustomEvent('notai:command-palette'))}
           >
-            <Search /> Search…
+            <Search /> {t('searchPlaceholder')}
             <kbd className="bg-card text-foreground/60 ml-auto rounded border px-1 font-mono text-[10px]">
               ⌘K
             </kbd>
@@ -213,48 +216,48 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
         <NavItem
           href="/app"
           icon={<Home />}
-          label="Today"
+          label={t('today')}
           active={pathname === '/app'}
           collapsed={collapsed}
         />
         <NavItem
           href="/app/today"
           icon={<CalendarDays />}
-          label="Daily Note"
+          label={t('dailyNote')}
           active={pathname === '/app/today'}
           collapsed={collapsed}
         />
         <NavItem
           href="/app/ask"
           icon={<Sparkles />}
-          label="Ask Notai"
+          label={t('askNotai')}
           active={pathname === '/app/ask'}
           collapsed={collapsed}
         />
         <NavItem
           href="/app/graph"
           icon={<Network />}
-          label="Graph"
+          label={t('graph')}
           active={pathname === '/app/graph'}
           collapsed={collapsed}
         />
         <NavItem
           href="/app/review"
           icon={<Brain />}
-          label="Review"
+          label={t('review')}
           active={pathname === '/app/review'}
           collapsed={collapsed}
         />
         <NavItem
           href="/app?filter=favorites"
           icon={<Star />}
-          label="Favorites"
+          label={t('favorites')}
           collapsed={collapsed}
         />
         <NavItem
           href="/app?filter=archived"
           icon={<Archive />}
-          label="Archived"
+          label={t('archived')}
           collapsed={collapsed}
         />
       </nav>
@@ -281,8 +284,8 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
                 'hover:bg-accent flex w-full items-center rounded-lg border text-left text-sm transition-colors',
                 collapsed ? 'justify-center p-1.5' : 'gap-2 p-2.5',
               )}
-              aria-label="Account menu"
-              title={user.name ?? user.email ?? 'Account'}
+              aria-label={ta('menuAria')}
+              title={user.name ?? user.email ?? ta('fallbackLabel')}
             >
               <Avatar className="size-7">
                 {user.image && <AvatarImage src={user.image} alt={user.name ?? 'user'} />}
@@ -293,10 +296,10 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
               {!collapsed && (
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-xs font-medium">
-                    {user.name ?? user.email ?? 'Anon'}
+                    {user.name ?? user.email ?? ta('anonymous')}
                   </div>
                   <div className="text-muted-foreground truncate text-[10px]">
-                    {isAdmin ? 'Super admin' : (user.email ?? 'Account')}
+                    {isAdmin ? ta('superAdmin') : (user.email ?? ta('fallbackLabel'))}
                   </div>
                 </div>
               )}
@@ -305,7 +308,7 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
           <DropdownMenuContent align="end" side="top" className="w-64">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col gap-0.5">
-                <p className="truncate text-sm font-medium">{user.name ?? 'Anon'}</p>
+                <p className="truncate text-sm font-medium">{user.name ?? ta('anonymous')}</p>
                 {user.email && (
                   <p className="text-muted-foreground truncate text-xs">{user.email}</p>
                 )}
@@ -313,12 +316,12 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => setSettingsOpen(true)}>
-              <Settings /> Settings
+              <Settings /> {ta('settings')}
             </DropdownMenuItem>
             {isAdmin ? (
               <DropdownMenuItem asChild>
                 <Link href="/admin">
-                  <Shield /> Admin
+                  <Shield /> {ta('admin')}
                 </Link>
               </DropdownMenuItem>
             ) : null}
@@ -329,7 +332,7 @@ export function Sidebar({ user, notes, folders, isAdmin = false }: SidebarProps)
               }}
               className="text-destructive focus:text-destructive"
             >
-              <LogOut /> Sign out
+              <LogOut /> {ta('signOut')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

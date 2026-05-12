@@ -464,5 +464,101 @@
         "contact": "Contact"
       }
     }
+  },
+  "appShell": {
+    "skipToContent": "Sari la conținut",
+    "skipToSidebar": "Sari la bara laterală",
+    "sidebar": {
+      "ariaLabel": "Navigare principală",
+      "brandAria": "Pagina principală Notai",
+      "closeNav": "Închide navigarea",
+      "close": "Închide",
+      "expand": "Extinde bara laterală",
+      "collapse": "Restrânge bara laterală",
+      "expandHint": "Extinde bara laterală (⌘\\)",
+      "collapseHint": "Restrânge bara laterală (⌘\\)",
+      "searchAria": "Caută (⌘K)",
+      "searchPlaceholder": "Caută…",
+      "today": "Astăzi",
+      "dailyNote": "Nota zilei",
+      "askNotai": "Întreabă Notai",
+      "graph": "Graf",
+      "review": "Recapitulare",
+      "favorites": "Favorite",
+      "archived": "Arhivate"
+    },
+    "account": {
+      "menuAria": "Meniu cont",
+      "anonymous": "Anonim",
+      "fallbackLabel": "Cont",
+      "superAdmin": "Super admin",
+      "settings": "Setări",
+      "admin": "Administrare",
+      "signOut": "Deconectare"
+    },
+    "onboarding": {
+      "skipAria": "Sari peste tur",
+      "skip": "Sari peste",
+      "next": "Înainte",
+      "getStarted": "Începe",
+      "step1Title": "Bun venit în Notai ✨",
+      "step1Body": "Notai e un caiet prietenos cu ADHD-ul. Captură rapidă, pânză infinită, AI care te ajută să găsești ce-ai scris acum trei săptămâni. Un tur de 30 de secunde — poți sări peste oricând.",
+      "step2Title": "Notează orice din 2 taste",
+      "step2BodyPrefix": "Apasă ",
+      "step2BodySuffix": " de oriunde ca să arunci o notă în inbox fără să-ți pierzi firul. AI-ul îți va sugera un folder după ce scrii câteva note.",
+      "step3Title": "Nota de azi",
+      "step3BodyPrefix": "Apasă ",
+      "step3BodySuffix": " ca să sari direct la nota zilei. O creăm automat în fiecare zi, ca să nu te întâmpine niciodată o pagină goală când îți vine o idee.",
+      "step4Title": "Întreabă-ți notele",
+      "step4BodyPrefix": "Pagina Întreabă (",
+      "step4BodyMiddle": " → „Întreabă”) face căutare semantică în tot ce ai scris și-ți răspunde în cuvintele tale. Aduci propria cheie API din Setări.",
+      "step5Title": "Fă-l al tău",
+      "step5Body": "Setări → Aspect îți lasă să schimbi tema, să activezi un font prietenos cu dislexia și să crești contrastul. Setări → Cont exportă tot ca .zip de fișiere markdown — notele tale, datele tale."
+    },
+    "installPrompt": {
+      "title": "Instalează Notai",
+      "description": "Adaugă-l pe ecranul de pornire pentru acces offline și captură mai rapidă.",
+      "install": "Instalează",
+      "dismissAria": "Închide invitația de instalare"
+    },
+    "desktopPromo": {
+      "openTitle": "Deschide aplicația desktop",
+      "getTitle": "Ia aplicația desktop",
+      "headline": "Ia Notai pentru desktop",
+      "body": "Fixează notițe lipicioase peste orice fereastră.",
+      "ctaFree": "Descarcă · Gratis"
+    },
+    "mobileFab": {
+      "voice": "Captură vocală",
+      "quick": "Captură rapidă"
+    },
+    "authButtons": {
+      "waitingBrowser": "Aștept conectarea din browser…",
+      "openerErrorTitle": "Nu am putut deschide browserul",
+      "openerErrorDesc": "Deschide manual acest link în browser:",
+      "waitingToast": "Aștept conectarea…",
+      "waitingToastDesc": "Finalizează conectarea cu Google în browser.",
+      "signInDidNotComplete": "Conectarea nu s-a finalizat",
+      "signInExpired": "Conectarea a expirat. Încearcă din nou.",
+      "signInTimedOut": "Conectarea a depășit timpul de așteptare. Încearcă din nou.",
+      "passkeyStartFailed": "Nu am putut porni conectarea cu passkey",
+      "signInFailed": "Conectarea a eșuat",
+      "passkeyWaiting": "Aștept…",
+      "passkeyCta": "Conectează-te cu passkey"
+    },
+    "home": {
+      "newSticky": "Notiță nouă",
+      "newStickyAria": "Notiță nouă",
+      "newNote": "Notă nouă",
+      "newNoteAria": "Notă nouă",
+      "notesCountOne": "{count} notă",
+      "notesCountOther": "{count} note",
+      "emptyEyebrow": "Caietul tău e proaspăt",
+      "emptyHeadline": "Începe cu un singur gând.",
+      "emptyHintPrefix": "Apasă ",
+      "emptyHintSuffix": " ca să-ți creezi prima notă sau lipește o notiță rapidă pentru ceva ce vrei să ții minte.",
+      "createFirstNote": "Creează-ți prima notă",
+      "addSticky": "Adaugă o notiță"
+    }
   }
 }

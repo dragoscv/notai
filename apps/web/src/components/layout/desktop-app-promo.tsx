@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
 import { Download, Monitor, PenLine, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@notai/lib/utils';
 import { isTauri } from '@/lib/tauri';
 import { DESKTOP_DOWNLOAD_URL, hasLaunchedDesktop, launchDesktop } from '@/lib/desktop-app';
@@ -14,6 +15,7 @@ import { DESKTOP_DOWNLOAD_URL, hasLaunchedDesktop, launchDesktop } from '@/lib/d
  * - Collapsed sidebars get a single icon button in either case.
  */
 export function DesktopAppPromo({ collapsed }: { collapsed: boolean }) {
+  const t = useTranslations('appShell.desktopPromo');
   const [mounted, setMounted] = React.useState(false);
   const [launched, setLaunched] = React.useState(false);
 
@@ -32,7 +34,7 @@ export function DesktopAppPromo({ collapsed }: { collapsed: boolean }) {
         <button
           type="button"
           onClick={() => launchDesktop()}
-          title="Open desktop app"
+          title={t('openTitle')}
           className="text-muted-foreground hover:bg-accent hover:text-accent-foreground mx-auto inline-flex size-8 items-center justify-center rounded-md transition-colors"
         >
           <Monitor className="size-4" />
@@ -44,7 +46,7 @@ export function DesktopAppPromo({ collapsed }: { collapsed: boolean }) {
         href={DESKTOP_DOWNLOAD_URL}
         target="_blank"
         rel="noreferrer"
-        title="Get the desktop app"
+        title={t('getTitle')}
         className="bg-primary/10 text-primary hover:bg-primary/20 mx-auto inline-flex size-8 items-center justify-center rounded-md transition-colors"
       >
         <Download className="size-4" />
@@ -63,7 +65,7 @@ export function DesktopAppPromo({ collapsed }: { collapsed: boolean }) {
         <span className="from-primary to-primary/70 text-primary-foreground shadow-primary/20 grid size-6 shrink-0 place-items-center rounded-md bg-gradient-to-br shadow-sm">
           <PenLine className="size-3.5" />
         </span>
-        <span className="min-w-0 flex-1 truncate">Open desktop app</span>
+        <span className="min-w-0 flex-1 truncate">{t('openTitle')}</span>
         <Monitor className="text-muted-foreground group-hover:text-accent-foreground size-3.5 shrink-0 transition-colors" />
       </button>
     );
@@ -99,17 +101,13 @@ export function DesktopAppPromo({ collapsed }: { collapsed: boolean }) {
           <Sparkles className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 text-[13px] font-medium">
-            Get Notai for desktop
-          </div>
-          <p className="text-muted-foreground mt-0.5 text-[11px] leading-snug">
-            Pin sticky notes on top of every window.
-          </p>
+          <div className="flex items-center gap-1.5 text-[13px] font-medium">{t('headline')}</div>
+          <p className="text-muted-foreground mt-0.5 text-[11px] leading-snug">{t('body')}</p>
         </div>
       </div>
 
       <div className="text-primary relative mt-2.5 inline-flex items-center gap-1 text-[11px] font-medium">
-        <Download className="size-3" /> Download · Free
+        <Download className="size-3" /> {t('ctaFree')}
       </div>
     </a>
   );

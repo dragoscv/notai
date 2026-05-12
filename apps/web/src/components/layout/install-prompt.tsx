@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Download, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -19,6 +20,7 @@ const COOLDOWN_DAYS = 14;
  * for two weeks so we don't nag.
  */
 export function InstallPrompt() {
+  const t = useTranslations('appShell.installPrompt');
   const [evt, setEvt] = React.useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = React.useState(false);
 
@@ -47,10 +49,8 @@ export function InstallPrompt() {
     <div className="bg-card text-card-foreground fixed bottom-24 left-1/2 z-40 flex w-[min(92vw,360px)] -translate-x-1/2 items-center gap-2 rounded-lg border p-3 shadow-lg md:bottom-6">
       <Download className="size-4 shrink-0 opacity-70" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium leading-tight">Install Notai</p>
-        <p className="text-muted-foreground text-xs leading-tight">
-          Add to your home screen for offline access and faster capture.
-        </p>
+        <p className="text-sm font-medium leading-tight">{t('title')}</p>
+        <p className="text-muted-foreground text-xs leading-tight">{t('description')}</p>
       </div>
       <button
         type="button"
@@ -62,11 +62,11 @@ export function InstallPrompt() {
         }}
         className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-xs font-medium"
       >
-        Install
+        {t('install')}
       </button>
       <button
         type="button"
-        aria-label="Dismiss install prompt"
+        aria-label={t('dismissAria')}
         onClick={() => {
           window.localStorage.setItem(DISMISS_KEY, String(Date.now()));
           setVisible(false);

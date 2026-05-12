@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@notai/ui/components/button';
 import { Spinner } from '@notai/ui/components/spinner';
 import { isTauri } from '@/lib/tauri';
@@ -21,6 +22,7 @@ import { isTauri } from '@/lib/tauri';
  * No `notai://` deep link, no "Open Notai?" browser dialog.
  */
 export function SignInGoogleButton({ children }: { children: ReactNode }) {
+  const t = useTranslations('appShell.authButtons');
   // Use a ref + recheck on click so we always see the latest globals,
   // even if the click fires before useEffect has flushed.
   const desktopRef = useRef(false);
@@ -46,17 +48,16 @@ export function SignInGoogleButton({ children }: { children: ReactNode }) {
 
     const opened = await openInSystemBrowser(target);
     if (!opened.ok) {
-      toast.error('Could not open the system browser', {
-        description:
-          'Open this URL manually in your browser:\n' + target + '\n\n' + opened.errors.join('\n'),
+      toast.error(t('openerErrorTitle'), {
+        description: t('openerErrorDesc') + '\n' + target + '\n\n' + opened.errors.join('\n'),
         duration: 20000,
       });
       return;
     }
 
     setWaiting(true);
-    const dismiss = toast.loading('Waiting for sign-in…', {
-      description: 'Finish signing in with Google in your browser.',
+    const dismiss = toast.loading(t('waitingToast'), {
+      description: t('waitingToastDesc'),
       duration: Infinity,
     });
 
@@ -72,8 +73,14 @@ export function SignInGoogleButton({ children }: { children: ReactNode }) {
         handoff,
       )}`;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error('Sign-in did not complete', { description: msg });
+      const raw = err instanceof Error ? err.message : String(err);
+      const msg =
+        raw === 'SIGNIN_EXPIRED'
+          ? t('signInExpired')
+          : raw === 'SIGNIN_TIMED_OUT'
+            ? t('signInTimedOut')
+            : raw;
+      toast.error(t('signInDidNotComplete'), { description: msg });
     } finally {
       toast.dismiss(dismiss);
       setWaiting(false);
@@ -92,7 +99,7 @@ export function SignInGoogleButton({ children }: { children: ReactNode }) {
     >
       {waiting ? (
         <>
-          <Spinner className="size-4" /> Waiting for browser sign-in…
+          <Spinner className="size-4" /> {t('waitingBrowser')}
         </>
       ) : (
         children
@@ -182,7 +189,7 @@ async function pollForHandoff(
       credentials: 'omit',
     });
 
-    if (res.status === 410) throw new Error('Sign-in expired. Please try again.');
+    if (res.status === 410) throw new Error('SIGNIN_EXPIRED');
 
     if (res.ok) {
       const data = (await res.json()) as { status: string; token?: string };
@@ -196,5 +203,5 @@ async function pollForHandoff(
   }
 
   if (cancelled) return null;
-  throw new Error('Sign-in timed out. Please try again.');
+  throw new Error('SIGNIN_TIMED_OUT');
 }
