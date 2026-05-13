@@ -2972,6 +2972,12 @@
       "openNotes": "Open your notes",
       "backToHome": "Back to homepage"
     },
+    "noteNotFound": {
+      "metadataTitle": "Note not found",
+      "title": "This note isn't here.",
+      "body": "It may have been deleted, archived, or you no longer have access. Open your notes to pick another.",
+      "backToNotes": "Back to notes"
+    },
     "offline": {
       "metadataTitle": "Offline",
       "metadataDescription": "You're offline. Your local notes still work.",

@@ -2972,6 +2972,12 @@
       "openNotes": "Deschide notițele",
       "backToHome": "Înapoi la pagina principală"
     },
+    "noteNotFound": {
+      "metadataTitle": "Notița nu a fost găsită",
+      "title": "Notița aceasta nu mai e aici.",
+      "body": "Poate a fost ștearsă, arhivată sau nu mai ai acces. Deschide lista de notițe pentru a alege alta.",
+      "backToNotes": "Înapoi la notițe"
+    },
     "offline": {
       "metadataTitle": "Offline",
       "metadataDescription": "Ești offline. Notițele locale funcționează în continuare.",
