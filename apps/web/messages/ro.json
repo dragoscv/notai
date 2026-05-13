@@ -965,6 +965,29 @@
       "label": "Limbă"
     },
     "pages": {
+      "index": {
+        "title": "Setări — Notai",
+        "heading": "Setări",
+        "intro": "Administrează spațiul de lucru, securitatea, abonamentul și integrările.",
+        "securityLabel": "Securitate",
+        "security": "Passkeys, autentificare în doi pași, limbă și ștergerea contului.",
+        "notificationsLabel": "Notificări",
+        "notifications": "Preferințe pentru e-mailuri rezumat și notificări push.",
+        "billingLabel": "Facturare",
+        "billing": "Plan, facturi și limite de utilizare.",
+        "aiProvidersLabel": "Furnizori AI",
+        "aiProviders": "Folosește propriile chei OpenAI sau GitHub Copilot.",
+        "integrationsLabel": "Integrări",
+        "integrations": "Calendar, e-mail și alte integrări de workspace.",
+        "connectedAppsLabel": "Aplicații conectate",
+        "connectedApps": "Aplicații și agenți AI cu acces autorizat la notai.",
+        "apiKeysLabel": "Chei API",
+        "apiKeys": "Token-uri personale pentru API-ul REST public.",
+        "webhooksLabel": "Webhooks",
+        "webhooks": "Callback-uri HTTP de ieșire la evenimentele notelor.",
+        "importLabel": "Import",
+        "import": "Importă fișiere Markdown, Notion sau vaulturi Obsidian."
+      },
       "aiProviders": {
         "title": "Furnizori AI — Notai",
         "crumb": "Setări · Furnizori AI",

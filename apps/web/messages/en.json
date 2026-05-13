@@ -965,6 +965,29 @@
       "label": "Language"
     },
     "pages": {
+      "index": {
+        "title": "Settings — Notai",
+        "heading": "Settings",
+        "intro": "Manage your workspace, security, billing, and integrations.",
+        "securityLabel": "Security",
+        "security": "Passkeys, two-factor, language, and account deletion.",
+        "notificationsLabel": "Notifications",
+        "notifications": "Email digests and push notification preferences.",
+        "billingLabel": "Billing",
+        "billing": "Plan, invoices, and usage limits.",
+        "aiProvidersLabel": "AI providers",
+        "aiProviders": "Bring your own OpenAI or GitHub Copilot keys.",
+        "integrationsLabel": "Integrations",
+        "integrations": "Calendar, e-mail, and other workspace integrations.",
+        "connectedAppsLabel": "Connected apps",
+        "connectedApps": "Apps and AI agents authorized to access your notai.",
+        "apiKeysLabel": "API keys",
+        "apiKeys": "Personal tokens for the public REST API.",
+        "webhooksLabel": "Webhooks",
+        "webhooks": "Outbound HTTP callbacks on note events.",
+        "importLabel": "Import",
+        "import": "Bring in Markdown, Notion, or Obsidian vaults."
+      },
       "aiProviders": {
         "title": "AI providers — Notai",
         "crumb": "Settings · AI providers",
