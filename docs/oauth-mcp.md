@@ -121,17 +121,26 @@ protocol before they have a token). Everything else requires
 
 ### Tools exposed
 
-| Tool             | Required scope          | Description                     |
-| ---------------- | ----------------------- | ------------------------------- |
-| `me`             | `openid`                | identity of the token's user    |
-| `notes.list`     | `notes:read`            | list notes (filters)            |
-| `notes.search`   | `notes:read`            | substring search                |
-| `notes.get`      | `notes:read`            | full plaintext + metadata       |
-| `notes.create`   | `notes:write`           | new note                        |
-| `notes.update`   | `notes:write`           | mutate fields                   |
-| `notes.archive`  | `notes:write`           | soft-delete                     |
-| `folders.list`   | `folders:read`          | flat list of folders            |
-| `folders.create` | `folders:write`         | new folder                      |
+| Tool                     | Required scope          | Description                     |
+| ------------------------ | ----------------------- | ------------------------------- |
+| `me`                     | `openid`                | identity of the token's user    |
+| `notes.list`             | `notes:read`            | list notes (filters)            |
+| `notes.search`           | `notes:read`            | substring search                |
+| `notes.get`              | `notes:read`            | full plaintext + metadata       |
+| `notes.create`           | `notes:write`           | new note                        |
+| `notes.update`           | `notes:write`           | mutate fields                   |
+| `notes.archive`          | `notes:write`           | soft-delete                     |
+| `notes.listTags`         | `notes:read`            | tags attached to a note         |
+| `notes.tag`              | `notes:write`           | attach a tag to a note          |
+| `notes.untag`            | `notes:write`           | detach a tag from a note        |
+| `notes.listAttachments`  | `notes:read`            | uploaded files for a note       |
+| `folders.list`           | `folders:read`          | flat list of folders            |
+| `folders.create`         | `folders:write`         | new folder                      |
+| `tags.list`              | `notes:read`            | all tags for the user           |
+| `tags.create`            | `notes:write`           | create a tag (or reuse by name) |
+| `share.enable`           | `notes:write`           | turn on public read-only link   |
+| `share.disable`          | `notes:write`           | revoke the public link          |
+| `share.status`           | `notes:read`            | current public-share state      |
 
 Holding the umbrella `mcp` scope is also accepted in lieu of the tool's
 specific scope.

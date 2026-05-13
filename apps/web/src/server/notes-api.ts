@@ -10,6 +10,7 @@
  * up the change on next open. For richer Yjs-aware writes a future
  * version can route through Hocuspocus.
  */
+import { randomBytes } from 'node:crypto';
 import {
   db,
   and,
@@ -17,14 +18,19 @@ import {
   desc,
   eq,
   ilike,
+  inArray,
   isNull,
   or,
   sql,
   folders,
   notes,
   noteCollaborators,
+  tags,
+  noteTags,
+  assets,
   type OauthToken,
 } from '@notai/db';
+import { dispatchNoteEvent } from '@/server/actions/webhooks';
 
 const POSITION_STEP = 1000;
 
@@ -228,3 +234,174 @@ export async function apiCreateFolder(userId: string, name: string, parentId?: s
 
 /** Tiny wrapper exposing token + user id so MCP/REST handlers don't repeat themselves. */
 export type ApiCaller = { token: OauthToken; userId: string };
+
+// ─── Tags ────────────────────────────────────────────────────────────────
+
+export async function apiListTags(userId: string) {
+  return db
+    .select({ id: tags.id, name: tags.name, color: tags.color, createdAt: tags.createdAt })
+    .from(tags)
+    .where(eq(tags.ownerId, userId))
+    .orderBy(asc(tags.name));
+}
+
+export async function apiCreateTag(userId: string, name: string, color?: string) {
+  const cleanName = name.trim().slice(0, 60);
+  if (!cleanName) return null;
+  // Reuse if a tag with the same name already exists.
+  const [existing] = await db
+    .select()
+    .from(tags)
+    .where(and(eq(tags.ownerId, userId), eq(tags.name, cleanName)))
+    .limit(1);
+  if (existing) return existing;
+  const [row] = await db
+    .insert(tags)
+    .values({ ownerId: userId, name: cleanName, color: color ?? 'default' })
+    .returning();
+  return row ?? null;
+}
+
+export async function apiListNoteTags(userId: string, noteId: string) {
+  const note = await apiGetNote(userId, noteId);
+  if (!note) return null;
+  const rows = await db
+    .select({ id: tags.id, name: tags.name, color: tags.color })
+    .from(noteTags)
+    .innerJoin(tags, eq(tags.id, noteTags.tagId))
+    .where(eq(noteTags.noteId, noteId))
+    .orderBy(asc(tags.name));
+  return rows;
+}
+
+export async function apiTagNote(userId: string, noteId: string, tagId: string) {
+  // Validate ownership of both note and tag.
+  const note = await apiGetNote(userId, noteId);
+  if (!note) return null;
+  const [tag] = await db
+    .select({ id: tags.id })
+    .from(tags)
+    .where(and(eq(tags.id, tagId), eq(tags.ownerId, userId)))
+    .limit(1);
+  if (!tag) return null;
+  await db.insert(noteTags).values({ noteId, tagId }).onConflictDoNothing();
+  return { noteId, tagId };
+}
+
+export async function apiUntagNote(userId: string, noteId: string, tagId: string) {
+  const note = await apiGetNote(userId, noteId);
+  if (!note) return null;
+  await db.delete(noteTags).where(and(eq(noteTags.noteId, noteId), eq(noteTags.tagId, tagId)));
+  return { noteId, tagId };
+}
+
+// ─── Attachments ─────────────────────────────────────────────────────────
+
+export async function apiListAssets(userId: string, noteId: string) {
+  const note = await apiGetNote(userId, noteId);
+  if (!note) return null;
+  return db
+    .select({
+      id: assets.id,
+      url: assets.url,
+      mime: assets.mime,
+      sizeBytes: assets.sizeBytes,
+      createdAt: assets.createdAt,
+    })
+    .from(assets)
+    .where(eq(assets.noteId, noteId))
+    .orderBy(desc(assets.createdAt));
+}
+
+// ─── Public share ────────────────────────────────────────────────────────
+
+export interface EnablePublicShareInput {
+  noteId: string;
+  expiresInDays?: number;
+}
+
+export async function apiEnablePublicShare(
+  userId: string,
+  input: EnablePublicShareInput,
+  origin: string,
+) {
+  const token = randomBytes(18).toString('base64url');
+  const expiresAt = input.expiresInDays
+    ? new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000)
+    : null;
+  const updated = await db
+    .update(notes)
+    .set({
+      publicShareToken: token,
+      publicShareExpiresAt: expiresAt,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(notes.id, input.noteId), eq(notes.ownerId, userId), isNull(notes.deletedAt)))
+    .returning({ id: notes.id, slug: notes.publicShareSlug });
+  if (updated.length === 0) return null;
+  try {
+    await dispatchNoteEvent(userId, 'note.published', {
+      noteId: input.noteId,
+      slug: token,
+      publishedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn(
+      'webhook dispatch note.published failed',
+      err instanceof Error ? err.message : err,
+    );
+  }
+  const path = updated[0]?.slug ? `/p/${updated[0].slug}` : `/p/${token}`;
+  return {
+    token,
+    expiresAt,
+    url: `${origin}${path}`,
+  };
+}
+
+export async function apiDisablePublicShare(userId: string, noteId: string) {
+  const updated = await db
+    .update(notes)
+    .set({ publicShareToken: null, publicShareExpiresAt: null, updatedAt: new Date() })
+    .where(and(eq(notes.id, noteId), eq(notes.ownerId, userId)))
+    .returning({ id: notes.id });
+  if (updated.length === 0) return null;
+  try {
+    await dispatchNoteEvent(userId, 'note.unpublished', {
+      noteId,
+      unpublishedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn(
+      'webhook dispatch note.unpublished failed',
+      err instanceof Error ? err.message : err,
+    );
+  }
+  return { disabled: true, id: noteId };
+}
+
+export async function apiGetPublicShareStatus(userId: string, noteId: string, origin: string) {
+  const [row] = await db
+    .select({
+      token: notes.publicShareToken,
+      expiresAt: notes.publicShareExpiresAt,
+      slug: notes.publicShareSlug,
+      imageUrl: notes.publicShareImageUrl,
+    })
+    .from(notes)
+    .where(and(eq(notes.id, noteId), eq(notes.ownerId, userId)))
+    .limit(1);
+  if (!row) return null;
+  if (!row.token) return { enabled: false as const };
+  const path = row.slug ? `/p/${row.slug}` : `/p/${row.token}`;
+  return {
+    enabled: true as const,
+    token: row.token,
+    expiresAt: row.expiresAt,
+    url: `${origin}${path}`,
+    imageUrl: row.imageUrl,
+  };
+}
+
+// Silence unused-import warning when only some helpers above are imported by callers.
+export const _mcp_internals = { inArray };

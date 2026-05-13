@@ -30,10 +30,19 @@ import {
   apiArchiveNote,
   apiCreateFolder,
   apiCreateNote,
+  apiCreateTag,
+  apiDisablePublicShare,
+  apiEnablePublicShare,
   apiGetNote,
+  apiGetPublicShareStatus,
+  apiListAssets,
   apiListFolders,
+  apiListNoteTags,
   apiListNotes,
+  apiListTags,
   apiSearchNotes,
+  apiTagNote,
+  apiUntagNote,
   apiUpdateNote,
 } from '@/server/notes-api';
 
@@ -46,7 +55,7 @@ interface ToolDef {
   inputSchema: Record<string, unknown>;
   requiredScope: string;
   /** Returns the MCP `content` array. */
-  handler: (args: unknown, ctx: { userId: string }) => Promise<unknown>;
+  handler: (args: unknown, ctx: { userId: string }, meta: { origin: string }) => Promise<unknown>;
 }
 
 const TOOLS: ToolDef[] = [
@@ -247,6 +256,159 @@ const TOOLS: ToolDef[] = [
       return u ?? null;
     },
   },
+  // ─── Tags ────────────────────────────────────────────────────────────
+  {
+    name: 'tags.list',
+    description: 'List all tags belonging to the user.',
+    requiredScope: 'notes:read',
+    inputSchema: { type: 'object', properties: {} },
+    handler: async (_a, { userId }) => apiListTags(userId),
+  },
+  {
+    name: 'tags.create',
+    description: 'Create a new tag. Returns the existing tag if one with the same name exists.',
+    requiredScope: 'notes:write',
+    inputSchema: {
+      type: 'object',
+      required: ['name'],
+      properties: {
+        name: { type: 'string', minLength: 1, maxLength: 60 },
+        color: { type: 'string' },
+      },
+    },
+    handler: async (args, { userId }) => {
+      const a = z
+        .object({ name: z.string().min(1).max(60), color: z.string().max(30).optional() })
+        .parse(args ?? {});
+      const t = await apiCreateTag(userId, a.name, a.color);
+      if (!t) throw mcpError(-32603, 'Could not create tag.');
+      return t;
+    },
+  },
+  {
+    name: 'notes.listTags',
+    description: 'List the tags attached to a specific note.',
+    requiredScope: 'notes:read',
+    inputSchema: {
+      type: 'object',
+      required: ['noteId'],
+      properties: { noteId: { type: 'string' } },
+    },
+    handler: async (args, { userId }) => {
+      const a = z.object({ noteId: z.string().min(1) }).parse(args ?? {});
+      const r = await apiListNoteTags(userId, a.noteId);
+      if (r === null) throw mcpError(-32004, 'Note not found.');
+      return r;
+    },
+  },
+  {
+    name: 'notes.tag',
+    description: 'Attach an existing tag to a note (idempotent).',
+    requiredScope: 'notes:write',
+    inputSchema: {
+      type: 'object',
+      required: ['noteId', 'tagId'],
+      properties: { noteId: { type: 'string' }, tagId: { type: 'string' } },
+    },
+    handler: async (args, { userId }) => {
+      const a = z.object({ noteId: z.string().min(1), tagId: z.string().min(1) }).parse(args ?? {});
+      const r = await apiTagNote(userId, a.noteId, a.tagId);
+      if (!r) throw mcpError(-32004, 'Note or tag not found.');
+      return r;
+    },
+  },
+  {
+    name: 'notes.untag',
+    description: 'Detach a tag from a note (idempotent).',
+    requiredScope: 'notes:write',
+    inputSchema: {
+      type: 'object',
+      required: ['noteId', 'tagId'],
+      properties: { noteId: { type: 'string' }, tagId: { type: 'string' } },
+    },
+    handler: async (args, { userId }) => {
+      const a = z.object({ noteId: z.string().min(1), tagId: z.string().min(1) }).parse(args ?? {});
+      const r = await apiUntagNote(userId, a.noteId, a.tagId);
+      if (!r) throw mcpError(-32004, 'Note not found.');
+      return r;
+    },
+  },
+  // ─── Attachments ─────────────────────────────────────────────────────
+  {
+    name: 'notes.listAttachments',
+    description:
+      'List uploaded assets (images, drawings, files) attached to a note. Returns URLs only — fetch the file separately if you need its bytes.',
+    requiredScope: 'notes:read',
+    inputSchema: {
+      type: 'object',
+      required: ['noteId'],
+      properties: { noteId: { type: 'string' } },
+    },
+    handler: async (args, { userId }) => {
+      const a = z.object({ noteId: z.string().min(1) }).parse(args ?? {});
+      const r = await apiListAssets(userId, a.noteId);
+      if (r === null) throw mcpError(-32004, 'Note not found.');
+      return r;
+    },
+  },
+  // ─── Public share ────────────────────────────────────────────────────
+  {
+    name: 'share.enable',
+    description:
+      'Enable a public read-only share link for a note. Optionally expire it after N days.',
+    requiredScope: 'notes:write',
+    inputSchema: {
+      type: 'object',
+      required: ['noteId'],
+      properties: {
+        noteId: { type: 'string' },
+        expiresInDays: { type: 'integer', minimum: 1, maximum: 365 },
+      },
+    },
+    handler: async (args, { userId }, { origin }) => {
+      const a = z
+        .object({
+          noteId: z.string().min(1),
+          expiresInDays: z.number().int().min(1).max(365).optional(),
+        })
+        .parse(args ?? {});
+      const r = await apiEnablePublicShare(userId, a, origin);
+      if (!r) throw mcpError(-32004, 'Note not found.');
+      return r;
+    },
+  },
+  {
+    name: 'share.disable',
+    description: 'Revoke the public share link for a note.',
+    requiredScope: 'notes:write',
+    inputSchema: {
+      type: 'object',
+      required: ['noteId'],
+      properties: { noteId: { type: 'string' } },
+    },
+    handler: async (args, { userId }) => {
+      const a = z.object({ noteId: z.string().min(1) }).parse(args ?? {});
+      const r = await apiDisablePublicShare(userId, a.noteId);
+      if (!r) throw mcpError(-32004, 'Note not found.');
+      return r;
+    },
+  },
+  {
+    name: 'share.status',
+    description: 'Get the current public-share status for a note (enabled, URL, expiry).',
+    requiredScope: 'notes:read',
+    inputSchema: {
+      type: 'object',
+      required: ['noteId'],
+      properties: { noteId: { type: 'string' } },
+    },
+    handler: async (args, { userId }, { origin }) => {
+      const a = z.object({ noteId: z.string().min(1) }).parse(args ?? {});
+      const r = await apiGetPublicShareStatus(userId, a.noteId, origin);
+      if (!r) throw mcpError(-32004, 'Note not found.');
+      return r;
+    },
+  },
 ];
 
 const TOOL_INDEX = new Map(TOOLS.map((t) => [t.name, t]));
@@ -352,7 +514,8 @@ export async function POST(req: Request) {
       }
 
       try {
-        const result = await tool.handler(p?.arguments, { userId: auth.userId });
+        const origin = new URL(req.url).origin;
+        const result = await tool.handler(p?.arguments, { userId: auth.userId }, { origin });
         return jsonRpcOk(id, {
           content: [
             {
