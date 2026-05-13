@@ -4,7 +4,18 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createHash, randomBytes } from 'node:crypto';
 import { auth } from '@/auth';
-import { db, notes, noteCollaborators, noteInvites, users, eq, and, or, sql } from '@notai/db';
+import {
+  db,
+  notes,
+  noteCollaborators,
+  noteInvites,
+  notifications,
+  users,
+  eq,
+  and,
+  or,
+  sql,
+} from '@notai/db';
 import { sendEmail } from '@/server/email';
 import { sendPushToUser } from '@/server/push/dispatch';
 import { dispatchNoteEvent } from '@/server/actions/webhooks';
@@ -178,6 +189,23 @@ export async function inviteToNote(input: z.input<typeof inviteSchema>) {
       url: `/app/n/${noteId}`,
       tag: `note-share-${noteId}`,
     }).catch(() => undefined);
+    try {
+      await db.insert(notifications).values({
+        userId: existing.id,
+        kind: 'invite_received',
+        payload: {
+          noteId,
+          noteTitle: noteRow?.title ?? undefined,
+          fromUserId: me.id,
+          fromUserName: inviterName,
+        },
+      });
+    } catch (err) {
+      console.warn(
+        'notification insert invite_received failed',
+        err instanceof Error ? err.message : err,
+      );
+    }
     revalidatePath(`/app/n/${noteId}`);
     try {
       await dispatchNoteEvent(me.id, 'note.shared', {
