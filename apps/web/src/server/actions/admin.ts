@@ -14,6 +14,7 @@ import {
   isNotNull,
   gte,
   users,
+  sessions,
   notes,
   assets,
   subscriptions,
@@ -310,6 +311,27 @@ export async function unsuspendUser(userId: string) {
   });
   revalidatePath(`/admin/users/${userId}`);
   revalidatePath('/admin/users');
+}
+
+/**
+ * Invalidate every active database session for a user. The next request
+ * from any of their devices will land on /signin. Auth.js does not have
+ * a built-in admin "force logout"; we delete the rows directly.
+ */
+export async function forceLogoutUser(input: { userId: string; reason?: string }) {
+  await requirePermission('users:suspend');
+  const deleted = await db
+    .delete(sessions)
+    .where(eq(sessions.userId, input.userId))
+    .returning({ token: sessions.sessionToken });
+  await audit({
+    action: 'user.force_logout',
+    resourceType: 'user',
+    resourceId: input.userId,
+    metadata: { revokedSessionCount: deleted.length, reason: input.reason ?? null },
+  });
+  revalidatePath(`/admin/users/${input.userId}`);
+  return { revoked: deleted.length };
 }
 
 export async function adminGrantRole(input: { userId: string; roleName: RoleName }) {

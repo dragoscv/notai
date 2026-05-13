@@ -6,6 +6,7 @@ import { Button, Input, Label, Badge } from '@notai/ui';
 import {
   suspendUser,
   unsuspendUser,
+  forceLogoutUser,
   adminGrantRole,
   adminRevokeRole,
 } from '@/server/actions/admin';
@@ -78,6 +79,36 @@ export function UserActions({
             </Button>
           ) : (
             <p className="text-muted-foreground text-sm">Account deleted.</p>
+          )}
+          {status !== 'deleted' && (
+            <div className="border-border/60 mt-4 border-t pt-3">
+              <p className="text-muted-foreground mb-2 text-xs">
+                Revoke every active database session. The user is signed out everywhere on next
+                request.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={() =>
+                  start(async () => {
+                    if (!window.confirm('Force sign-out from every device for this user?')) return;
+                    try {
+                      const { revoked } = await forceLogoutUser({ userId });
+                      toast.success(
+                        revoked > 0
+                          ? `Revoked ${revoked} session${revoked === 1 ? '' : 's'}`
+                          : 'No active sessions',
+                      );
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : 'Failed');
+                    }
+                  })
+                }
+              >
+                Force sign-out
+              </Button>
+            </div>
           )}
         </div>
       </Section>
