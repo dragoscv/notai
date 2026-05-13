@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { auth } from '@/auth';
 import { getNote, touchNoteOpened } from '@/server/actions/notes';
 import { NoteWorkspace } from '@/components/note/note-workspace';
@@ -27,10 +28,13 @@ export default async function NotePage({ params }: { params: Promise<{ id: strin
   const secret = process.env.HOCUSPOCUS_JWT_SECRET;
   if (!secret) throw new Error('HOCUSPOCUS_JWT_SECRET missing');
 
+  const tAccount = await getTranslations('appShell.account');
+  const anonName = tAccount('anonymous');
+
   const token = await signRealtimeToken(
     {
       sub: session.user.id,
-      name: session.user.name ?? 'Anon',
+      name: session.user.name ?? anonName,
       email: session.user.email ?? '',
       noteId: id,
       role: note.ownerId === session.user.id ? 'owner' : 'editor',
@@ -45,7 +49,7 @@ export default async function NotePage({ params }: { params: Promise<{ id: strin
       realtimeUrl={process.env.NEXT_PUBLIC_HOCUSPOCUS_URL!}
       user={{
         id: session.user.id,
-        name: session.user.name ?? 'Anon',
+        name: session.user.name ?? anonName,
         email: session.user.email ?? '',
         image: session.user.image ?? null,
       }}
