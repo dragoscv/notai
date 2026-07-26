@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation';
 import { DOCS_BY_SLUG, DOCS } from '../_content';
 import { ogCard, OG_SIZE, OG_CONTENT_TYPE } from '@/lib/og-card';
 
-export const runtime = 'edge';
 export const alt = 'Notai docs';
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
