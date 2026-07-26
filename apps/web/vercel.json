@@ -6,56 +6,6 @@
   "outputDirectory": ".next",
   "ignoreCommand": "node ../../scripts/vercel-should-build.mjs",
   "regions": ["fra1"],
-  "crons": [
-    {
-      "path": "/api/cron/purge-trash",
-      "schedule": "13 3 * * *"
-    },
-    {
-      "path": "/api/cron/embed-notes",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron/daily-note",
-      "schedule": "5 * * * *"
-    },
-    {
-      "path": "/api/cron/push-daily-review",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/cron/webhook-hygiene",
-      "schedule": "30 4 * * *"
-    },
-    {
-      "path": "/api/cron/purge-pending-deletions",
-      "schedule": "45 3 * * *"
-    },
-    {
-      "path": "/api/cron/daily-digest",
-      "schedule": "20 * * * *"
-    },
-    {
-      "path": "/api/cron/webhook-worker",
-      "schedule": "* * * * *"
-    },
-    {
-      "path": "/api/cron/purge-audit-log",
-      "schedule": "55 3 * * *"
-    },
-    {
-      "path": "/api/cron/error-budget",
-      "schedule": "10 9 * * *"
-    },
-    {
-      "path": "/api/cron/workspace-digest",
-      "schedule": "0 8 * * 1"
-    },
-    {
-      "path": "/api/cron/welcome-emails",
-      "schedule": "0 9 * * *"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
