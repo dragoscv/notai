@@ -5,7 +5,9 @@
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
   "outputDirectory": ".next",
   "ignoreCommand": "node ../../scripts/vercel-should-build.mjs",
-  "regions": ["fra1"],
+  "regions": [
+    "fra1"
+  ],
   "headers": [
     {
       "source": "/(.*)",
